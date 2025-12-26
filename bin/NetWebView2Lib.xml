@@ -1,0 +1,642 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>NetWebView2Lib</name>
+    </assembly>
+    <members>
+        <member name="T:NetWebView2Lib.IJsonParser">
+            <summary>
+            COM interface for JsonParser class.
+            </summary> 
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.Parse(System.String)">
+            <summary>
+            Parses a JSON string. Automatically detects if it's an Object or an Array.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.GetTokenValue(System.String)">
+            <summary>
+            Retrieves a value by JSON path (e.g., "items[0].name").
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.GetArrayLength(System.String)">
+            <summary>
+            Returns the count of elements if the JSON is an array.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.SetTokenValue(System.String,System.String)">
+            <summary>
+            Updates or adds a value at the specified path (only for JObject).
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.LoadFromFile(System.String)">
+            <summary>
+            Loads JSON content directly from a file.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.SaveToFile(System.String)">
+            <summary>
+            Saves the current JSON state back to a file.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.Exists(System.String)">
+            <summary>
+            Checks if a path exists in the current JSON structure.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.Clear">
+            <summary>
+            Clears the internal data.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.GetJson">
+            <summary>
+            Returns the full JSON string.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.EscapeString(System.String)">
+            <summary>
+            Escapes a string to be safe for use in JSON.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.UnescapeString(System.String)">
+            <summary>
+            Unescapes a JSON string back to plain text.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.GetPrettyJson">
+            <summary>
+            Returns the JSON string with nice formatting (Indented).
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IJsonParser.GetMinifiedJson">
+            <summary>
+            Minifies a JSON string (removes spaces and new lines).
+            </summary>
+        </member>
+        <member name="T:NetWebView2Lib.JsonParser">
+            <summary>
+            Provides methods for parsing, manipulating, and serializing JSON data using Newtonsoft.Json. Supports both JSON
+            objects and arrays, and enables reading from and writing to files, querying values by path, and formatting JSON
+            output.
+            </summary>
+            <remarks>The JsonParser class is designed for simple JSON operations and is compatible with COM
+            interop. It automatically detects whether the input JSON is an object or an array and exposes methods for common
+            tasks such as value retrieval, modification, and file I/O. Thread safety is not guaranteed; if used from
+            multiple threads, external synchronization is required.</remarks>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.Parse(System.String)">
+            <summary>
+            Parses a JSON string. Automatically detects if it's an Object or an Array.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.LoadFromFile(System.String)">
+            <summary>
+            Loads JSON content directly from a file.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.SaveToFile(System.String)">
+            <summary>
+            Saves the current JSON state back to a file.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.SetTokenValue(System.String,System.String)">
+            <summary>
+            Updates or adds a value at the specified path (only for JObject).
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.GetArrayLength(System.String)">
+            <summary>
+            Returns the count of elements if the JSON is an array.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.GetTokenValue(System.String)">
+            <summary>
+            Retrieves a value by JSON path (e.g., "items[0].name").
+            </summary> 
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.Exists(System.String)">
+            <summary>
+            Checks if a path exists in the current JSON structure.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.Clear">
+            <summary>
+            Clears the internal data.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.GetJson">
+            <summary>
+            Returns the full JSON string.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.EscapeString(System.String)">
+            <summary>
+            Escapes a string to be safe for use in JSON.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.UnescapeString(System.String)">
+            <summary>
+            Unescapes a JSON string back to plain text.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.GetPrettyJson">
+            <summary>
+            Returns the JSON string with nice formatting (Indented).
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.JsonParser.GetMinifiedJson">
+            <summary>
+            Minifies a JSON string (removes spaces and new lines).
+            </summary>
+        </member>
+        <member name="T:NetWebView2Lib.IBridgeEvents">
+            <summary>
+            Event interface for receiving messages from AutoIt.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IBridgeEvents.OnMessageReceived(System.String)">
+            <summary>
+            Triggered when a message is received.
+            </summary>
+            <param name="message">The message content.</param>
+        </member>
+        <member name="T:NetWebView2Lib.IBridgeActions">
+            <summary>
+            Action interface for sending messages to AutoIt.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IBridgeActions.RaiseMessage(System.String)">
+            <summary>
+            Send a message to AutoIt.
+            </summary>
+            <param name="message">The message to send.</param>
+        </member>
+        <member name="T:NetWebView2Lib.WebViewBridge">
+            <summary>
+            Implementation of the bridge between WebView2 and AutoIt.
+            </summary>
+        </member>
+        <member name="E:NetWebView2Lib.WebViewBridge.OnMessageReceived">
+            <summary>
+            Event fired when a message is received.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewBridge.#ctor">
+            <summary>
+            Initializes a new instance of the WebViewBridge class.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewBridge.RaiseMessage(System.String)">
+            <summary>
+            Send a message to AutoIt.
+            </summary>
+            <param name="message">The message content.</param>
+        </member>
+        <member name="T:NetWebView2Lib.IWebViewEvents">
+            <summary>
+            Events sent from C# to AutoIt.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewEvents.OnMessageReceived(System.String)">
+            <summary>
+            Triggered when a message is sent from the WebView.
+            </summary>
+            <param name="message">The message content.</param>
+        </member>
+        <member name="T:NetWebView2Lib.IWebViewActions">
+            <summary>
+            Actions available to call from AutoIt.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.Initialize(System.Object,System.String,System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>Initialize the WebView.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.Navigate(System.String)">
+            <summary>Navigate to a URL.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.NavigateToString(System.String)">
+            <summary>Navigate to HTML content.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ExecuteScript(System.String)">
+            <summary>Execute JavaScript.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.Resize(System.Int32,System.Int32)">
+            <summary>Resize the WebView.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.Cleanup">
+            <summary>Clean up resources.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GetBridge">
+            <summary>Get the Bridge object.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ExportToPdf(System.String)">
+            <summary>Export to PDF.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.IsReady">
+            <summary>Check if ready.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.SetContextMenuEnabled(System.Boolean)">
+            <summary>Enable/Disable Context Menu.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.LockWebView">
+            <summary>Lock the WebView.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.DisableBrowserFeatures">
+            <summary>Disable browser features.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GoBack">
+            <summary>Go Back.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ResetZoom">
+            <summary>Reset Zoom.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.InjectCss(System.String)">
+            <summary>Inject CSS.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ClearInjectedCss">
+            <summary>Clear Injected CSS.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ToggleAuditHighlights(System.Boolean)">
+            <summary>Toggle Audit Highlights.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.SetAdBlock(System.Boolean)">
+            <summary>Set AdBlock active state.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.AddBlockRule(System.String)">
+            <summary>Add a block rule.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ClearBlockRules">
+            <summary>Clear all block rules.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GoForward">
+            <summary>Go Forward.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GetHtmlSource">
+            <summary>Get HTML Source.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GetSelectedText">
+            <summary>Get Selected Text.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.SetZoom(System.Double)">
+            <summary>Set Zoom factor.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ParseJsonToInternal(System.String)">
+            <summary>Parse JSON to internal storage.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GetInternalJsonValue(System.String)">
+            <summary>Get value from internal JSON.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ClearBrowserData">
+            <summary>Clear browsing data.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.Reload">
+            <summary>Reload.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.Stop">
+            <summary>Stop loading.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.ShowPrintUI">
+            <summary>Show Print UI.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.SetMuted(System.Boolean)">
+            <summary>Set Muted state.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.IsMuted">
+            <summary>Check if Muted.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.SetUserAgent(System.String)">
+            <summary>Set User Agent.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GetDocumentTitle">
+            <summary>Get Document Title.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GetSource">
+            <summary>Get Source URL.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.SetScriptEnabled(System.Boolean)">
+            <summary>Enable/Disable Script.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.SetWebMessageEnabled(System.Boolean)">
+            <summary>Enable/Disable Web Message.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.SetStatusBarEnabled(System.Boolean)">
+            <summary>Enable/Disable Status Bar.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.CapturePreview(System.String,System.String)">
+            <summary>Capture Preview.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.CallDevToolsProtocolMethod(System.String,System.String)">
+            <summary>Call CDP Method.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.GetCookies(System.String)">
+            <summary>Get Cookies.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.AddCookie(System.String,System.String,System.String,System.String)">
+            <summary>Add a Cookie.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.DeleteCookie(System.String,System.String,System.String)">
+            <summary>Delete a Cookie.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.DeleteAllCookies">
+            <summary>Delete All Cookies.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.Print">
+            <summary>Print.</summary>
+        </member>
+        <member name="M:NetWebView2Lib.IWebViewActions.AddExtension(System.String)">
+            <summary>Add Extension.</summary>
+        </member>
+        <member name="T:NetWebView2Lib.WebViewManager">
+            <summary>
+            The Main Manager Class for WebView2 Interaction.
+            </summary>
+        </member>
+        <member name="T:NetWebView2Lib.WebViewManager.OnMessageReceivedDelegate">
+            <summary>
+            Delegate for detecting when messages are received.
+            </summary>
+            <param name="message">The message content.</param>
+        </member>
+        <member name="E:NetWebView2Lib.WebViewManager.OnMessageReceived">
+            <summary>
+            Event fired when a message is received.
+            </summary>
+        </member>
+        <member name="T:NetWebView2Lib.WebViewManager.Rect">
+            <summary>
+            A simple Rectangle struct.
+            </summary>
+        </member>
+        <member name="F:NetWebView2Lib.WebViewManager.Rect.Left">
+            <summary>Left position</summary>
+        </member>
+        <member name="F:NetWebView2Lib.WebViewManager.Rect.Top">
+            <summary>Top position</summary>
+        </member>
+        <member name="F:NetWebView2Lib.WebViewManager.Rect.Right">
+            <summary>Right position</summary>
+        </member>
+        <member name="F:NetWebView2Lib.WebViewManager.Rect.Bottom">
+            <summary>Bottom position</summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.#ctor">
+            <summary>
+            Initializes a new instance of the WebViewManager class.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GetBridge">
+            <summary>
+            Get the Bridge object for AutoIt interaction.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.IsReady">
+            <summary>
+            Check if WebView2 is initialized and ready.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.Initialize(System.Object,System.String,System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Initializes the WebView2 control within the specified parent window handle.
+            Supports browser extensions and custom user data folders.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.AddExtension(System.String)">
+            <summary>
+            Adds a browser extension from an unpacked folder (containing manifest.json).
+            This method should be called after receiving the "INIT_READY" message.
+            </summary>
+            <param name="extensionPath">The full path to the unpacked extension folder.</param>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ConfigureSettings">
+            <summary>
+            Configure WebView2 settings.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.DisableBrowserFeatures">
+            <summary>
+            Disable certain browser features for a controlled environment.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.RegisterEvents">
+            <summary>
+            Register event handlers for WebView2 events.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ClearBrowserData">
+            <summary>
+            Clear browser data (cookies, cache, history, etc.).
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.LockWebView">
+            <summary>
+            Lock down the WebView by disabling certain features.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.Stop">
+            <summary>
+            Stops any ongoing navigation or loading.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ShowPrintUI">
+            <summary>
+            Shows the print UI dialog.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.SetMuted(System.Boolean)">
+            <summary>
+            Sets the mute status for audio.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.IsMuted">
+            <summary>
+            Gets the current mute status.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.Reload">
+            <summary>
+            Reload the current page.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GoBack">
+            <summary>
+            Navigate back in history.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GoForward">
+            <summary>
+            Navigate forward in history.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ResetZoom">
+            <summary>
+            Reset zoom to default (100%).
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ClearBlockRules">
+            <summary>
+            Clear all ad block rules.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.SetContextMenuEnabled(System.Boolean)">
+            <summary>
+            Enable or disable the default context menu.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.Navigate(System.String)">
+            <summary>
+            Navigate to a specified URL.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.NavigateToString(System.String)">
+            <summary>
+            Navigate to a string containing HTML content.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ExecuteScript(System.String)">
+            <summary>
+            Execute arbitrary JavaScript code.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.InjectCss(System.String)">
+            <summary>
+            Inject CSS code into the current page.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ClearInjectedCss">
+            <summary>
+            Remove previously injected CSS.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ToggleAuditHighlights(System.Boolean)">
+            <summary>
+            Toggle audit highlights on/off.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GetHtmlSource">
+            <summary>
+            Retrieve the full HTML source of the current page.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GetSelectedText">
+            <summary>
+            Retrieve the currently selected text on the page.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.CleanJsString(System.String)">
+            <summary>
+            Clean up JavaScript string results.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.Resize(System.Int32,System.Int32)">
+            <summary>
+            Resize the WebView control.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.Cleanup">
+            <summary>
+            Clean up resources.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.SetZoom(System.Double)">
+            <summary>
+            Set the zoom factor.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ExportToPdf(System.String)">
+            <summary>
+            Export the current page to a PDF file.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.SetAdBlock(System.Boolean)">
+            <summary>
+            Ad Block Methods. set AdBlock active state.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.AddBlockRule(System.String)">
+            <summary>
+            Add a domain to the block list.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.ParseJsonToInternal(System.String)">
+            <summary>
+            Parse JSON into the internal parser.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GetInternalJsonValue(System.String)">
+            <summary>
+            Get a value from the internal JSON parser.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.SetUserAgent(System.String)">
+            <summary>
+            Set a custom User Agent.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GetDocumentTitle">
+            <summary>
+            Get the Document Title.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GetSource">
+            <summary>
+            Get the Current Source URL.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.SetScriptEnabled(System.Boolean)">
+            <summary>
+            Enable or Disable JavaScript execution.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.SetWebMessageEnabled(System.Boolean)">
+            <summary>
+            Enable or Disable Web Messages (Communication).
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.SetStatusBarEnabled(System.Boolean)">
+            <summary>
+            Enable or Disable the Status Bar.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.CapturePreview(System.String,System.String)">
+            <summary>
+            Capture a screenshot (preview) of the current view.
+            </summary>
+            <param name="filePath">The destination file path.</param>
+            <param name="format">The format (png or jpg).</param>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.CallDevToolsProtocolMethod(System.String,System.String)">
+            <summary>
+            Call a DevTools Protocol (CDP) method directly.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.GetCookies(System.String)">
+            <summary>
+            Get Cookies asynchronously. Results are sent via the COOKIES_RECEIVED event.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.AddCookie(System.String,System.String,System.String,System.String)">
+            <summary>
+            Add or Update a Cookie.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.DeleteCookie(System.String,System.String,System.String)">
+            <summary>
+            Delete a specific Cookie.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.DeleteAllCookies">
+            <summary>
+            Delete All Cookies.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.Print">
+            <summary>
+            Initiate the native Print dialog.
+            </summary>
+        </member>
+        <member name="M:NetWebView2Lib.WebViewManager.InvokeOnUiThread(System.Action)">
+            Invoke actions on the UI thread
+        </member>
+    </members>
+</doc>

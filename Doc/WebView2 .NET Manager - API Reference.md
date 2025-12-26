@@ -1,54 +1,10 @@
-# AutoIt WebView2 Component (COM Interop)
-
 A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebView2** (Chromium) engine via a C# COM wrapper. This project enables you to render modern HTML5, CSS3, and JavaScript directly inside your AutoIt applications with a 100% event-driven architecture.
 
 ---
 
-## 🚀 Key Features
+## 1. WebViewManager (`NetWebView2.Manager`)
 
-* **Chromium Engine**: Leverage the speed and security of modern Microsoft Edge.
-* **Bi-directional Communication**: Send messages from JS to AutoIt (`postMessage`) and execute JS from AutoIt (`ExecuteScript`).
-* **Event-Driven**: No more `While/Sleep` loops to check for updates. Uses COM Sinks for instant notifications.
-* **Advanced JSON Handling**: Includes a built-in `JsonParser` for deep-path data access (e.g., `user.items\[0].name`).
-* **Content Control**: Built-in Ad-blocker, CSS injection, and Zoom control.
-* **Dual Architecture**: Fully supports both **x86** and **x64** environments.
-- **Extension Support**: Load and use Chromium extensions (unpacked).
-- **Advanced Cookie & CDP Control**: Full cookie manipulation and raw access to Chrome DevTools Protocol.
-- **Kiosk & Security Mode**: Enhanced methods to restrict user interaction for production environments.
-
-
----
-
-## 🛠 Prerequisites
-
-1. **.NET Framework 4.8** or higher.
-2. **Microsoft Edge WebView2 Runtime**.
-
-   * *The registration script will check for this and provide a download link if missing.*
-
-
----
-
-## 📦 Deployment \& Installation
-
-1. **Extract** NetWebView2Lib folder to a permanent location.
-2. **Run**:
-    `\NetWebView2Lib\WebView2AutoIt\Register_web2.au3` to Register
-   * Verifies the WebView2 Runtime presence.
-   * Registers `NetWebView2Lib.dll` for COM Interop on both 32-bit and 64-bit.
-     
-    or `\NetWebView2Lib\WebView2AutoIt\Unregister.au3` to Unregister
-
-1. **Run `\Example\*`** to see the bridge in action.
-
-
----
-
-## 📖 API Reference (Quick View)
-
-### **WebView Manager** (`NetWebView2.Manager`)
-
-#### **Lifecycle & Core State**
+### **Lifecycle & Core State**
 
 |**Method**|**Description**|
 |---|---|
@@ -57,7 +13,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 |**`.Cleanup()`**|Releases all resources and closes the browser engine.|
 |**`.GetBridge()`**|Returns the `IBridgeActions` object for AutoIt/JS communication.|
 
-#### **Navigation & Document**
+### **Navigation & Document**
 
 |**Method**|**Description**|
 |---|---|
@@ -72,7 +28,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 |**`.GetHtmlSource()`**|Triggers a request to retrieve the full HTML source.|
 |**`.GetSelectedText()`**|Retrieves currently selected text from the page.|
 
-#### **UI & Layout**
+### **UI & Layout**
 
 |**Method**|**Description**|
 |---|---|
@@ -85,7 +41,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 |**`.IsMuted()`**|Returns the current mute state (`Boolean`).|
 |**`.SetUserAgent(string)`**|Sets a custom User Agent string.|
 
-#### **Security & Restrictions**
+### **Security & Restrictions**
 
 |**Method**|**Description**|
 |---|---|
@@ -94,7 +50,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 |**`.SetScriptEnabled(bool)`**|Enables or disables JavaScript execution.|
 |**`.SetWebMessageEnabled(bool)`**|Enables or disables Web Message communication.|
 
-#### **Scripting & CSS**
+### **Scripting & CSS**
 
 |**Method**|**Description**|
 |---|---|
@@ -103,7 +59,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 |**`.ClearInjectedCss()`**|Removes all previously injected CSS.|
 |**`.ToggleAuditHighlights(bool)`**|Toggles visual audit highlights for debugging.|
 
-#### **Content Filtering (AdBlock)**
+### **Content Filtering (AdBlock)**
 
 |**Method**|**Description**|
 |---|---|
@@ -111,7 +67,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 |**`.AddBlockRule(domain)`**|Adds a specific domain or pattern to the block list.|
 |**`.ClearBlockRules()`**|Removes all active blocking rules.|
 
-#### **Advanced Features**
+### **Advanced Features**
 
 |**Method**|**Description**|
 |---|---|
@@ -123,7 +79,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 |**`.CallDevToolsProtocolMethod(method, json)`**|Directly calls a CDP method.|
 |**`.ClearBrowserData()`**|Wipes history, cache, and other browsing data.|
 
-#### **Cookie Management**
+### **Cookie Management**
 
 |**Method**|**Description**|
 |---|---|
@@ -132,7 +88,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 |**`.DeleteCookie(name, dom, path)`**|Deletes a specific cookie.|
 |**`.DeleteAllCookies()`**|Clears all cookies from the session.|
 
-#### **Internal JSON Support**
+### **Internal JSON Support**
 
 |**Method**|**Description**|
 |---|---|
@@ -141,9 +97,9 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 
 ---
 
-### 2. JsonParser (`NetJson.Parser`)
+## 2. JsonParser (`NetJson.Parser`)
 
-#### **Methods**
+### **Methods**
 
 | **Method**                        | **Description**                                   |
 | --------------------------------- | ------------------------------------------------- |
@@ -160,12 +116,4 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 | **`.UnescapeString(text)`**       | Reverts JSON-escaped text.                        |
 | **`.Clear()`**                    | Resets the parser state.                          |
 
-
 ---
-
-## ⚖️ License
-
-This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
-
----
-
