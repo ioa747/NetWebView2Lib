@@ -33,11 +33,11 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 
 1. **Extract** NetWebView2Lib folder to a permanent location.
 2. **Run**:
-    `\NetWebView2Lib\WebView2AutoIt\Register_web2.au3` to Register
+    `NetWebView2Lib-1.3.0\bin\Register_web2.au3` to Register
    * Verifies the WebView2 Runtime presence.
    * Registers `NetWebView2Lib.dll` for COM Interop on both 32-bit and 64-bit.
      
-    or `\NetWebView2Lib\WebView2AutoIt\Unregister.au3` to Unregister
+    or `NetWebView2Lib-1.3.0\bin\Unregister.au3` to Unregister
 
 1. **Run `\Example\*`** to see the bridge in action.
 
