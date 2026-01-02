@@ -19,9 +19,10 @@ This version introduces significant architectural improvements, focusing on deep
 Due to changes in the COM Dispatch IDs (DispIds) for better organization, it is **highly recommended** to run the included `RegCleaner.au3` before registering the new version. This ensures that any stale registry entries from previous builds are purged, preventing "Object action failed" errors.
 
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
+</p>
 
----
----
 
 ### 📖 Understanding the WebDemo (v1.4)
 
@@ -96,8 +97,9 @@ The secret behind this intelligent menu is the seamless communication between th
 > "You can extend this! If you want to detect specifically if a user clicked on a **Video** or a **PDF link**, just update the `bridge.js` to include those tags. 
 
 
----
----
+<p align="center">
+  <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
+</p>
 
   
 # AutoIt WebView2 Component (COM Interop)
