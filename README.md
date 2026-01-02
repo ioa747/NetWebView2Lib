@@ -1,3 +1,29 @@
+
+## NetWebView2Lib v1.4.0 - Major Update
+
+This version introduces significant architectural improvements, focusing on deep integration with WebView2 settings and a more robust event-driven system.
+
+### 🚀 Key Highlights
+
+* **Comprehensive Settings Control**: Direct access to browser behaviors via new properties. Toggle DevTools, Context Menus, Script Dialogs, and Browser Accelerators (`AreDevToolsEnabled`, `AreDefaultContextMenusEnabled`, etc.) directly from your AutoIt script.
+* **Permanent JS Injection**: Introducing `AddInitializationScript`. Injected JavaScript (like bridges or libraries) now persists across page navigations and refreshes automatically, managed via a new Script ID tracking system.
+* **Custom Context Menus**: Intercept right-clicks with the new `OnContextMenu` event. Receive rich JSON metadata including coordinates, element tags, selected text, and source URLs to build native-looking custom menus.
+* **Focus & Lifecycle Management**: Navigation is now fully observable through `OnNavigationStarting` and `OnNavigationCompleted`.
+* **Integrated Utilities**: Added native methods for `Encode/DecodeURI` and `Base64` (UTF-8) to handle data transfers between AutoIt and JavaScript seamlessly.
+* **Enhanced State Sync**: Real-time events for Title, URL, and Zoom changes to keep your AutoIt GUI perfectly in sync with the browser state.
+
+---
+
+### 🛠️ Migration Note (Important)
+
+Due to changes in the COM Dispatch IDs (DispIds) for better organization, it is **highly recommended** to run the included `RegCleaner.au3` before registering the new version. This ensures that any stale registry entries from previous builds are purged, preventing "Object action failed" errors.
+
+
+
+  ---
+  ---
+
+  
 # AutoIt WebView2 Component (COM Interop)
 
 A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebView2** (Chromium) engine via a C# COM wrapper. This project enables you to render modern HTML5, CSS3, and JavaScript directly inside your AutoIt applications with a 100% event-driven architecture.
