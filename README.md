@@ -37,6 +37,10 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 
 1. **Run `\Example\*`** to see the bridge in action.
 
+### ⚖️ License
+
+This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
@@ -45,13 +49,18 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 
 This version introduces significant architectural improvements, focusing on deep integration with WebView2 settings and a more robust event-driven system.
 
-### 🚀 Key Highlights
+### ✨ Key Highlights
 
 * **Comprehensive Settings Control**: Direct access to browser behaviors via new properties. Toggle DevTools, Context Menus, Script Dialogs, and Browser Accelerators (`AreDevToolsEnabled`, `AreDefaultContextMenusEnabled`, etc.) directly from your AutoIt script.
+  
 * 🎯 **Permanent JS Injection**: Introducing `AddInitializationScript`. Injected JavaScript (like bridges or libraries) now persists across page navigations and refreshes automatically, managed via a new Script ID tracking system.
+  
 * **Custom Context Menus**: Intercept right-clicks with the new `OnContextMenu` event. Receive rich JSON metadata including coordinates, element tags, selected text, and source URLs to build native-looking custom menus.
+  
 * **Focus & Lifecycle Management**: Navigation is now fully observable through `OnNavigationStarting` and `OnNavigationCompleted`.
+  
 * **Integrated Utilities**: Added native methods for `Encode/DecodeURI` and `Base64` (UTF-8) to handle data transfers between AutoIt and JavaScript seamlessly.
+  
 * **Enhanced State Sync**: Real-time events for Title, URL, and Zoom changes to keep your AutoIt GUI perfectly in sync with the browser state.
 
 ---
@@ -463,7 +472,7 @@ Fired when the browser loses focus.
 
 ### JsonParser (ProgId: NetJson.Parser)
 
-## Methods
+#### Methods
 
 ##### Parse
 Parses a JSON string. Automatically detects if it's an Object or an Array.
@@ -519,9 +528,6 @@ Minifies a JSON string (removes spaces and new lines).
 
 ---
 
-## ⚖️ License
-
-This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
 
 ---
 
