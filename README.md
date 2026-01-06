@@ -152,7 +152,7 @@ ConsoleWrite("Page Title: " & $sTitle & @CRLF)
 
 ## 🧬 Understanding the GOG Demo Showcase (v1.4.2)
 
-The **`gogDemo_v1.4.2.au3`** is more than just a browser—it is a showcase of **Hybrid Intelligence**. It demonstrates how AutoIt can seamlessly orchestrate a modern, complex e-commerce environment (GOG.com) by combining native Windows logic with the Edge WebView2 DOM.
+The **`examples\GOG_Demo_v1.4.2\gogDemo.au3`** is more than just a browser—it is a showcase of **Hybrid Intelligence**. It demonstrates how AutoIt can seamlessly orchestrate a modern, complex e-commerce environment (GOG.com) by combining native Windows logic with the Edge WebView2 DOM.
 
 #### 1. Context-Aware Menu (GOG Edition)
 
