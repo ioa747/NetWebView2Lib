@@ -9,7 +9,7 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-// --- Version 1.4.1.1 ---
+// --- Version 1.4.2 ---
 
 namespace NetWebView2Lib
 {
@@ -1695,4 +1695,5 @@ namespace NetWebView2Lib
         }
 
     }
+
 }
