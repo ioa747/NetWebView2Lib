@@ -1,4 +1,4 @@
-## AutoIt WebView2 Component (COM Interop)
+## 🪪 AutoIt WebView2 Component (COM Interop)
 
 A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebView2** (Chromium) engine via a C# COM wrapper. This project enables you to render modern HTML5, CSS3, and JavaScript directly inside your AutoIt applications with a 100% event-driven architecture.
 
@@ -25,132 +25,203 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
    * *The registration script will check for this and provide a download link if missing.*
 
 ---
-### 📦 Deployment \& Installation
+### 📦 Deployment & Installation
 
-1. **Extract** NetWebView2Lib folder to a permanent location.
-2. **Run**:
-    `\NetWebView2Lib\bin\Register_web2.au3` to Register
-   * Verifies the WebView2 Runtime presence.
-   * Registers `NetWebView2Lib.dll` for COM Interop on both 32-bit and 64-bit.
-     
-    or `\NetWebView2Lib\bin\Unregister.au3` to Unregister
+1. **Extract** the `NetWebView2Lib` folder to a permanent location.
+    
+2. **Clean & Prepare (Essential Step):**
+    
+    - If you have a previous version installed, it is **highly recommended** to run the included `\bin\RegCleaner.au3` before registering the new version.
+        
+    - This ensures that any stale registry entries from previous builds are purged, preventing "Object action failed" errors and GUID conflicts.
+        
+3. **Registration:**
+    
+    - Run `\bin\Register_web2.au3` to register the library.
+        
+    - This script verifies the **WebView2 Runtime** presence and registers `NetWebView2Lib.dll` for COM Interop on both 32-bit and 64-bit architectures.
+        
+4. **Uninstallation:**
+    
+    - To remove the library from your system, simply run `\bin\Unregister.au3`.
+        
+5. **Run Examples:**
+    
+    - Execute any script in the `\Example\*` folder to see the bridge in action.
 
-1. **Run `\Example\*`** to see the bridge in action.
 
+---
 ### ⚖️ License
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
 
+---
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## NetWebView2Lib v1.4.0 - Major Update
+## 🚀 What's New in v1.4.2 - Major Update
 
-This version introduces significant architectural improvements, focusing on deep integration with WebView2 settings and a more robust event-driven system.
+This major update transforms **NetWebView2Lib** into a high-performance automation framework, bridging the gap between synchronous procedural logic (AutoIt) and asynchronous web environments.
 
-### ✨ Key Highlights
+### ⚡ Key Features & Enhancements
 
-* **Comprehensive Settings Control**: Direct access to browser behaviors via new properties. Toggle DevTools, Context Menus, Script Dialogs, and Browser Accelerators (`AreDevToolsEnabled`, `AreDefaultContextMenusEnabled`, etc.) directly from your AutoIt script.
-  
-* 🎯 **Permanent JS Injection**: Introducing `AddInitializationScript`. Injected JavaScript (like bridges or libraries) now persists across page navigations and refreshes automatically, managed via a new Script ID tracking system.
-  
-* **Custom Context Menus**: Intercept right-clicks with the new `OnContextMenu` event. Receive rich JSON metadata including coordinates, element tags, selected text, and source URLs to build native-looking custom menus.
-  
-* **Focus & Lifecycle Management**: Navigation is now fully observable through `OnNavigationStarting` and `OnNavigationCompleted`.
-  
-* **Integrated Utilities**: Added native methods for `Encode/DecodeURI` and `Base64` (UTF-8) to handle data transfers between AutoIt and JavaScript seamlessly.
-  
-* **Enhanced State Sync**: Real-time events for Title, URL, and Zoom changes to keep your AutoIt GUI perfectly in sync with the browser state.
+#### **1. Synchronous Script Execution**
+
+The long-awaited `ExecuteScriptWithResult(script)` is here. You can now execute JavaScript and receive the return value directly in a single line of AutoIt code, eliminating the need for complex event-callback chains.
+
+- **Automatic Unescaping:** Results are automatically cleaned from JSON quotes and escaped characters.
+    
+- **Safety First:** Built-in 5-second timeout to prevent application hangs during script execution.
+    
+
+#### **2. Persistent Code Injection**
+
+The new `AddInitializationScript(script)` allows you to register JavaScript or CSS that "survives" page reloads and navigations.
+
+- **Persistence:** Scripts are automatically re-injected by the engine the moment a new document is created.
+    
+- **Stackable:** Multiple scripts can be registered simultaneously without overwriting previous ones.
+    
+
+#### **3. Unified Context Menu Handling**
+
+A new, streamlined event `OnContextMenuRequested` provides direct access to context data without manual JSON parsing.
+
+- **Direct Access:** Instantly get the `LinkURL`, `X/Y Coordinates`, and `SelectedText`.
+    
+- **Legacy Support:** Remains 100% compatible with the previous JSON-based context event for existing projects.
+    
+
+#### **4. Integrated Data Sync & Base64 Support**
+
+- **Direct Data Binding:** The new `SyncInternalData(json, variable)` provides an atomic way to synchronize complex data from AutoIt to the browser window without manual JS execution.
+    
+- **Native Base64 Support:** The `NetJson.Parser` now includes built-in Base64 encoding and decoding (including `DecodeB64ToFile`), providing a high-speed path for processing screenshots and binary data.
+
+#### **5. Professional Layout & Diagnostics**
+
+- **Smart Resizing (v1.4.2):** Replaced legacy docking with native OS message interception for pixel-perfect resizing.
+    
+- **Global Error Handling:** The standard showcase now implements a global COM error handler for professional debugging.
+    
 
 ---
 
-### 🛠️ Migration Note (Important)
+### 📝 Quick Migration Example (AutoIt)
 
-Due to changes in the COM Dispatch IDs (DispIds) for better organization, it is **highly recommended** to run the included `RegCleaner.au3` before registering the new version. This ensures that any stale registry entries from previous builds are purged, preventing "Object action failed" errors.
+**Before (v1.4.1):**
+
+AutoIt
+
+```
+$oWeb.ExecuteScript("document.title")
+; ... Wait for WebMessageReceived event ...
+; ... Parse JSON ...
+```
+
+**Now (v1.4.2):**
+
+AutoIt
+
+```
+Local $sTitle = $oWeb.ExecuteScriptWithResult("document.title")
+ConsoleWrite("Page Title: " & $sTitle & @CRLF)
+```
+
+```
+; --- Now (v1.4.2) ---
+Local $sTitle = $oWeb.ExecuteScriptWithResult("document.title")
+; Result is automatically unescaped and ready for use
+ConsoleWrite("Page Title: " & $sTitle & @CRLF)
+```
+---
+
+### 📦 Technical Breakdown
+
+|**Method / Property**|**DispId**|**Description**|
+|---|---|---|
+|`AddInitializationScript`|184|Persistent JS injection across navigations.|
+|`SyncInternalData`|186|Parses and binds JSON in one step.|
+|`ExecuteScriptWithResult`|188|Synchronous JS execution (Returns String).|
+|`OnContextMenuRequested`|190|Unified 4-parameter context menu event.|
+|`EncodeB64 / DecodeB64`|222-224|Integrated Base64 & File decoding.|
+|`ClearCache`|193|Clears Disk Cache & Local Storage.|
+
+---
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-### 📖 Understanding the WebDemo (v1.4)
 
-The **`WebDemo_v1.4.au3`** is not just a browser, 
- it is a showcase of **Bi-directional Intelligence**. 
- It demonstrates how AutoIt can "read" the DOM state via COM events to provide a context-specific user interface.
+## 🧬 Understanding the GOG Demo Showcase (v1.4.2)
 
-#### 1. Context-Aware Menu (The "Right-Click" Magic)
+The **`gogDemo_v1.4.2.au3`** is more than just a browser—it is a showcase of **Hybrid Intelligence**. It demonstrates how AutoIt can seamlessly orchestrate a modern, complex e-commerce environment (GOG.com) by combining native Windows logic with the Edge WebView2 DOM.
 
-The demo intercepts the native context menu and replaces it with a dynamic AutoIt menu. The options change based on the **HTML element** under your cursor:
+#### 1. Context-Aware Menu (GOG Edition)
 
-- **📥 Table Intelligence**:
+The demo intercepts the native browser menu and replaces it with a dynamic AutoIt menu. The library "senses" exactly what is under your cursor:
+
+- **🎮 Game Tile Intelligence**:
     
-    - **Action**: Right-click anywhere inside a `<table>`.
+    - **Action**: Right-click on a game’s thumbnail or title.
         
-    - **What happens**: The library detects the `tagName`, calculates the table's index via coordinates, and offers an **Export to CSV** option. It uses the `bridge.js` to scrape the data directly from the browser's memory.
+    - **What happens**: The script extracts the `Game ID` and `Price` directly from the DOM, offering options to open the game in a new tab or add it to a local AutoIt-managed Watchlist.
         
-- **📋 Form Automation**:
+- **📄 Professional Reporting (PDF & Screenshots)**:
     
-    - **Action**: Right-click on an `<input>`, `<textarea>`, or `<form>`.
+    - **Action**: Right-click anywhere on the page.
         
     - **What happens**:
         
-        - **Map Form to JSON**: Automatically crawls the form and generates a JSON file with all current values.
+        - **Smart PDF Export**: Generates a clean **A4 PDF** report. Before exporting, it uses the new `InjectCss` method to dynamically strip away GOG’s headers, sidebars, and campaign banners for a professional, content-focused document.
             
-        - **Fill Form from JSON**: Lets you select a previously saved JSON file to instantly re-populate the form.
+        - **Full Page Capture**: Leverages the **Chrome DevTools Protocol (CDP)** to capture a high-resolution image of the entire page—even if it exceeds 6,000+ pixels in height—without scrolling artifacts.
             
-- **🔍 Smart Selection**:
-    
-    - **Action**: Highlight any text on the page and right-click.
-        
-    - **What happens**: The menu offers a Google Search for that specific string, using the new native `EncodeURI` method to handle special characters.
-        
 
-#### 2. Advanced Utilities
+#### 2. Advanced Framework Features
 
-- **📸 Full Page Screenshot**: Unlike standard screen captures, this utility renders the **entire document** (including the parts you need to scroll to see) and saves it as a high-quality PNG.
+- **⚡ Native CSS Injection (`InjectCss`)**: Move beyond manual JavaScript DOM manipulation. The demo shows how a single line of AutoIt code can override a website’s layout, making it "Print-Friendly" instantly.
     
-- **⚡ Persistent Bridge**: Notice that even if you navigate to a new website or refresh, the "Table Export" and "Form Mapping" still work. This is thanks to the new `AddInitializationScript` which ensures our `bridge.js` is part of every page's DNA.
+- **🔄 Synchronous Data Binding (`SyncInternalData`)**: Effortlessly synchronize complex JSON datasets from AutoIt directly into the browser’s memory. This allows your script to "inject" custom variables that the website’s JavaScript can read in real-time.
     
+- **🛠 Robust Event Handling**: The demo implements a **Global COM Error Handler**. Even if the website encounters JavaScript errors or network lag, the AutoIt host remains stable and responsive.
+    
+- **📏 Precision Resizing**: Utilizing native OS message interception, the browser view adapts to GUI changes with pixel-perfect accuracy, eliminating the flickering typical of standard docking.
+    
+
 ---
 
-#### ⚙️ How it Works: The "Context-JSON" Bridge
+#### ⚙️ How it Works: The v1.4.2 "Direct Path"
 
-The secret behind this intelligent menu is the seamless communication between the Browser's DOM and AutoIt's COM interface.
+Version 1.4.2 simplifies the communication bridge. While previous versions required complex event-callback chains, we now use the **Direct Path**:
 
-#### The Workflow:
-
-1. **The Trigger**: When you right-click, the `bridge.js` (injected via `AddInitializationScript`) intercepts the event.
+1. **Unified Events**: The `OnContextMenuRequested` event now passes 4 clean parameters (Link, X, Y, Selected Text) directly. No more manual JSON parsing for standard context actions.
     
-2. **Data Gathering**: It instantly gathers metadata about the element under the mouse (Coordinates, Tag Type, Selected Text, Image Sources, etc.).
+2. **Instant Execution**: With `ExecuteScriptWithResult`, AutoIt asks JavaScript a question (e.g., "What is the total price in the cart?") and receives the answer **immediately** in the next line of code, just like a native function.
     
-3. **The Dispatch**: This metadata is packed into a **JSON string** and sent to AutoIt via the `OnContextMenu` event.
-    
-4. **The Decision**: AutoIt receives the JSON, parses it using `NetJson.Parser`, and decides which menu items to show.
-    
-
-#### Why JSON?
-
-- **Structure**: It allows passing multiple data points (X, Y, Tag, URL) in a single, organized string.
-    
-- **Performance**: By prefixing with `JSON:`, we bypass complex string encoding, making the communication near-instant.
-    
-- **Flexibility**: You can easily add more data points to the `bridge.js` without ever changing the core DLL.
+3. **Persistent DNA**: Via `AddInitializationScript`, your custom bridge logic (like PDF cleaning or menu triggers) survives page reloads and site-wide navigation.
     
 
 ---
 
 #### 💡 Pro Tip for Developers:
 
-> "You can extend this! If you want to detect specifically if a user clicked on a **Video** or a **PDF link**, just update the `bridge.js` to include those tags. 
+> "Version 1.4.2 is **GOG-Proof**. Use the `InjectCss` method during PDF Export to target dynamic elements like `.campaign-bar` or `nav`. Using wildcard selectors like `[class*='notification']` allows you to suppress annoying popups and banners automatically, turning any webpage into a clean business report."
+
+---
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
-  
-## 📖 NetWebView2Lib Version 1.4.0 (Quick Reference)
 
-### Properties
+## 📖 NetWebView2Lib Version 1.4.2 (Quick Reference)
+
+### NetWebView2Lib (ProgId: NetWebView2.Manager)
+
+#### Properties
 
 ##### AreDevToolsEnabled
 Determines whether the user is able to use the context menu or keyboard shortcuts to open the DevTools window.
@@ -191,12 +262,16 @@ Determines how the control is anchored when the parent window is resized.
 ##### BorderStyle
 Note: Not supported natively by WebView2, provided for compatibility.
 `object.BorderStyle[ = Value]`
-
+  
 ##### AreBrowserPopupsAllowed
 Determines whether new window requests are allowed or redirected to the same window.
 `object.AreBrowserPopupsAllowed[ = Value]`
 
-### Methods
+##### CustomMenuEnabled
+Enables or disables custom context menu handling.
+`object.CustomMenuEnabled[ = Value]`
+
+#### Method
 
 ##### Initialize
 Initializes the WebView2 control within a parent window.
@@ -231,6 +306,7 @@ Saves the current page as a PDF file.
 `object.ExportToPdf(FilePath As String)`
 
 ##### IsReady
+
 Checks if the WebView2 control is fully initialized and ready for use.
 `object.IsReady()`
 
@@ -345,7 +421,7 @@ Enables or disables JavaScript execution.
 ##### SetWebMessageEnabled
 Enables or disables the Web Message communication system.
 `object.SetWebMessageEnabled(Enabled As Boolean)`
-
+  
 ##### SetStatusBarEnabled
 Enables or disables the browser status bar.
 `object.SetStatusBarEnabled(Enabled As Boolean)`
@@ -377,7 +453,7 @@ Deletes all cookies from the current profile.
 ##### Print
 Opens the print dialog (via window.print()).
 `object.Print()`
-
+  
 ##### AddExtension
 Adds a browser extension from an unpacked folder.
 `object.AddExtension(ExtensionPath As String)`
@@ -400,7 +476,7 @@ Returns the Process ID (PID) of the browser process.
 
 ##### EncodeURI
 URL-encodes a string.
-`object.EncodeURI(Value As String)`
+`object.EncodeURI(Value As String)
 
 ##### DecodeURI
 URL-decodes a string.
@@ -424,13 +500,42 @@ Opens the DevTools window for the current project.
 
 ##### WebViewSetFocus
 Gives focus to the WebView control.
-`object.WebViewSetFocus()`
+`object.WebViewSetFocus()` 
+
+##### SetAutoResize
+Enables or disables robust "Smart Anchor" resizing. Uses Win32 subclassing to perfectly sync with any parent window (AutoIt/Native). Sends "WINDOW_RESIZED" via OnMessageReceived on completion.
+`object.SetAutoResize(Enabled As Boolean)`
 
 ##### AddInitializationScript
 Registers a script that will run automatically every time a new page loads.
 `object.AddInitializationScript(Script As String)`
 
-### Events
+##### BindJsonToBrowser
+Binds the internal JSON data to a browser variable.
+`object.BindJsonToBrowser(VariableName As String)`
+
+##### SyncInternalData
+Syncs JSON data to internal parser and optionally binds it to a browser variable.
+`object.SyncInternalData(Json As String, BindToVariableName As String)`
+
+##### ExecuteScriptOnPage
+Executes JavaScript on the current page immediately.
+`object.ExecuteScriptOnPage(Script As String)`
+
+##### ExecuteScriptWithResult
+Executes JavaScript and returns the result synchronously (Blocking wait).
+`object.ExecuteScriptWithResult(Script As String)`
+
+##### ClearCache
+Clears the browser cache (DiskCache and LocalStorage).
+`object.ClearCache()`
+
+##### GetInnerText
+Asynchronously retrieves the entire visible text content of the document (sent via OnMessageReceived with 'Inner_Text|').
+`object.GetInnerText()`
+
+---
+#### Events
 
 ##### OnMessageReceived
 Fired when a message or notification is sent from the library to AutoIt.
@@ -447,7 +552,7 @@ Fired when navigation has finished.
 ##### OnTitleChanged
 Fired when the document title changes.
 `object_OnTitleChanged(NewTitle As String)`
-
+  
 ##### OnURLChanged
 Fired when the current URL changes.
 `object_OnURLChanged(NewUrl As String)`
@@ -467,6 +572,11 @@ Fired when the browser receives focus.
 ##### OnBrowserLostFocus
 Fired when the browser loses focus.
 `object_OnBrowserLostFocus(Reason As Integer)`
+
+##### OnContextMenuRequested
+Fired when a context menu is requested (Simplified for AutoIt).
+`object_OnContextMenuRequested(LinkUrl As String, X As Integer, Y As Integer, SelectionText As String)`
+  
 
 ---
 
@@ -521,13 +631,52 @@ Unescapes a JSON string back to plain text.
 ##### GetPrettyJson
 Returns the JSON string with nice formatting (Indented).
 `string GetPrettyJson()`
-
+  
 ##### GetMinifiedJson
 Minifies a JSON string (removes spaces and new lines).
 `string GetMinifiedJson()`
 
----
+##### Merge
+Merges another JSON string into the current JSON structure.
+`bool Merge(JsonContent As String)`
 
+##### MergeFromFile
+Merges JSON content from a file into the current JSON structure.
+`bool MergeFromFile(FilePath As String)`
+  
+##### GetTokenType
+Returns the type of the token at the specified path (e.g., Object, Array, String).
+`string GetTokenType(Path As String)` 
 
----
+##### RemoveToken
+Removes the token at the specified path.
+`bool RemoveToken(Path As String)`
+
+##### Search
+Searches the JSON structure using a JSONPath query and returns a JSON array of results.
+`string Search(Query As String)`
+
+##### Flatten
+Flattens the JSON structure into a single-level object with dot-notated paths.
+`string Flatten()`
+
+##### CloneTo
+Clones the current JSON data to another named parser instance.
+`bool CloneTo(ParserName As String)`
+
+##### FlattenToTable
+Flattens the JSON structure into a table-like string with specified delimiters.
+`string FlattenToTable(ColDelim As String, RowDelim As String)`
+
+##### EncodeB64
+Encodes a string to Base64 (UTF-8).
+`string EncodeB64(PlainText As String)`
+
+##### DecodeB64
+Decodes a Base64 string back to plain text.
+`string DecodeB64(Base64Text As String)`
+
+##### DecodeB64ToFile
+Decodes a Base64 string and saves the binary content directly to a file.
+`bool DecodeB64ToFile(Base64Text As String, FilePath As String)`
 
