@@ -6,7 +6,7 @@
 #include <Misc.au3>
 #include "_WV2_ExtensionPicker.au3"
 
-; Web_Demo_v1.4.2_MASTER.au3 
+; Web_Demo_v1.4.2_MASTER.au3
 ; The Ultimate Comprehensive Demo
 
 OnAutoItExitRegister("_ExitApp")
@@ -369,20 +369,20 @@ Func Web_OnContextMenuRequested($sLink, $iX, $iY, $sSelection)
 	; Smart Menu: Check what's under the cursor via JS callback or coordinates
 	; For better integration, we can ask JS what's there
 	Local $sTag = $oWeb.ExecuteScriptWithResult("document.elementFromPoint(" & $iX & "," & $iY & ").closest('table') ? 'TABLE' : document.elementFromPoint(" & $iX & "," & $iY & ").tagName")
-	ConsoleWrite("$sTag=" & $sTag & @CRLF)
 
 	If $sTag = "TABLE" Then
 		_GUICtrlMenu_AddMenuItem($hMenu, "📥  Export this Table to CSV", 4001)
 		_GUICtrlMenu_AddMenuItem($hMenu, "") ; separator
+	Else
+		_GUICtrlMenu_AddMenuItem($hMenu, "💾  Save Form Map to JSON File", 3010)
+		_GUICtrlMenu_AddMenuItem($hMenu, "🗃️  Fill Form from JSON File", 3011)
+		_GUICtrlMenu_AddMenuItem($hMenu, "") ; separator
 	EndIf
 
-	_GUICtrlMenu_AddMenuItem($hMenu, "💾  Save Form Map to JSON File", 3010)
-	_GUICtrlMenu_AddMenuItem($hMenu, "🗃️  Fill Form from JSON File", 3011)
-	_GUICtrlMenu_AddMenuItem($hMenu, "") ; separator
-
-	_GUICtrlMenu_AddMenuItem($hMenu, "📋  Copy Text Selection", 4010)
+	If $sSelection <> "" Then _GUICtrlMenu_AddMenuItem($hMenu, "📋  Copy Text Selection", 4010)
 	If $sLink <> "" Then _GUICtrlMenu_AddMenuItem($hMenu, "Copy Link URL", 4011)
-	_GUICtrlMenu_AddMenuItem($hMenu, "") ; separator
+	If $sSelection <> "" Or $sLink <> "" Then _GUICtrlMenu_AddMenuItem($hMenu, "") ; separator
+
 	_GUICtrlMenu_AddMenuItem($hMenu, "🔬  Inspect Element", 4020)
 
 	Local $iCmd = _GUICtrlMenu_TrackPopupMenu($hMenu, $hGUI, -1, -1, 1, 1, 2)
@@ -574,4 +574,3 @@ Func _HandleScreenshotSequence($sMethod, $sData)
 EndFunc   ;==>_HandleScreenshotSequence
 ;---------------------------------------------------------------------------------------
 #EndRegion ; === SCRAPING & TABLES & FORMS ===
-
