@@ -3,6 +3,7 @@
 #include <WindowsConstants.au3>
 #include <GUIConstants.au3>
 #include <GuiMenu.au3>
+#include <Misc.au3>
 #include "_WV2_ExtensionPicker.au3"
 
 ; Web_Demo_v1.4.2_MASTER.au3
@@ -15,6 +16,8 @@ Global $oWeb, $oJS
 Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc") ; COM Error Handler
 Global $hGUI, $Bar
 Global $g_sProfilePath = @ScriptDir & "\UserDataFolder"
+Global $hDLL = DllOpen("user32.dll")
+Global $g_bURLFullSelected
 
 _MainGUI()
 
@@ -58,17 +61,27 @@ Func _MainGUI()
 	; Navigate to a good demo page
 	$oWeb.Navigate("https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population")
 
+	GUIRegisterMsg($WM_COMMAND, "WM_COMMAND") ; ; Register the WM_COMMAND message to handle URL FullSelection
+
 	GUISetState(@SW_SHOW, $hGUI)
 
-	Local $iMsg, $sOldURL, $sCurURL
+	Local $iMsg
 
 	While 1
 		$iMsg = GUIGetMsg()
 		Switch $iMsg
 			Case $GUI_EVENT_CLOSE
 				Exit
-			Case $Bar.Navigation, $Bar.Address
+			Case $Bar.Navigation
 				_NavButton()
+			Case $Bar.Address
+				If _IsPressed("0D", $hDLL) Then ; ENTER key
+					_NavButton("Navigate")
+					_NavButton()
+				Else
+					AdlibRegister("_SetNavigateToReload", 700)
+				EndIf
+
 			Case $Bar.GoBack
 				$oWeb.GoBack()
 			Case $Bar.GoForward
@@ -79,12 +92,11 @@ Func _MainGUI()
 				_ShowFeaturesMenu()
 		EndSwitch
 
-		$sCurURL = GUICtrlRead($Bar.Address)
-		If $sCurURL <> "" And $sOldURL <> $sCurURL Then
-			$sOldURL = $sCurURL
-			_NavButton("Navigate")
+		; 1. Διαχείριση Full Selection (Focus)
+		If $g_bURLFullSelected Then
+			$g_bURLFullSelected = False
+			GUICtrlSendMsg($Bar.Address, $EM_SETSEL, 0, -1)
 		EndIf
-
 	WEnd
 EndFunc   ;==>_MainGUI
 ;---------------------------------------------------------------------------------------
@@ -130,6 +142,8 @@ Func _NavButton($sSetState = Default) ; Set or executes the action of Navigation
 				GUICtrlSetData($Bar.Navigation, ChrW(59153))
 				GUICtrlSetTip($Bar.Navigation, "Stop")
 			Case "Navigate"
+				If $sState = $sSetState Then Return
+				AdlibUnRegister("_SetNavigateToReload") ; UnRegister it (if exist)
 				GUICtrlSetData($Bar.Navigation, ChrW(59217))
 				GUICtrlSetTip($Bar.Navigation, "Navigate")
 		EndSwitch
@@ -177,6 +191,7 @@ Func _Web_GoTo($sURL) ; Navigates to a URL or performs a Google search if the in
 EndFunc   ;==>_Web_GoTo
 ;---------------------------------------------------------------------------------------
 Func _ExitApp() ; OnAutoItExitRegister
+	DllClose($hDLL)
 	If IsObj($oWeb) Then $oWeb.Cleanup()
 EndFunc   ;==>_ExitApp
 ;---------------------------------------------------------------------------------------
@@ -184,6 +199,25 @@ Func _ErrFunc($oError) ; COM Error Handler
 	ConsoleWrite('@@ Line(' & $oError.scriptline & ') : COM Error Number: (0x' & Hex($oError.number, 8) & ') ' & $oError.windescription & @CRLF)
 EndFunc   ;==>_ErrFunc
 ;---------------------------------------------------------------------------------------
+Func WM_COMMAND($hWnd, $iMsg, $wParam, $lParam) ; Register the WM_COMMAND message to handle URL FullSelection
+	#forceref $hWnd, $iMsg
+	Local Static $hidURL = GUICtrlGetHandle($Bar.Address)
+	Local $iCode = BitShift($wParam, 16)
+	If $lParam = $hidURL Then
+		Switch $iCode
+			Case $EN_SETFOCUS
+				$g_bURLFullSelected = True
+			Case $EN_CHANGE
+				_NavButton("Navigate")
+		EndSwitch
+	EndIf
+	Return $GUI_RUNDEFMSG
+EndFunc   ;==>WM_COMMAND
+;---------------------------------------------------------------------------------------
+Func _SetNavigateToReload()
+	_NavButton("Reload")
+	AdlibUnRegister("_SetNavigateToReload") ; unregister itself.
+EndFunc   ;==>_SetNavigateToReload
 #EndRegion ; === MainGUI ===
 
 #Region ; === CONTEX MENUS ===
@@ -285,7 +319,8 @@ EndFunc   ;==>_ShowFeaturesMenu
 #Region ; === EVENTS (v1.4.2 Direct) ===
 ;---------------------------------------------------------------------------------------
 Func Web_OnURLChanged($sURL)
-	GUICtrlSetData($Bar.Address, $sURL)
+	#forceref $sURL
+;~ 	GUICtrlSetData($Bar.Address, $sURL)
 EndFunc   ;==>Web_OnURLChanged
 ;---------------------------------------------------------------------------------------
 Func Web_OnTitleChanged($sTitle)
@@ -303,6 +338,7 @@ Func Web_OnNavigationCompleted($bSuccess, $iError)
 	#forceref $bSuccess, $iError
 	$oWeb.ExecuteScript("finalizeProgress();")
 
+	GUICtrlSetData($Bar.Address, $oWeb.GetSource())
 	_NavButton("Reload")
 
 	; Using the new Getters for dynamic UI
@@ -336,18 +372,18 @@ Func Web_OnContextMenuRequested($sLink, $iX, $iY, $sSelection)
 	ConsoleWrite("$sTag=" & $sTag & @CRLF)
 
 	If $sTag = "TABLE" Then
-		_GUICtrlMenu_AddMenuItem($hMenu, "📥 Export this Table to CSV", 4001)
+		_GUICtrlMenu_AddMenuItem($hMenu, "📥  Export this Table to CSV", 4001)
 		_GUICtrlMenu_AddMenuItem($hMenu, "") ; separator
 	EndIf
 
-	_GUICtrlMenu_AddMenuItem($hMenu, "Save Form Map to JSON File", 3010)
-	_GUICtrlMenu_AddMenuItem($hMenu, "Fill Form from JSON File", 3011)
+	_GUICtrlMenu_AddMenuItem($hMenu, "💾  Save Form Map to JSON File", 3010)
+	_GUICtrlMenu_AddMenuItem($hMenu, "🗃️  Fill Form from JSON File", 3011)
 	_GUICtrlMenu_AddMenuItem($hMenu, "") ; separator
 
-	_GUICtrlMenu_AddMenuItem($hMenu, "Copy Text Selection", 4010)
+	_GUICtrlMenu_AddMenuItem($hMenu, "📋  Copy Text Selection", 4010)
 	If $sLink <> "" Then _GUICtrlMenu_AddMenuItem($hMenu, "Copy Link URL", 4011)
 	_GUICtrlMenu_AddMenuItem($hMenu, "") ; separator
-	_GUICtrlMenu_AddMenuItem($hMenu, "Inspect Element", 4020)
+	_GUICtrlMenu_AddMenuItem($hMenu, "🔬  Inspect Element", 4020)
 
 	Local $iCmd = _GUICtrlMenu_TrackPopupMenu($hMenu, $hGUI, -1, -1, 1, 1, 2)
 	Switch $iCmd
