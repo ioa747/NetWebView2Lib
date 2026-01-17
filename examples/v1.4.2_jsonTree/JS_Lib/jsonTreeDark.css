@@ -1,0 +1,131 @@
+/* * Custom Dark Theme for jsonTreeViewer 
+ * Designed for WebView2AutoIt Framework
+ */
+
+/* Background & Main Container */
+body {
+    background-color: #2B2B2B;
+    color: #D4D4D4;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    margin: 0;
+    padding: 15px;
+}
+
+.jsontree_tree {
+    margin-left: 10px;
+    font-size: 14px;
+}
+
+/* Vertical Connection Lines */
+.jsontree_child-nodes {
+    display: none;
+    margin-left: 22px; /* Alignment with the arrow */
+    border-left: 1px solid #454545; /* The line that was faint - now it's solid */
+    padding-left: 10px;
+    margin-bottom: 5px;
+    line-height: 1.6;
+}
+
+.jsontree_node_expanded > .jsontree_value-wrapper > .jsontree_value > .jsontree_child-nodes {
+    display: block;
+}
+
+/* Labels (Keys) */
+.jsontree_label-wrapper {
+    float: left;
+    margin-right: 8px;
+}
+
+.jsontree_label {
+    font-weight: bold;
+    color: #9CDCFE;
+    position: relative;
+    cursor: pointer;
+    padding-left: 5px; 
+    border-radius: 3px;
+}
+
+/* If you want to COMPLETELY eliminate any trace of icons.svg that might be loading */
+.jsontree_expand-button {
+    background-image: none !important; /* Makes sure there is no icon behind it */
+    background: transparent !important;
+}
+
+.jsontree_label:hover {
+    background-color: #333333;
+}
+
+/* All matching results found */
+.jsontree_node_marked {
+    background-color: #4b4b00 !important; /* Dim gold */
+    color: #ffffff !important;
+    border-radius: 2px;
+}
+
+/* The current active result (Find Next) */
+.jsontree_node_active {
+    background-color: #ffca28 !important; /* Bright yellow */
+    color: #000000 !important;
+    font-weight: bold !important;
+    box-shadow: 0 0 5px #fff;
+    display: inline-block;
+}
+
+/* Values Styles */
+.jsontree_value_null {
+    color: #569CD6;
+    font-weight: bold;
+}
+
+.jsontree_value_string {
+    color: #CE9178; /* Orange-brown */
+}
+
+.jsontree_value_number {
+    color: #B5CEA8; /* Light Green */
+}
+
+.jsontree_value_boolean {
+    color: #569CD6; /* Blue */
+}
+
+/* Custom Expand/Collapse Icons */
+.jsontree_expand-button {
+    position: absolute;
+    top: -1px;            /* Adjust height to be in the center of the line */
+    left: -18px;         /* We move it a little further to the left because it grew. */
+    width: 16px;
+    height: 16px;
+    background: none !important;
+    text-align: center;
+    line-height: 16px;
+    cursor: pointer;
+}
+
+/* The symbol ▶ */
+.jsontree_expand-button::before {
+    content: '▸';
+    font-size: 26px;  
+    color: #808080;
+    display: block;
+    transition: transform 0.2s ease; /* Small motion effect */
+}
+
+/* The ▼ symbol when open -  ▶ ▼ , ➕➖ , ▸ ▾ */
+.jsontree_node_expanded > .jsontree_label-wrapper > .jsontree_label > .jsontree_expand-button::before {
+    content: '▾';
+    font-size: 26px;     /* Same size here */
+    color: #D4D4D4;
+}
+
+/* Complex nodes (Objects/Arrays) indicators */
+.jsontree_show-more {
+    color: #808080;
+    font-style: italic;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.jsontree_node_empty > .jsontree_label-wrapper > .jsontree_label {
+    cursor: default;
+}
