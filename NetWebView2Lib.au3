@@ -1,4 +1,5 @@
-#AutoIt3Wrapper_UseX64=y
+;~ #AutoIt3Wrapper_UseX64=y
+#AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
@@ -39,6 +40,7 @@ Func _NetWebView2_CreateManager()
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 	Local $oWebV2M = ObjCreate("NetWebView2.Manager", "{CCB12345-6789-4ABC-DEF0-1234567890AB}", $_g_hNetWebView2Lib_DLL) ; NOT REGISTERED VERSION
+;~ 	_NetWebView2_ObjName_FlagsValue($oWebV2M)
 	Return SetError(@error, @extended, $oWebV2M)
 EndFunc   ;==>_NetWebView2_CreateManager
 
@@ -373,7 +375,7 @@ EndFunc   ;==>Main
 Func _Web_jsonTree(ByRef $oWebV2M, $sJson)
 	; 1. Prepare JSON (Minify to prevent script errors from line breaks)
 	Local $oJSON = _NetJson_CreateParser($sJson)
-	_NetWebView2_ObjName_FlagsValue($oJSON)
+;~ 	_NetWebView2_ObjName_FlagsValue($oJSON)
 	$sJson = $oJSON.GetMinifiedJson()
 
 	; 2. Load local library files
