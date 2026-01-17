@@ -2,6 +2,9 @@
 
 A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebView2** (Chromium) engine via a C# COM wrapper. This project enables you to render modern HTML5, CSS3, and JavaScript directly inside your AutoIt applications with a 100% event-driven architecture.
 
+🔗 link to AutoIt forum
+https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-component-com-interop
+
 ---
 ### 🚀 Key Features
 
