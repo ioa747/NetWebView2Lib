@@ -13,8 +13,6 @@
 Global $_g_hNetWebView2Lib_DLL = ''
 Global $_g_oWeb
 Global $g_DebugInfo = True
-Global $g_sProfilePath = @TempDir & "\UserDataFolder"
-
 _Example()
 
 #Region ; NetWebView2Lib UDF
@@ -298,7 +296,8 @@ Func _Example()
 	ObjEvent($oWebV2M, "__NetWebView2_WebEvents_", "IWebViewEvents")
 
 	; Important: Pass $hGUI in parentheses to maintain Pointer type for COM
-	$oWebV2M.Initialize($hGUI, $g_sProfilePath, 0, 50, 500, 600)
+	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
+	$oWebV2M.Initialize($hGUI, $sProfileDirectory, 0, 50, 500, 600)
 
 	; Initialize JavaScript Bridge
 	Local $oJS = $oWebV2M.GetBridge()
@@ -480,4 +479,3 @@ Func _Web_jsonTreeFind(ByRef $oWebV2M, $sSearch, $bNext = False)
 EndFunc   ;==>_Web_jsonTreeFind
 #EndRegion ; === UTILS ===
 #EndRegion ; UDF TESTING EXAMPLE
-
