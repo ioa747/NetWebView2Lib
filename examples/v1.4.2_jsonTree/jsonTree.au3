@@ -1,15 +1,16 @@
-#AutoIt3Wrapper_UseX64=y
-;~ #AutoIt3Wrapper_UseX64=n
+;~ #AutoIt3Wrapper_UseX64=y
+#AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+#Au3Stripper_Ignore_Funcs=__NetWebView2_WebEvents_*,__NetWebView2_JSEvents_*
+
 
 ; Html_Gui.au3
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
 #include "..\..\NetWebView2Lib.au3"
-
 
 _Example()
 
@@ -41,11 +42,6 @@ Func _Example()
 	GUICtrlSetFont(-1, 12, Default, $GUI_FONTUNDER, "Segoe UI")
 	GUICtrlSetResizing(-1, $GUI_DOCKALL)
 	GUICtrlSetColor(-1, 0x00CCFF) ; Light Blue
-
-;~ 	Local $sActiveX_Dll = @ScriptDir & '\..\..\bin\NetWebView2Lib.dll'
-;~ 	_NetWebView2_StartUp($sActiveX_Dll)
-	_NetWebView2_StartUp('Z:\!!!_SVN_AU3\UDF_Forum\Other_Members\Official_AutoIt_Forum\NetWebView2Lib-main\bin\NetWebView2Lib.dll')
-	If @error Then Return SetError(@error, @extended, -1)
 
 	; Initialize WebView2 Manager and register events
 	Local $oWebV2M = _NetWebView2_CreateManager()
