@@ -1,24 +1,24 @@
 #AutoIt3Wrapper_UseX64=y
+;~ #AutoIt3Wrapper_UseX64=n
+#AutoIt3Wrapper_Run_AU3Check=Y
+#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
+#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+
 ; Html_Gui.au3
+#include <Array.au3>
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
-#include <Array.au3>
+#include "..\..\NetWebView2Lib.au3"
 
-; Register exit function to ensure clean WebView2 shutdown
-OnAutoItExitRegister("_ExitApp")
 
-; Global objects
-Global $oWeb, $oJS
-Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc") ; COM Error Handler
-Global $g_DebugInfo = True
-Global $g_sProfilePath = @ScriptDir & "\UserDataFolder"
-Global $hGUI
+_Example()
 
-Main()
-
-Func Main()
+#Region ; UDF TESTING EXAMPLE
+Func _Example()
+	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
+	#forceref $oMyError
 	; Create GUI with resizing support
-	$hGUI = GUICreate("WebView2AutoIt JSON Viewer", 500, 650, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
+	Local $hGUI = GUICreate("WebView2AutoIt JSON Viewer", 500, 650, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x2B2B2B, $hGUI)
 
 	; GUI Controls for JSON Tree interaction
@@ -42,32 +42,41 @@ Func Main()
 	GUICtrlSetResizing(-1, $GUI_DOCKALL)
 	GUICtrlSetColor(-1, 0x00CCFF) ; Light Blue
 
+;~ 	Local $sActiveX_Dll = @ScriptDir & '\..\..\bin\NetWebView2Lib.dll'
+;~ 	_NetWebView2_StartUp($sActiveX_Dll)
+	_NetWebView2_StartUp('Z:\!!!_SVN_AU3\UDF_Forum\Other_Members\Official_AutoIt_Forum\NetWebView2Lib-main\bin\NetWebView2Lib.dll')
+	If @error Then Return SetError(@error, @extended, -1)
+
 	; Initialize WebView2 Manager and register events
-	$oWeb = ObjCreate("NetWebView2.Manager")
-	ObjEvent($oWeb, "WebEvents_", "IWebViewEvents")
+	Local $oWebV2M = _NetWebView2_CreateManager()
+	$_g_oWeb = $oWebV2M
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
+
+	ObjEvent($oWebV2M, "__NetWebView2_WebEvents_", "IWebViewEvents")
 
 	; Important: Pass $hGUI in parentheses to maintain Pointer type for COM
-	$oWeb.Initialize(($hGUI), $g_sProfilePath, 0, 50, 500, 600)
+	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
+	$oWebV2M.Initialize($hGUI, $sProfileDirectory, 0, 50, 500, 600)
 
 	; Initialize JavaScript Bridge
-	$oJS = $oWeb.GetBridge()
-	ObjEvent($oJS, "JavaScript_", "IBridgeEvents")
+	Local $oJS = $oWebV2M.GetBridge()
+	ObjEvent($oJS, "__NetWebView2_JSEvents_", "IBridgeEvents")
 
 	; Wait for WebView2 to be ready
 	Do
 		Sleep(50)
-	Until $oWeb.IsReady
+	Until $oWebV2M.IsReady
 
 	; WebView2 Configuration
-	$oWeb.SetAutoResize(True) ; Using SetAutoResize(True) to skip WM_SIZE
-	$oWeb.BackColor = "0x2B2B2B"
-	$oWeb.AreDevToolsEnabled = True ; Allow F12
-	$oWeb.ZoomFactor = 1.2
+	$oWebV2M.SetAutoResize(True) ; Using SetAutoResize(True) to skip WM_SIZE
+	$oWebV2M.BackColor = "0x2B2B2B"
+	$oWebV2M.AreDevToolsEnabled = True ; Allow F12
+	$oWebV2M.ZoomFactor = 1.2
 
 	; Initial JSON display
 	Local $sMyJson = '{"Game": "Witcher 3", "ID": 1, "Meta": {"Developer": "CD Projekt", "Year": 2015 }, "Tags": ["RPG", "Open World"]}'
 
-	_Web_jsonTree($oWeb, $sMyJson) ; 🏆 https://github.com/summerstyle/jsonTreeViewer
+	_Web_jsonTree($oWebV2M, $sMyJson) ; 🏆 https://github.com/summerstyle/jsonTreeViewer
 
 	GUISetState(@SW_SHOW)
 
@@ -81,17 +90,17 @@ Func Main()
 
 			Case $idExpand
 				; Call JavaScript expand method on the global tree object
-				$oWeb.ExecuteScript("if(window.tree) window.tree.expand();")
+				$oWebV2M.ExecuteScript("if(window.tree) window.tree.expand();")
 
 			Case $idCollapse
 				; Call JavaScript collapse method
-				$oWeb.ExecuteScript("if(window.tree) window.tree.collapse();")
+				$oWebV2M.ExecuteScript("if(window.tree) window.tree.collapse();")
 
 			Case $idFind
 				Local $sInput = InputBox("JSON Search", "Enter key or value:", $sLastSearch, "", 200, 130, Default, Default, Default, $hGUI)
 				If Not @error And StringLen(StringStripWS($sInput, 3)) > 0 Then
 					$sLastSearch = StringStripWS($sInput, 3)
-					_Web_jsonTreeFind($sLastSearch, False) ; New search
+					_Web_jsonTreeFind($oWebV2M, $sLastSearch, False) ; New search
 				EndIf
 
 			Case $idLoadFile
@@ -99,124 +108,22 @@ Func Main()
 				If Not @error Then
 					Local $sFileData = FileRead($sFilePath)
 					If $sFileData <> "" Then
-						_Web_jsonTree($oWeb, $sFileData) ; Re-render tree with new data
-						__DW("+ Loaded JSON from: " & $sFilePath & @CRLF)
+						_Web_jsonTree($oWebV2M, $sFileData) ; Re-render tree with new data
+						__NetWebView2_Log(@ScriptLineNumber, "+ Loaded JSON from: " & $sFilePath)
 					EndIf
 				EndIf
 
 		EndSwitch
 	WEnd
+
+	If IsObj($oWebV2M) Then $oWebV2M.Cleanup()
+	$oWebV2M = 0
+	$oJS = 0
+	_NetWebView2_ShutDown()
+
 EndFunc   ;==>Main
 
-#Region ; === EVENT HANDLERS ===
-
-; Handles native WebView2 events
-Func WebEvents_OnMessageReceived($sMsg)
-	__DW("+++ [WebEvents]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF, 0)
-	Local $iSplitPos = StringInStr($sMsg, "|")
-	Local $sCommand = $iSplitPos ? StringStripWS(StringLeft($sMsg, $iSplitPos - 1), 3) : $sMsg
-	Local $sData = $iSplitPos ? StringTrimLeft($sMsg, $iSplitPos) : ""
-	Local $aParts
-
-	Switch $sCommand
-		Case "INIT_READY"
-			$oWeb.ExecuteScript('window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
-
-		Case "WINDOW_RESIZED"
-			$aParts = StringSplit($sData, "|")
-			If $aParts[0] >= 2 Then
-				Local $iW = Int($aParts[1]), $iH = Int($aParts[2])
-				; Filter minor resize glitches
-				If $iW > 50 And $iH > 50 Then __DW("WINDOW_RESIZED : " & $iW & "x" & $iH & @CRLF)
-			EndIf
-	EndSwitch
-EndFunc   ;==>WebEvents_OnMessageReceived
-
-; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
-Func JavaScript_OnMessageReceived($sMsg)
-	__DW(">>> [JavaScript]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF, 0)
-	Local $sFirstChar = StringLeft($sMsg, 1)
-
-	; 1. Modern JSON Messaging
-	If $sFirstChar = "{" Or $sFirstChar = "[" Then
-		__DW("+> : Processing JSON message..." & @CRLF)
-		Local $oJson = ObjCreate("NetJson.Parser")
-		If Not IsObj($oJson) Then Return ConsoleWrite("!> Error: Failed to create NetJson object." & @CRLF)
-
-		$oJson.Parse($sMsg)
-		Local $sJobType = $oJson.GetTokenValue("type")
-
-		Switch $sJobType
-			Case "COM_TEST"
-				__DW("- COM_TEST Confirmed: " & $oJson.GetTokenValue("status") & @CRLF)
-		EndSwitch
-
-	Else
-		; 2. Legacy / Native Pipe-Delimited Messaging
-		__DW("+> : Processing Delimited message..." & @CRLF, 0)
-		Local $sCommand, $sData, $iSplitPos
-		$iSplitPos = StringInStr($sMsg, "|") - 1
-
-		If $iSplitPos < 0 Then
-			$sCommand = StringStripWS($sMsg, 3)
-			$sData = ""
-		Else
-			$sCommand = StringStripWS(StringLeft($sMsg, $iSplitPos), 3)
-			$sData = StringTrimLeft($sMsg, $iSplitPos + 1)
-		EndIf
-
-		Switch $sCommand
-			Case "JSON_CLICKED"
-				Local $aClickData = StringSplit($sData, "=", 2) ; Split "Key = Value"
-				If UBound($aClickData) >= 2 Then
-					Local $sKey = StringStripWS($aClickData[0], 3)
-					Local $sVal = StringStripWS($aClickData[1], 3)
-					__DW("+++ Property: " & $sKey & " | Value: " & $sVal & @CRLF)
-				EndIf
-
-			Case "COM_TEST"
-				__DW("- Status: Legacy COM_TEST: " & $sData & @CRLF)
-
-			Case "ERROR"
-				__DW("! Status: " & $sData & @CRLF)
-		EndSwitch
-	EndIf
-EndFunc   ;==>JavaScript_OnMessageReceived
-
-Func WebEvents_OnContextMenuRequested($sLink, $iX, $iY, $sSelection)
-	#forceref $sLink, $iX, $iY, $sSelection
-EndFunc   ;==>WebEvents_OnContextMenuRequested
-
-#EndRegion ; === EVENT HANDLERS ===
-
 #Region ; === UTILS ===
-
-Func _ErrFunc($oError) ; Global COM Error Handler
-	ConsoleWrite('@@ Line(' & $oError.scriptline & ') : COM Error Number: (0x' & Hex($oError.number, 8) & ') ' & $oError.windescription & @CRLF)
-EndFunc   ;==>_ErrFunc
-
-; Debug Write utility
-Func __DW($sString, $iErrorNoLineNo = 1, $iLine = @ScriptLineNumber, $iError = @error, $iExtended = @extended)
-	If Not $g_DebugInfo Then Return SetError($iError, $iExtended, 0)
-	Local $iReturn
-	If $iErrorNoLineNo = 1 Then
-		If $iError Then
-			$iReturn = ConsoleWrite("@@(" & $iLine & ") :: @error:" & $iError & ", @extended:" & $iExtended & ", " & $sString)
-		Else
-			$iReturn = ConsoleWrite("+>(" & $iLine & ") :: " & $sString)
-		EndIf
-	Else
-		$iReturn = ConsoleWrite($sString)
-	EndIf
-	Return SetError($iError, $iExtended, $iReturn)
-EndFunc   ;==>__DW
-
-Func _NetJson_New($sInitialJson = "{}")
-	Local $oParser = ObjCreate("NetJson.Parser")
-	If Not IsObj($oParser) Then Return SetError(1, 0, 0)
-	If $sInitialJson <> "" Then $oParser.Parse($sInitialJson)
-	Return $oParser
-EndFunc   ;==>_NetJson_New
 
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _Web_jsonTree
@@ -224,14 +131,15 @@ EndFunc   ;==>_NetJson_New
 ; Author.........: summerstyle (https://github.com/summerstyle/jsonTreeViewer)
 ; Integration....: Adapted for AutoIt WebView2
 ; ===============================================================================================================================
-Func _Web_jsonTree(ByRef $oWeb, $sJson)
+Func _Web_jsonTree(ByRef $oWebV2M, $sJson)
 	; 1. Prepare JSON (Minify to prevent script errors from line breaks)
-	Local $oJsonObj = _NetJson_New($sJson)
-	$sJson = $oJsonObj.GetMinifiedJson()
+	Local $oJSON = _NetJson_CreateParser($sJson)
+;~ 	_NetWebView2_ObjName_FlagsValue($oJSON)
+	$sJson = $oJSON.GetMinifiedJson()
 
 	; 2. Load local library files
-	Local $sJsLib = FileRead(@ScriptDir & "\JS_Lib\jsonTree.js")
-	Local $sCssLib = FileRead(@ScriptDir & "\JS_Lib\jsonTreeDark.css")
+	Local $sJsLib = FileRead(@ScriptDir & ".\JS_Lib\jsonTree.js")
+	Local $sCssLib = FileRead(@ScriptDir & ".\JS_Lib\jsonTreeDark.css")
 
 	; 3. Build HTML with embedded Logic
 	Local $sHTML = "<html><head><meta charset=""utf-8""><style>" & _
@@ -271,8 +179,8 @@ Func _Web_jsonTree(ByRef $oWeb, $sJson)
 			"</script></body></html>"
 
 	; 4. Navigate to the generated HTML
-	$oWeb.NavigateToString($sHTML)
-	__DW("+ JSON Tree Rendered & Listeners Active." & @CRLF)
+	$oWebV2M.NavigateToString($sHTML)
+	__NetWebView2_Log(@ScriptLineNumber, "+ JSON Tree Rendered & Listeners Active")
 EndFunc   ;==>_Web_jsonTree
 
 ; #FUNCTION# ====================================================================================================================
@@ -280,7 +188,7 @@ EndFunc   ;==>_Web_jsonTree
 ; Description....: Searches for a string in labels and values and highlights matching nodes.
 ; Parameters.....: $sSearch - The string to find
 ; ===============================================================================================================================
-Func _Web_jsonTreeFind($sSearch, $bNext = False)
+Func _Web_jsonTreeFind(ByRef $oWebV2M, $sSearch, $bNext = False)
 	Local $sJS = _
 			"var term = '" & $sSearch & "'.toLowerCase();" & _
 			"if (!window.searchIndices || window.lastTerm !== term) {" & _
@@ -327,14 +235,8 @@ Func _Web_jsonTreeFind($sSearch, $bNext = False)
 	; Replace the AutoIt variable $bNext with JS boolean
 ;~     $sJS = StringReplace($sJS, "$bNext", ($bNext ? "true" : "false"))
 	ConsoleWrite("$sJS=" & $sJS & @CRLF)
-	$oWeb.ExecuteScript($sJS)
+	$oWebV2M.ExecuteScript($sJS)
 EndFunc   ;==>_Web_jsonTreeFind
-
-Func _ExitApp()
-	If IsObj($oWeb) Then $oWeb.Cleanup()
-	$oWeb = 0
-	$oJS = 0
-	Exit
-EndFunc   ;==>_ExitApp
-
 #EndRegion ; === UTILS ===
+#EndRegion ; UDF TESTING EXAMPLE
+
