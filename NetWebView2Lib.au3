@@ -301,7 +301,7 @@ Func _NetWebView2_NavigateToString(ByRef $oWebV2M, $s_HTML, $b_LoadWait = True)
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	Local $iNavigation = $oWebV2M.NavigateToString($s_HTML, $WEBVIEW2__NAVSTATUS__TITLE_CHANGED)
+	Local $iNavigation = $oWebV2M.NavigateToString($s_HTML)
 	If @error Then Return SetError(@error, @extended, $iNavigation)
 
 	If $b_LoadWait Then _NetWebView2_LoadWait($oWebV2M)
