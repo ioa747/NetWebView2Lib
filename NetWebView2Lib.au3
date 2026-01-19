@@ -30,7 +30,7 @@ Func _NetWebView2_StartUp($sDLLFileFullPath)
 ;~ 	ConsoleWrite("! " & VarGetType($_g_hNetWebView2Lib_DLL) & @CRLF)
 ;~ 	ConsoleWrite("! " & $_g_hNetWebView2Lib_DLL & @CRLF)
 	If $_g_hNetWebView2Lib_DLL = -1 Then
-		__NetWebView2_Log(@ScriptLineNumber, 'Error loading AcitevX DLL : ' & $_g_hNetWebView2Lib_DLL)
+		__NetWebView2_Log(@ScriptLineNumber, 'Error loading AcitevX DLL : ' & $_g_hNetWebView2Lib_DLL, 1)
 		Return SetError(1, @extended, $_g_hNetWebView2Lib_DLL)
 	EndIf
 	Return SetError(@error, @extended, $_g_hNetWebView2Lib_DLL)
@@ -102,7 +102,7 @@ Func _NetWebView2_CreateManager($sUser_FnPrefix = "")
 	#forceref $oMyError
 	Local $oWebV2M = ObjCreate("NetWebView2.Manager") ; REGISTERED VERSION
 ;~ 	__NetWebView2_ObjName_FlagsValue($oWebV2M)
-	If @error Then __NetWebView2_Log(@ScriptLineNumber, "! [NetWebView2Lib]: Manager Creation ERROR")
+	If @error Then __NetWebView2_Log(@ScriptLineNumber, "! [NetWebView2Lib]: Manager Creation ERROR", 1)
 
 	If $sUser_FnPrefix Then $_g_sNetWebView2_User_WebViewEvents = $sUser_FnPrefix
 	ObjEvent($oWebV2M, "__NetWebView2_WebViewEvents__", "IWebViewEvents")
@@ -128,7 +128,7 @@ Func _NetWebView2_GetBridge(ByRef $oWebV2M, $sUser_FnPrefix = "")
 	#forceref $oMyError
 
 	Local $oWebJS = $oWebV2M.GetBridge()
-	If @error Then __NetWebView2_Log(@ScriptLineNumber, "! [NetWebView2Lib]: Manager.GetBridge() ERROR")
+	If @error Then __NetWebView2_Log(@ScriptLineNumber, "! [NetWebView2Lib]: Manager.GetBridge() ERROR", 1)
 
 	If $sUser_FnPrefix Then $_g_sNetWebView2_User_JSEvents = $sUser_FnPrefix
 	ObjEvent($oWebJS, "__NetWebView2_JSEvents__", "IBridgeEvents")
@@ -402,22 +402,22 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived($sMsg)
 	Local $sData = $iSplitPos ? StringTrimLeft($sMsg, $iSplitPos) : ""
 	Local $aParts
 
-	Local $s_Prefix = "[WebViewEvents]:" & $sCommand & ": "
+	Local $s_Prefix = "[WebViewEvents__OnMessageReceived]:" & $sCommand & ": "
 	Switch $sCommand
 		Case "INIT_READY"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $sData)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $sData, 1)
 
 			#QUESTION Why here ExecuteScript ?
 			$_g_oWeb.ExecuteScript('window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
 
 		Case "NAV_STARTING"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $sData)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $sData, 1)
 
 		Case "NAV_COMPLETED"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ?? " & $sData)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ?? " & $sData, 1)
 
 		Case "TITLE_CHANGED"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $sData)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $sData, 1)
 			; If you want to change the title of your GUI based on the page
 ;~ 			If $aParts[0] > 1 Then WinSetTitle($hGUI, "", "WebView2 - " & $aParts[2])
 
@@ -426,10 +426,10 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived($sMsg)
 			If $aParts[0] >= 2 Then
 				Local $iW = Int($aParts[1]), $iH = Int($aParts[2])
 				; Filter minor resize glitches
-				If $iW > 50 And $iH > 50 Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $iW & "x" & $iH)
+				If $iW > 50 And $iH > 50 Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $iW & "x" & $iH, 1)
 			EndIf
 		Case Else
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 0)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 1)
 	EndSwitch
 	If $_g_sNetWebView2_User_WebViewEvents Then
 		#TODO =>>>> Call($_g_sNetWebView2_User_WebViewEvents & 'OnMessageReceived', $oWebV2M, $hGUI, $sMsg)
@@ -444,12 +444,13 @@ Func __NetWebView2_JSEvents__OnMessageReceived($sMsg)
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	__NetWebView2_Log(@ScriptLineNumber, ">>> [JavaScriptEvents]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 0)
+	Local $s_Prefix = "[JSEvents__OnMessageReceived]:"
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 1)
 	Local $sFirstChar = StringLeft($sMsg, 1)
 
 	; 1. Modern JSON Messaging
 	If $sFirstChar = "{" Or $sFirstChar = "[" Then
-		__NetWebView2_Log(@ScriptLineNumber, "+> : Processing JSON message..." & @CRLF)
+		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & "Processing JSON message...", 1)
 		Local $oJSON = _NetJson_CreateParser()
 		If Not IsObj($oJSON) Then Return ConsoleWrite("!> Error: Failed to create NetJson object." & @CRLF)
 
@@ -458,12 +459,12 @@ Func __NetWebView2_JSEvents__OnMessageReceived($sMsg)
 
 		Switch $sJobType
 			Case "COM_TEST"
-				__NetWebView2_Log(@ScriptLineNumber, "- COM_TEST Confirmed: " & $oJSON.GetTokenValue("status") & @CRLF)
+				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COM_TEST Confirmed: " & $oJSON.GetTokenValue("status"), 1)
 		EndSwitch
 
 	Else
 		; 2. Legacy / Native Pipe-Delimited Messaging
-		__NetWebView2_Log(@ScriptLineNumber, "+> [JavaScriptEvents]: Processing Delimited message...", 0)
+		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Processing Delimited message...", 1)
 		Local $sCommand, $sData, $iSplitPos
 		$iSplitPos = StringInStr($sMsg, "|") - 1
 
@@ -475,23 +476,23 @@ Func __NetWebView2_JSEvents__OnMessageReceived($sMsg)
 			$sData = StringTrimLeft($sMsg, $iSplitPos + 1)
 		EndIf
 
-		Local $s_Prefix = "[JavaScriptEvents]:" & $sCommand & ": "
+		$s_Prefix &= $sCommand & ": "
 		Switch $sCommand
 			Case "ERROR"
-				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Status General ERROR: " & $sData)
+				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Status General ERROR: " & $sData, 1)
 
 			Case "NAV_ERROR"
-				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Status NAV_ERROR: " & $sData)
+				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Status NAV_ERROR: " & $sData, 1)
 
 			Case "COM_TEST"
-				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Status Legacy COM_TEST: " & $sData)
+				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Status Legacy COM_TEST: " & $sData, 1)
 
 			Case "JSON_CLICKED"
 				Local $aClickData = StringSplit($sData, "=", 2) ; Split "Key = Value"
 				If UBound($aClickData) >= 2 Then
 					Local $sKey = StringStripWS($aClickData[0], 3)
 					Local $sVal = StringStripWS($aClickData[1], 3)
-					__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Property: " & $sKey & " | Value: " & $sVal)
+					__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Property: " & $sKey & " | Value: " & $sVal, 1)
 				EndIf
 
 		EndSwitch
