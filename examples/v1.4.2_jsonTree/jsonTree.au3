@@ -18,6 +18,7 @@ _Example()
 Func _Example()
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
+
 	; Create GUI with resizing support
 	Local $hGUI = GUICreate("WebView2AutoIt JSON Viewer", 500, 650, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x2B2B2B, $hGUI)
@@ -48,26 +49,12 @@ Func _Example()
 	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	ObjEvent($oWebV2M, "__NetWebView2_WebEvents_", "IWebViewEvents")
-
-	; Important: Pass $hGUI in parentheses to maintain Pointer type for COM
-	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
-	$oWebV2M.Initialize($hGUI, $sProfileDirectory, 0, 50, 500, 600)
-
 	; Initialize JavaScript Bridge
-	Local $oJS = $oWebV2M.GetBridge()
-	ObjEvent($oJS, "__NetWebView2_JSEvents_", "IBridgeEvents")
+	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M)
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; Wait for WebView2 to be ready
-	Do
-		Sleep(50)
-	Until $oWebV2M.IsReady
-
-	; WebView2 Configuration
-	$oWebV2M.SetAutoResize(True) ; Using SetAutoResize(True) to skip WM_SIZE
-	$oWebV2M.BackColor = "0x2B2B2B"
-	$oWebV2M.AreDevToolsEnabled = True ; Allow F12
-	$oWebV2M.ZoomFactor = 1.2
+	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 50, 0, 0, True, True, True, 1.2, "0x2B2B2B")
 
 	; Initial JSON display
 	Local $sMyJson = '{"Game": "Witcher 3", "ID": 1, "Meta": {"Developer": "CD Projekt", "Year": 2015 }, "Tags": ["RPG", "Open World"]}'
@@ -86,11 +73,11 @@ Func _Example()
 
 			Case $idExpand
 				; Call JavaScript expand method on the global tree object
-				$oWebV2M.ExecuteScript("if(window.tree) window.tree.expand();")
+				_NetWebView2_ExecuteScript($oWebV2M, "if(window.tree) window.tree.expand();")
 
 			Case $idCollapse
 				; Call JavaScript collapse method
-				$oWebV2M.ExecuteScript("if(window.tree) window.tree.collapse();")
+				_NetWebView2_ExecuteScript($oWebV2M, "if(window.tree) window.tree.collapse();")
 
 			Case $idFind
 				Local $sInput = InputBox("JSON Search", "Enter key or value:", $sLastSearch, "", 200, 130, Default, Default, Default, $hGUI)
@@ -112,11 +99,7 @@ Func _Example()
 		EndSwitch
 	WEnd
 
-	If IsObj($oWebV2M) Then $oWebV2M.Cleanup()
-	$oWebV2M = 0
-	$oJS = 0
-	_NetWebView2_ShutDown()
-
+	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 EndFunc   ;==>Main
 
 #Region ; === UTILS ===
@@ -127,14 +110,14 @@ EndFunc   ;==>Main
 ; Author.........: summerstyle (https://github.com/summerstyle/jsonTreeViewer)
 ; Integration....: Adapted for AutoIt WebView2
 ; ===============================================================================================================================
-Func _Web_jsonTree(ByRef $oWebV2M, $sJson)
+Func _Web_jsonTree(ByRef $oWebV2M, $sJavaScripton)
 	; 1. Prepare JSON (Minify to prevent script errors from line breaks)
-	Local $oJSON = _NetJson_CreateParser($sJson)
+	Local $oJSON = _NetJson_CreateParser($sJavaScripton)
 ;~ 	_NetWebView2_ObjName_FlagsValue($oJSON)
-	$sJson = $oJSON.GetMinifiedJson()
+	$sJavaScripton = $oJSON.GetMinifiedJson()
 
 	; 2. Load local library files
-	Local $sJsLib = FileRead(@ScriptDir & ".\JS_Lib\jsonTree.js")
+	Local $sJavaScriptLib = FileRead(@ScriptDir & ".\JS_Lib\jsonTree.js")
 	Local $sCssLib = FileRead(@ScriptDir & ".\JS_Lib\jsonTreeDark.css")
 
 	; 3. Build HTML with embedded Logic
@@ -146,10 +129,10 @@ Func _Web_jsonTree(ByRef $oWebV2M, $sJson)
 			"        Powered by <a href='https://github.com/summerstyle/jsonTreeViewer' style='color:#777; text-decoration:none;'>jsonTree</a>" & _
 			"    </div>" & _
 			"<script>" & @CRLF & _
-			$sJsLib & @CRLF & _
+			$sJavaScriptLib & @CRLF & _
 			";" & @CRLF & _ ; Ensure library/code separation
 			"try {" & @CRLF & _
-			"    var data = " & $sJson & ";" & @CRLF & _
+			"    var data = " & $sJavaScripton & ";" & @CRLF & _
 			"    var container = document.getElementById('tree-container');" & @CRLF & _
 			"    if (typeof jsonTree !== 'undefined') {" & @CRLF & _
 			"        window.tree = jsonTree.create(data, container);" & @CRLF & _ ; Assign to window for global access
@@ -185,7 +168,7 @@ EndFunc   ;==>_Web_jsonTree
 ; Parameters.....: $sSearch - The string to find
 ; ===============================================================================================================================
 Func _Web_jsonTreeFind(ByRef $oWebV2M, $sSearch, $bNext = False)
-	Local $sJS = _
+	Local $sJavaScript = _
 			"var term = '" & $sSearch & "'.toLowerCase();" & _
 			"if (!window.searchIndices || window.lastTerm !== term) {" & _
 			"    window.searchIndices = [];" & _
@@ -229,9 +212,9 @@ Func _Web_jsonTreeFind(ByRef $oWebV2M, $sSearch, $bNext = False)
 			"}"
 
 	; Replace the AutoIt variable $bNext with JS boolean
-;~     $sJS = StringReplace($sJS, "$bNext", ($bNext ? "true" : "false"))
-	ConsoleWrite("$sJS=" & $sJS & @CRLF)
-	$oWebV2M.ExecuteScript($sJS)
+;~     $sJavaScript = StringReplace($sJavaScript, "$bNext", ($bNext ? "true" : "false"))
+	ConsoleWrite("$sJavaScript=" & $sJavaScript & @CRLF)
+	_NetWebView2_ExecuteScript($oWebV2M, $sJavaScript)
 EndFunc   ;==>_Web_jsonTreeFind
 #EndRegion ; === UTILS ===
 #EndRegion ; UDF TESTING EXAMPLE

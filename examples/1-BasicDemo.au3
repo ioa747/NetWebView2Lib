@@ -2,19 +2,13 @@
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
 
+#include "..\NetWebView2Lib.au3"
+
 ; ==============================================================================
 ; WebView2 Multi-Channel Presentation Script
 ; ==============================================================================
 
-; Register the exit function
-OnAutoItExitRegister("_CleanExit")
-
 ; Global objects
-Global $oManager, $oBridge
-Global $oEvtManager, $oEvtBridge
-
-; COM Error Handler
-Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc")
 
 ; GUI & Controls
 Global $hGUI, $idLabelStatus
@@ -22,31 +16,29 @@ Global $hGUI, $idLabelStatus
 Main()
 
 Func Main()
-	; 1. Create the UI
-	$hGUI = GUICreate("WebView2 .NET Manager - Community Demo", 900, 650)
-	$idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, 620, 880, 20)
+	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
+	#forceref $oMyError
+
+	; Create the UI
+	Local $iHeight = 400
+	$hGUI = GUICreate("WebView2 .NET Manager - Community Demo", 800, $iHeight)
+	$idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight -20 , 880, 20)
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 	GUISetState(@SW_SHOW)
 
-	; 2. Instantiate the .NET Manager
-	$oManager = ObjCreate("NetWebView2.Manager")
-	If Not IsObj($oManager) Then
-		MsgBox(16, "Error", "Could not create WebView2 Manager. Please register the DLL.")
-		Exit
-	EndIf
+	; Initialize WebView2 Manager and register events
+	Local $oWebV2M = _NetWebView2_CreateManager()
+	$_g_oWeb = $oWebV2M
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; 3. Setup Events (Crucial: Define interfaces explicitly)
-	; Channel 1: Manager Events (INIT_READY, NAV_COMPLETED, etc.)
-	$oEvtManager = ObjEvent($oManager, "WebView_", "IWebViewEvents")
+	; Initialize JavaScript Bridge
+	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; Channel 2: JavaScript Bridge (Messages from JS to AutoIt)
-	$oBridge = $oManager.GetBridge()
-	$oEvtBridge = ObjEvent($oBridge, "Bridge_", "IBridgeEvents")
+	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
 
-	; 4. Initialize the Browser
-	; We pass an empty string for the URL to prevent "ConnectionAborted"
-	; and wait for our INIT_READY signal.
-	$oManager.Initialize(($hGUI), "", 10, 10, 880, 600)
+	_NetWebView2_NavigateToString($_g_oWeb, __GetDemoHTML())
 
 	; Main Loop
 	While 1
@@ -57,77 +49,30 @@ Func Main()
 	WEnd
 
 	GUIDelete($hGUI)
+
+	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 EndFunc   ;==>Main
-
-Func _CleanExit()
-	; Check if the object exists before calling methods to avoid COM errors during crash
-	If IsObj($oManager) Then
-		$oManager.Cleanup()
-	EndIf
-
-	; Release the event sinks
-	$oManager = 0
-	$oBridge = 0
-	$oEvtManager = 0
-	$oEvtBridge = 0
-	$oMyError = 0
-
-	ConsoleWrite(">>> Application exited cleanly." & @CRLF)
-EndFunc   ;==>_CleanExit
 
 ; ==============================================================================
 ; ; Function to update a text element inside the WebView UI
 ; ==============================================================================
-Func UpdateWebUI($sElementId, $sNewText)
+Func UpdateWebUI(ByRef $oWeb, $sElementId, $sNewText)
+	If Not IsObj($oWeb) Then Return ''
+
 	; Escape backslashes, single quotes and handle new lines for JavaScript safety
 	Local $sCleanText = StringReplace($sNewText, "\", "\\")
 	$sCleanText = StringReplace($sCleanText, "'", "\'")
 	$sCleanText = StringReplace($sCleanText, @CRLF, "\n")
 	$sCleanText = StringReplace($sCleanText, @LF, "\n")
 
-	Local $sJS = "document.getElementById('" & $sElementId & "').innerText = '" & $sCleanText & "';"
-
-	If IsObj($oManager) Then
-		$oManager.ExecuteScript($sJS)
-	EndIf
+	Local $sJavaScript = "document.getElementById('" & $sElementId & "').innerText = '" & $sCleanText & "';"
+	_NetWebView2_ExecuteScript($oWeb, $sJavaScript)
 EndFunc   ;==>UpdateWebUI
 
 ; ==============================================================================
-; EVENT HANDLER: WebView Manager (C# Internal Events)
+; MY EVENT HANDLER: Bridge (JavaScript Messages)
 ; ==============================================================================
-Func WebView_OnMessageReceived($sMessage)
-	ConsoleWrite(">>> [CORE EVENT]: " & $sMessage & @CRLF)
-
-	; Separating messages that have parameters (e.g. TITLE_CHANGED|...)
-	Local $aParts = StringSplit($sMessage, "|")
-	Local $sCommand = StringStripWS($aParts[1], 3)
-
-	Switch $sCommand
-		Case "INIT_READY"
-			GUICtrlSetData($idLabelStatus, "Status: Engine Ready. Loading HTML UI...")
-			$oManager.NavigateToString(_GetDemoHTML())
-
-		Case "NAV_STARTING"
-			GUICtrlSetData($idLabelStatus, "Status: Navigation started...")
-
-		Case "NAV_COMPLETED"
-			GUICtrlSetData($idLabelStatus, "Status: Application Ready.")
-
-		Case "TITLE_CHANGED"
-			; If you want to change the title of your GUI based on the page
-			If $aParts[0] > 1 Then WinSetTitle($hGUI, "", "WebView2 - " & $aParts[2])
-
-		Case "ERROR", "NAV_ERROR"
-			Local $sErr = ($aParts[0] > 1) ? $aParts[2] : "Unknown"
-			GUICtrlSetData($idLabelStatus, "Status: Error " & $sErr)
-			MsgBox(16, "WebView2 Error", $sMessage)
-	EndSwitch
-EndFunc   ;==>WebView_OnMessageReceived
-
-; ==============================================================================
-; EVENT HANDLER: Bridge (JavaScript Messages)
-; ==============================================================================
-Func Bridge_OnMessageReceived($sMessage)
+Func _BridgeMyEventsHandler_OnMessageReceived($sMessage)
 	Local Static $iMsgCnt = 0
 	ConsoleWrite(">>> [JS MESSAGE]: " & $sMessage & @CRLF)
 
@@ -136,14 +81,14 @@ Func Bridge_OnMessageReceived($sMessage)
 	Else
 		MsgBox(64, "JS Notification", "Message from Browser: " & $sMessage)
 		$iMsgCnt += 1
-		UpdateWebUI("mainTitle", $iMsgCnt & " Hallo from AutoIt!")
+		UpdateWebUI($_g_oWeb, "mainTitle", $iMsgCnt & " Hello from AutoIt!")
 	EndIf
-EndFunc   ;==>Bridge_OnMessageReceived
+EndFunc   ;==>_BridgeMyEventsHandler_OnMessageReceived
 
 ; ==============================================================================
 ; HELPER: Demo HTML Content
 ; ==============================================================================
-Func _GetDemoHTML()
+Func __GetDemoHTML()
 	Local $sH = '<html><head><style>' & _
 			'body { font-family: "Segoe UI", sans-serif; background: #202020; color: white; padding: 40px; text-align: center; }' & _
 			'.card { background: #2d2d2d; padding: 20px; border-radius: 8px; border: 1px solid #444; }' & _
@@ -158,21 +103,4 @@ Func _GetDemoHTML()
 			'</div>' & _
 			'</body></html>'
 	Return $sH
-EndFunc   ;==>_GetDemoHTML
-
-; ==============================================================================
-; COM ERROR HANDLER
-; ==============================================================================
-Func _ErrFunc($oError)
-	; Do anything here.
-	ConsoleWrite(@ScriptName & " (" & $oError.scriptline & ") : ==> COM Error intercepted !" & @CRLF & _
-			@TAB & "err.number is: " & @TAB & @TAB & "0x" & Hex($oError.number) & @CRLF & _
-			@TAB & "err.windescription:" & @TAB & $oError.windescription & @CRLF & _
-			@TAB & "err.description is: " & @TAB & $oError.description & @CRLF & _
-			@TAB & "err.source is: " & @TAB & @TAB & $oError.source & @CRLF & _
-			@TAB & "err.helpfile is: " & @TAB & $oError.helpfile & @CRLF & _
-			@TAB & "err.helpcontext is: " & @TAB & $oError.helpcontext & @CRLF & _
-			@TAB & "err.lastdllerror is: " & @TAB & $oError.lastdllerror & @CRLF & _
-			@TAB & "err.scriptline is: " & @TAB & $oError.scriptline & @CRLF & _
-			@TAB & "err.retcode is: " & @TAB & "0x" & Hex($oError.retcode) & @CRLF & @CRLF)
-EndFunc   ;==>_ErrFunc
+EndFunc   ;==>__GetDemoHTML
