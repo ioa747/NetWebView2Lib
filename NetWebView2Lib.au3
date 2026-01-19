@@ -14,11 +14,11 @@
 #TODO UDF INDEX
 
 ; Global objects
-Global $_g_hNetWebView2Lib_DLL = ''
+Global $_g_hNetWebView2Lib_DLL = '' ; WIP
+Global $_g_bNetWebView2_DebugInfo = True
+Global $_g_sNetWebView2_User_JSEvents = ""
+Global $_g_sNetWebView2_User_WebViewEvents = ""
 Global $_g_oWeb
-Global $g_DebugInfo = True
-Global $_g_sUser_FnPrefix__NetWebView2_JSEvents = ""
-Global $_g_sUser_FnPrefix__NetWebView2_WebViewEvents = ""
 
 #Region ; NetWebView2Lib UDF - core function
 Func _NetWebView2_StartUp($sDLLFileFullPath)
@@ -104,7 +104,7 @@ Func _NetWebView2_CreateManager($sUser_FnPrefix = "")
 ;~ 	__NetWebView2_ObjName_FlagsValue($oWebV2M)
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, "! [NetWebView2Lib]: Manager Creation ERROR")
 
-	If $sUser_FnPrefix Then $_g_sUser_FnPrefix__NetWebView2_WebViewEvents = $sUser_FnPrefix
+	If $sUser_FnPrefix Then $_g_sNetWebView2_User_WebViewEvents = $sUser_FnPrefix
 	ObjEvent($oWebV2M, "__NetWebView2_WebViewEvents__", "IWebViewEvents")
 	Return SetError(@error, @extended, $oWebV2M)
 EndFunc   ;==>_NetWebView2_CreateManager
@@ -130,7 +130,7 @@ Func _NetWebView2_GetBridge(ByRef $oWebV2M, $sUser_FnPrefix = "")
 	Local $oWebJS = $oWebV2M.GetBridge()
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, "! [NetWebView2Lib]: Manager.GetBridge() ERROR")
 
-	If $sUser_FnPrefix Then $_g_sUser_FnPrefix__NetWebView2_JSEvents = $sUser_FnPrefix
+	If $sUser_FnPrefix Then $_g_sNetWebView2_User_JSEvents = $sUser_FnPrefix
 	ObjEvent($oWebJS, "__NetWebView2_JSEvents__", "IBridgeEvents")
 	Return SetError(@error, @extended, $oWebJS)
 EndFunc   ;==>_NetWebView2_GetBridge
@@ -306,7 +306,7 @@ EndFunc   ;==>_NetWebView2_NavigateToString
 ; Example .......: No
 ; ===============================================================================================================================
 Func __NetWebView2_Log($s_ScriptLineNumber, $sString, $iErrorNoLineNo = 1, $iError = @error, $iExtended = @extended)
-	If Not $g_DebugInfo Then Return SetError($iError, $iExtended, 0)
+	If Not $_g_bNetWebView2_DebugInfo Then Return SetError($iError, $iExtended, 0)
 	If $iErrorNoLineNo = 1 Then
 		If $iError Then
 			$sString = "@@ ( NetWebView2Lib UDF : Line=" & $s_ScriptLineNumber & ", @error=" & $iError & ", @extended=" & $iExtended & " ) :: " & $sString
@@ -431,9 +431,9 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived($sMsg)
 		Case Else
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 0)
 	EndSwitch
-	If $_g_sUser_FnPrefix__NetWebView2_WebViewEvents Then
-		#TODO =>>>> Call($_g_sUser_FnPrefix__NetWebView2_WebViewEvents & 'OnMessageReceived', $oWebV2M, $hGUI, $sMsg)
-		Call($_g_sUser_FnPrefix__NetWebView2_WebViewEvents & 'OnMessageReceived', $sMsg)
+	If $_g_sNetWebView2_User_WebViewEvents Then
+		#TODO =>>>> Call($_g_sNetWebView2_User_WebViewEvents & 'OnMessageReceived', $oWebV2M, $hGUI, $sMsg)
+		Call($_g_sNetWebView2_User_WebViewEvents & 'OnMessageReceived', $sMsg)
 	EndIf
 
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnMessageReceived
@@ -497,9 +497,9 @@ Func __NetWebView2_JSEvents__OnMessageReceived($sMsg)
 		EndSwitch
 	EndIf
 
-	If $_g_sUser_FnPrefix__NetWebView2_JSEvents Then
-		#TODO =>>>> Call($_g_sUser_FnPrefix__NetWebView2_JSEvents & 'OnMessageReceived', $oWebV2M, $oWebJS, $hGUI, $sMsg)
-		Call($_g_sUser_FnPrefix__NetWebView2_JSEvents & 'OnMessageReceived', $sMsg)
+	If $_g_sNetWebView2_User_JSEvents Then
+		#TODO =>>>> Call($_g_sNetWebView2_User_JSEvents & 'OnMessageReceived', $oWebV2M, $oWebJS, $hGUI, $sMsg)
+		Call($_g_sNetWebView2_User_JSEvents & 'OnMessageReceived', $sMsg)
 	EndIf
 
 EndFunc   ;==>__NetWebView2_JSEvents__OnMessageReceived
@@ -511,3 +511,4 @@ Func __NetWebView2_WebViewEvents__OnContextMenuRequested($sLink, $iX, $iY, $sSel
 	#forceref $oMyError
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnContextMenuRequested
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
