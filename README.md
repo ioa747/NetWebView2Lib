@@ -64,158 +64,45 @@ This project is provided "as-is". You are free to use, modify, and distribute it
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 🚀 What's New in v1.4.2 - Major Update
+## 🚀 What's New in v1.4.3 - Major Update
 
-This major update transforms **NetWebView2Lib** into a high-performance automation framework, bridging the gap between synchronous procedural logic (AutoIt) and asynchronous web environments.
+This update introduces critical flexibility for Chromium engine initialization, allowing developers to pass command-line arguments directly to the browser.
 
 ### ⚡ Key Features & Enhancements
 
-#### **1. Synchronous Script Execution**
+#### **1. Command-Line Argument Support**
 
-The long-awaited `ExecuteScriptWithResult(script)` is here. You can now execute JavaScript and receive the return value directly in a single line of AutoIt code, eliminating the need for complex event-callback chains.
+The new `AdditionalBrowserArguments` property allows you to configure the Chromium engine with specialized switches before it starts. This is essential for advanced automation, proxy configuration, and performance tuning.
 
-- **Automatic Unescaping:** Results are automatically cleaned from JSON quotes and escaped characters.
-    
-- **Safety First:** Built-in 5-second timeout to prevent application hangs during script execution.
-    
+- **Pre-Initialization:** These arguments are applied during the environment creation phase. You must set this property **before** calling `.Initialize()`.
+- **Powerful Switches:** Support for many Chromium flags, including:
+    - `--disable-gpu`: Disables hardware acceleration (useful for legacy hardware or headless snapshots).
+    - `--mute-audio`: Starts the browser in complete silence.
+    - `--proxy-server="http://1.2.3.4:8080"`: Forces all traffic through a specific proxy.
+    - `--incognito`: Starts in private browsing mode.
+    - `--user-agent="..."`: A secondary way to override the default identity.
 
-#### **2. Persistent Code Injection**
+#### **2. Advanced JSON Manipulation (JsonParser)**
 
-The new `AddInitializationScript(script)` allows you to register JavaScript or CSS that "survives" page reloads and navigations.
+The `NetJson.Parser` has received a massive feature upgrade to support production-grade data manipulation directly from AutoIt.
 
-- **Persistence:** Scripts are automatically re-injected by the engine the moment a new document is created.
-    
-- **Stackable:** Multiple scripts can be registered simultaneously without overwriting previous ones.
-    
+- **Smart Typing & Deep Creation:** `SetTokenValue` now automatically creates missing parent objects and intelligently detects data types (Boolean, Null, Numbers) while preserving leading zeros in identifiers.
+- **Data Querying:** New `GetTokenCount` and `GetKeys` methods allow for deep inspection of JSON structures without manual parsing.
+- **Array Power Tools:** Built-in `SortArray` and `SelectUnique` (deduplication) leverage native LINQ performance to manage large data sets in memory.
 
-#### **3. Unified Context Menu Handling**
+#### **3. Advanced Export & PDF Management (v1.4.3)**
 
-A new, streamlined event `OnContextMenuRequested` provides direct access to context data without manual JSON parsing.
+- **ExportPageData(format, filePath):** Automate saving pages as HTML or MHTML (Single File) without dialogs.
+- **PrintToPdfStream():** Capture the page as a PDF and retrieve it as a Base64 string directly in AutoIt—no temporary files needed.
+- **HiddenPdfToolbarItems:** Take full control of the PDF viewer toolbar by hiding specific buttons (Save, Print, Search, etc.) through bitwise flags.
 
-- **Direct Access:** Instantly get the `LinkURL`, `X/Y Coordinates`, and `SelectedText`.
-    
-- **Legacy Support:** Remains 100% compatible with the previous JSON-based context event for existing projects.
-    
-
-#### **4. Integrated Data Sync & Base64 Support**
-
-- **Direct Data Binding:** The new `SyncInternalData(json, variable)` provides an atomic way to synchronize complex data from AutoIt to the browser window without manual JS execution.
-    
-- **Native Base64 Support:** The `NetJson.Parser` now includes built-in Base64 encoding and decoding (including `DecodeB64ToFile`), providing a high-speed path for processing screenshots and binary data.
-
-#### **5. Professional Layout & Diagnostics**
-
-- **Smart Resizing (v1.4.2):** Replaced legacy docking with native OS message interception for pixel-perfect resizing.
-    
-- **Global Error Handling:** The standard showcase now implements a global COM error handler for professional debugging.
-    
-
----
-
-### 📝 Quick Migration Example (AutoIt)
-
-**Before (v1.4.1):**
-
-AutoIt
-
-```
-$oWeb.ExecuteScript("document.title")
-; ... Wait for WebMessageReceived event ...
-; ... Parse JSON ...
-```
-
-**Now (v1.4.2):**
-
-AutoIt
-
-```
-Local $sTitle = $oWeb.ExecuteScriptWithResult("document.title")
-ConsoleWrite("Page Title: " & $sTitle & @CRLF)
-```
-
----
-
-### 📦 Technical Breakdown
-
-|**Method / Property**|**DispId**|**Description**|
-|---|---|---|
-|`AddInitializationScript`|184|Persistent JS injection across navigations.|
-|`ExecuteScriptWithResult`|188|Synchronous JS execution (Returns String).|
-|`SetAutoResize`|189|Automated parent-container docking.|
-|`OnContextMenuRequested`|190|Parameter-based context menu event.|
-|`ExecuteScriptOnPage`|191|Immediate, non-persistent script execution.|
-|`ClearCache`|193|Clears Disk Cache & Local Storage.|
-
----
-
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
-</p>
-
-
-## 🧬 Understanding the GOG Demo Showcase (v1.4.2)
-
-The **`examples\GOG_Demo_v1.4.2\gogDemo.au3`** is more than just a browser—it is a showcase of **Hybrid Intelligence**. It demonstrates how AutoIt can seamlessly orchestrate a modern, complex e-commerce environment (GOG.com) by combining native Windows logic with the Edge WebView2 DOM.
-
-#### 1. Context-Aware Menu (GOG Edition)
-
-The demo intercepts the native browser menu and replaces it with a dynamic AutoIt menu. The library "senses" exactly what is under your cursor:
-
-- **🎮 Game Tile Intelligence**:
-    
-    - **Action**: Right-click on a game’s thumbnail or title.
-        
-    - **What happens**: The script extracts the `Game ID` and `Price` directly from the DOM, offering options to open the game in a new tab or add it to a local AutoIt-managed Watchlist.
-        
-- **📄 Professional Reporting (PDF & Screenshots)**:
-    
-    - **Action**: Right-click anywhere on the page.
-        
-    - **What happens**:
-        
-        - **Smart PDF Export**: Generates a clean **A4 PDF** report. Before exporting, it uses the new `InjectCss` method to dynamically strip away GOG’s headers, sidebars, and campaign banners for a professional, content-focused document.
-            
-        - **Full Page Capture**: Leverages the **Chrome DevTools Protocol (CDP)** to capture a high-resolution image of the entire page—even if it exceeds 6,000+ pixels in height—without scrolling artifacts.
-            
-
-#### 2. Advanced Framework Features
-
-- **⚡ Native CSS Injection (`InjectCss`)**: Move beyond manual JavaScript DOM manipulation. The demo shows how a single line of AutoIt code can override a website’s layout, making it "Print-Friendly" instantly.
-    
-- **🔄 Synchronous Data Binding (`SyncInternalData`)**: Effortlessly synchronize complex JSON datasets from AutoIt directly into the browser’s memory. This allows your script to "inject" custom variables that the website’s JavaScript can read in real-time.
-    
-- **🛠 Robust Event Handling**: The demo implements a **Global COM Error Handler**. Even if the website encounters JavaScript errors or network lag, the AutoIt host remains stable and responsive.
-    
-- **📏 Precision Resizing**: Utilizing native OS message interception, the browser view adapts to GUI changes with pixel-perfect accuracy, eliminating the flickering typical of standard docking.
-    
-
----
-
-#### ⚙️ How it Works: The v1.4.2 "Direct Path"
-
-Version 1.4.2 simplifies the communication bridge. While previous versions required complex event-callback chains, we now use the **Direct Path**:
-
-1. **Unified Events**: The `OnContextMenuRequested` event now passes 4 clean parameters (Link, X, Y, Selected Text) directly. No more manual JSON parsing for standard context actions.
-    
-2. **Instant Execution**: With `ExecuteScriptWithResult`, AutoIt asks JavaScript a question (e.g., "What is the total price in the cart?") and receives the answer **immediately** in the next line of code, just like a native function.
-    
-3. **Persistent DNA**: Via `AddInitializationScript`, your custom bridge logic (like PDF cleaning or menu triggers) survives page reloads and site-wide navigation.
-    
-
----
-
-#### 💡 Pro Tip for Developers:
-
-> "Version 1.4.2 is **GOG-Proof**. Use the `InjectCss` method during PDF Export to target dynamic elements like `.campaign-bar` or `nav`. Using wildcard selectors like `[class*='notification']` allows you to suppress annoying popups and banners automatically, turning any webpage into a clean business report."
 
 ---
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
-
-## 📖 NetWebView2Lib Version 1.4.2 (Quick Reference)
+## 📖 NetWebView2Lib Version 1.4.3 - (2026-01-20) (Quick Reference)
 
 ### NetWebView2Lib (ProgId: NetWebView2.Manager)
 
@@ -268,6 +155,14 @@ Determines whether new window requests are allowed or redirected to the same win
 ##### CustomMenuEnabled
 Enables or disables custom context menu handling.
 `object.CustomMenuEnabled[ = Value]`
+
+##### AdditionalBrowserArguments
+Sets additional command-line arguments to be passed to the Chromium engine during initialization. Must be set BEFORE calling Initialize().
+`object.AdditionalBrowserArguments[ = Value]`
+
+##### HiddenPdfToolbarItems
+Controls the visibility of buttons in the PDF viewer toolbar using a bitwise combination of CoreWebView2PdfToolbarItems (e.g., 1=Save, 2=Print, 4=Search).
+`object.HiddenPdfToolbarItems[ = Value]`
 
 #### Method
 
@@ -424,6 +319,7 @@ Enables or disables the Web Message communication system.
 Enables or disables the browser status bar.
 `object.SetStatusBarEnabled(Enabled As Boolean)`
 
+  
 ##### CapturePreview
 Captures a screenshot of the current view to a file.
 `object.CapturePreview(FilePath As String, Format As String)`
@@ -532,7 +428,14 @@ Clears the browser cache (DiskCache and LocalStorage).
 Asynchronously retrieves the entire visible text content of the document (sent via OnMessageReceived with 'Inner_Text|').
 `object.GetInnerText()`
 
----
+##### ExportPageData
+Exports the current page data as HTML (0) or MHTML (1). If FilePath is provided, it saves to disk; otherwise, it returns the content as a string.
+`object.ExportPageData(Format As Integer, FilePath As String)`
+
+##### PrintToPdfStream
+Captures the current page as a PDF and returns the content as a Base64-encoded string.
+`object.PrintToPdfStream()`
+
 #### Events
 
 ##### OnMessageReceived
@@ -591,11 +494,19 @@ Retrieves a value by JSON path (e.g., "items[0].name").
 `string GetTokenValue(Path As String)`
 
 ##### GetArrayLength
-Returns the count of elements if the JSON is an array.
+Returns the count of elements if the JSON is an array (Legacy wrapper for GetTokenCount).
 `int GetArrayLength(Path As String)`
 
+##### GetTokenCount
+Returns the count of elements (array items or object properties) at the specified path.
+`int GetTokenCount(Path As String)`
+
+##### GetKeys
+Returns a delimited string of keys for the object at the specified path.
+`string GetKeys(Path As String, Delimiter As String)`
+
 ##### SetTokenValue
-Updates or adds a value at the specified path (only for JObject).
+Updates or adds a value at the specified path. Supports **Deep Creation** (automatic path creation) and **Smart Typing** (auto-detection of bool/null/numbers).
 `void SetTokenValue(Path As String, Value As String)`
 
 ##### LoadFromFile
@@ -677,4 +588,12 @@ Decodes a Base64 string back to plain text.
 ##### DecodeB64ToFile
 Decodes a Base64 string and saves the binary content directly to a file.
 `bool DecodeB64ToFile(Base64Text As String, FilePath As String)`
+
+##### SortArray
+Sorts a JSON array by a specific key.
+`bool SortArray(ArrayPath As String, Key As String, Descending As Boolean)`
+
+##### SelectUnique
+Removes duplicate objects from a JSON array based on a key's value.
+`bool SelectUnique(ArrayPath As String, Key As String)`
 

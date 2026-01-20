@@ -9,7 +9,7 @@ using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-// --- Version 1.4.2 ---
+// --- Version 1.4.3 - (dev) ---
 
 namespace NetWebView2Lib
 {
@@ -72,10 +72,12 @@ namespace NetWebView2Lib
     /// Actions available to call from AutoIt.
     /// </summary>
     [Guid("CCB12345-6789-4ABC-DEF0-1234567890AB")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
+    [InterfaceType(ComInterfaceType.InterfaceIsDual)]
     [ComVisible(true)]
     public interface IWebViewActions
     {
+        /// <summary>Set additional browser arguments (switches) before initialization.</summary>
+        [DispId(100)] string AdditionalBrowserArguments { get; set; }
         /// <summary>Initialize the WebView.</summary>
         [DispId(101)] void Initialize(object parentHandle, string userDataFolder, int x = 0, int y = 0, int width = 0, int height = 0);
         /// <summary>Navigate to a URL.</summary>
@@ -243,6 +245,13 @@ namespace NetWebView2Lib
 
         /// <summary>Get the inner text of the entire document.</summary>
         [DispId(200)] void GetInnerText();
+
+        /// <summary>Export page data as HTML or MHTML.</summary>
+        [DispId(201)] string ExportPageData(int format, string filePath);
+        /// <summary>Capture page as PDF and return as Base64 string.</summary>
+        [DispId(202)] string PrintToPdfStream();
+        /// <summary>Control PDF toolbar items visibility (bitwise combination of CoreWebView2PdfToolbarItems).</summary>
+        [DispId(203)] int HiddenPdfToolbarItems { get; set; }
     }
 
     // --- 3. THE MANAGER CLASS ---
@@ -256,29 +265,31 @@ namespace NetWebView2Lib
     [ProgId("NetWebView2.Manager")]
     public class WebViewManager : IWebViewActions
     {
-        // --- PRIVATE FIELDS ---
-
+        #region 1. PRIVATE FIELDS
         private readonly WebView2 _webView;
         private readonly WebViewBridge _bridge;
         private readonly JsonParser _internalParser = new JsonParser();
 
         private bool _isAdBlockActive = false;
-        private List<string> _blockList = new List<string>();
+        private readonly List<string> _blockList = new List<string>();
         private const string StyleId = "autoit-injected-style";
         private bool _areBrowserPopupsAllowed = false;
         private bool _contextMenuEnabled = true;
         private bool _autoResizeEnabled = false;
         private bool _customMenuEnabled = false;
+        private string _additionalBrowserArguments = "";
 
         private int _offsetX = 0;
         private int _offsetY = 0;
+        private int _marginRight = 0;
+        private int _marginBottom = 0;
         private IntPtr _parentHandle = IntPtr.Zero;
         private ParentWindowSubclass _parentSubclass;
 
         private string _lastCssRegistrationId = "";
+        #endregion
 
-        // --- DELEGATES ---
-
+        #region 2. DELEGATES & EVENTS
         /// <summary>
         /// Delegate for detecting when messages are received.
         /// </summary>
@@ -311,8 +322,8 @@ namespace NetWebView2Lib
         public delegate void OnURLChangedDelegate(string newUrl);
 
         /// <summary>Delegate for custom context menu event.</summary>
-        /// <param name="menuData">JSON string with context info.</param>
-        public delegate void OnContextMenuDelegate(string menuData);
+        /// <param name="message">JSON string with context info.</param>
+        public delegate void OnContextMenuDelegate(string message);
 
         /// <summary>Delegate for simplified context menu event.</summary>
         public delegate void OnContextMenuRequestedDelegate(string linkUrl, int x, int y, string selectionText);
@@ -323,9 +334,6 @@ namespace NetWebView2Lib
         public delegate void OnBrowserGotFocusDelegate(int reason);
         /// <summary>Delegate for Lost Focus.</summary>
         public delegate void OnBrowserLostFocusDelegate(int reason);
-
-
-        // --- EVENTS ---
 
         /// <summary>
         /// Event fired when a message is received.
@@ -364,9 +372,9 @@ namespace NetWebView2Lib
         public event OnBrowserGotFocusDelegate OnBrowserGotFocus;
         /// <summary>Event fired when browser loses focus.</summary>
         public event OnBrowserLostFocusDelegate OnBrowserLostFocus;
+        #endregion
 
-        // --- NATIVE METHODS ---
-
+        #region 3. NATIVE METHODS & HELPERS
         [DllImport("user32.dll")]
         private static extern bool GetClientRect(IntPtr hWnd, out Rect lpRect);
 
@@ -393,9 +401,9 @@ namespace NetWebView2Lib
             /// <summary>Bottom position</summary>
             public int Bottom; 
         }
+        #endregion
 
-        // --- CONSTRUCTOR ---
-
+        #region 4. CONSTRUCTOR
         /// <summary>
         /// Initializes a new instance of the WebViewManager class.
         /// </summary>
@@ -404,9 +412,9 @@ namespace NetWebView2Lib
             _webView = new WebView2();
             _bridge = new WebViewBridge();
         }
+        #endregion
 
-        // --- PROPERTIES ---
-
+        #region 5. BRIDGE & STATUS
         /// <summary>
         /// Get the Bridge object for AutoIt interaction.
         /// </summary>
@@ -419,10 +427,9 @@ namespace NetWebView2Lib
         /// Check if WebView2 is initialized and ready.
         /// </summary>
         public bool IsReady() => _webView?.CoreWebView2 != null;
+        #endregion
 
-
-        // --- INITIALIZATION ---
-
+        #region 6. CORE INITIALIZATION
         /// <summary>
         /// Initializes the WebView2 control within the specified parent window handle.
         /// Supports browser extensions and custom user data folders.
@@ -438,6 +445,23 @@ namespace NetWebView2Lib
                 // Store offsets for Smart Resize
                 _offsetX = x;
                 _offsetY = y;
+
+                // Calculate Margins based on Parent's size at initialization
+                if (GetClientRect(_parentHandle, out Rect parentRect))
+                {
+                    int pWidth = parentRect.Right - parentRect.Left;
+                    int pHeight = parentRect.Bottom - parentRect.Top;
+
+                    // If user provides a width/height, we calculate how much space is left (the margin)
+                    // If they provide 0 (or less), we assume they want to touch the edge (Margin = 0)
+                    _marginRight = (width > 0) ? Math.Max(0, (pWidth - x) - width) : 0;
+                    _marginBottom = (height > 0) ? Math.Max(0, (pHeight - y) - height) : 0;
+                }
+                else
+                {
+                    _marginRight = 0;
+                    _marginBottom = 0;
+                }
 
                 // Initialize the Subclass helper for Smart Resize
                 _parentSubclass = new ParentWindowSubclass(() => PerformSmartResize());
@@ -463,8 +487,8 @@ namespace NetWebView2Lib
 
                 // --- NEW: EXTENSION SUPPORT SETUP ---
                 // We must enable extensions in the Environment Options BEFORE creation
-                var options = new CoreWebView2EnvironmentOptions();
-                options.AreBrowserExtensionsEnabled = true;
+                var options = new CoreWebView2EnvironmentOptions { AreBrowserExtensionsEnabled = true };
+                if (!string.IsNullOrEmpty(_additionalBrowserArguments)) options.AdditionalBrowserArguments = _additionalBrowserArguments;
 
                 // Initialize the Environment with the Custom Data Folder and our Options
                 // Note: The second parameter is the userDataFolder, the third is the options
@@ -567,10 +591,9 @@ namespace NetWebView2Lib
                 }
             });
         }
+        #endregion
 
-
-        // --- CONFIGURATION ---
-
+        #region 7. SETTINGS & CONFIGURATION
         /// <summary>
         /// Configure WebView2 settings.
         /// </summary>
@@ -598,9 +621,9 @@ namespace NetWebView2Lib
                 }
             });
         }
+        #endregion
 
-        // --- EVENT REGISTRATION ---
-
+        #region 8. EVENT REGISTRATION
         /// <summary>
         /// Register event handlers for WebView2 events.
         /// </summary>
@@ -788,162 +811,13 @@ namespace NetWebView2Lib
 			// Communication Event <---> AutoIt <---> JavaScript
 			_webView.CoreWebView2.AddHostObjectToScript("autoit", _bridge);
         }
+        #endregion
 
-
-        // --- PUBLIC API METHODS ---
-
-        /// <summary>
-        /// Adds a script that executes on every page load (Permanent Injection).
-        /// </summary>
-        /// <param name="script">The JavaScript code to be injected.</param>
-        public async void AddInitializationScript(string script)
-        {
-            if (_webView?.CoreWebView2 == null) return;
-
-            try
-            {
-                // This command tells WebView2 to run the script 
-                // on every new document created (refresh or navigation)
-                await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(script);
-
-                // Run it immediately for the current page as well
-                await _webView.CoreWebView2.ExecuteScriptAsync(script);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Error adding initialization script: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Clear browser data (cookies, cache, history, etc.).
-        /// </summary>
-        public async void ClearBrowserData()
-        {
-            await _webView.EnsureCoreWebView2Async();
-            // Clears cookies, history, cache, etc.
-            await _webView.CoreWebView2.Profile.ClearBrowsingDataAsync();
-            OnMessageReceived?.Invoke("DATA_CLEARED");
-        }
-
-        /// <summary>
-        /// Lock down the WebView by disabling certain features.
-        /// </summary>
-        public void LockWebView()
-        {
-            InvokeOnUiThread(() => {
-                if (_webView?.CoreWebView2 != null)
-                {
-                    var s = _webView.CoreWebView2.Settings;
-                    s.AreDefaultContextMenusEnabled = false; // Disable context menus
-                    s.AreDevToolsEnabled = false;            // Disable DevTools    
-                    s.IsZoomControlEnabled = false;          // Disable Zoom Control
-                    s.IsBuiltInErrorPageEnabled = false;     // Disable built-in error pages
-                }
-            });
-        }
-
-        /// <summary>
-        /// Stops any ongoing navigation or loading.
-        /// </summary>
-        public void Stop()
-        {
-            _webView?.CoreWebView2.Stop();
-        }
-
-        /// <summary>
-        /// Shows the print UI dialog.
-        /// </summary>
-        public void ShowPrintUI()
-        {
-            _webView?.CoreWebView2.ShowPrintUI();
-        }
-
-        /// <summary>
-        /// Sets the mute status for audio.
-        /// </summary>
-        public void SetMuted(bool muted)
-        {
-            if (_webView?.CoreWebView2 != null)
-                _webView.CoreWebView2.IsMuted = muted;
-        }
-
-        /// <summary>
-        /// Gets the current mute status.
-        /// </summary>
-        public bool IsMuted()
-        {
-            return _webView?.CoreWebView2?.IsMuted ?? false;
-        }
-
-        /// <summary>
-        /// Reload the current page.
-        /// </summary>
-        public void Reload()
-        {
-            // Check if CoreWebView2 is initialized to avoid null reference exceptions
-            if (_webView != null && _webView.CoreWebView2 != null)
-            {
-                _webView.CoreWebView2.Reload();
-            }
-        }
-
-        /// <summary>
-        /// Navigate back in history.
-        /// </summary>
-        public void GoBack() => InvokeOnUiThread(() => {
-            if (_webView?.CoreWebView2 != null && _webView.CoreWebView2.CanGoBack)
-                _webView.CoreWebView2.GoBack();
-        });
-
-        /// <summary>
-        /// Navigate forward in history.
-        /// </summary>
-        public void GoForward() => InvokeOnUiThread(() => {
-            if (_webView?.CoreWebView2 != null && _webView.CoreWebView2.CanGoForward)
-                _webView.CoreWebView2.GoForward();
-        });
-
-        /// <summary>
-        /// Reset zoom to default (100%).
-        /// </summary>
-        public void ResetZoom() => SetZoom(1.0);
-
-        /// <summary>
-        /// Clear all ad block rules.
-        /// </summary>
-        public void ClearBlockRules() => _blockList.Clear();
-
-        /// <summary>
-        /// Controls the context menu behavior.
-        /// If true, the native browser menu is displayed.
-        /// If false, the native menu is blocked and the OnContextMenu event is sent to AutoIt.
-        /// </summary>
-        /// <param name="enabled">Boolean to toggle between Native (true) and Custom (false) modes.</param>
-        public void SetContextMenuEnabled(bool enabled)
-        {
-            // Update our internal tracking variable
-            _contextMenuEnabled = enabled;
-
-            InvokeOnUiThread(() => {
-                if (_webView?.CoreWebView2 != null)
-                {
-                    // IMPORTANT: We keep this ALWAYS true. 
-                    // If we set it to false, the 'ContextMenuRequested' event will never fire.
-                    _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
-                }
-            });
-        }
-
-
-        /// <summary>
-        /// Navigate to a specified URL.
-        /// </summary>
+        #region 9. PUBLIC API: NAVIGATION & CONTROL
+        /// <summary>Navigate to a specified URL.</summary>
         public void Navigate(string url) => InvokeOnUiThread(() => _webView.CoreWebView2?.Navigate(url));
 
-        /// <summary>
-        /// Navigate to a string containing HTML content.
-        /// </summary>
+        /// <summary>Navigate to a string containing HTML content.</summary>
         public void NavigateToString(string htmlContent)
         {
             _webView.Invoke(new Action(async () => {
@@ -953,64 +827,43 @@ namespace NetWebView2Lib
             }));
         }
 
-        /// <summary>
-        /// Execute arbitrary JavaScript code.
-        /// </summary>
-        public void ExecuteScript(string script)
+        /// <summary>Reload the current page.</summary>
+        public void Reload() => InvokeOnUiThread(() => _webView.CoreWebView2?.Reload());
+
+        /// <summary>Stops any ongoing navigation or loading.</summary>
+        public void Stop() => InvokeOnUiThread(() => _webView.CoreWebView2?.Stop());
+
+        /// <summary>Navigate back in history.</summary>
+        public void GoBack() => InvokeOnUiThread(() => { if (_webView?.CoreWebView2 != null && _webView.CoreWebView2.CanGoBack) _webView.CoreWebView2.GoBack(); });
+
+        /// <summary>Navigate forward in history.</summary>
+        public void GoForward() => InvokeOnUiThread(() => { if (_webView?.CoreWebView2 != null && _webView.CoreWebView2.CanGoForward) _webView.CoreWebView2.GoForward(); });
+
+        /// <summary>Check if it's possible to navigate back.</summary>
+        public bool GetCanGoBack() => _webView?.CoreWebView2?.CanGoBack ?? false;
+
+        /// <summary>Check if it's possible to navigate forward.</summary>
+        public bool GetCanGoForward() => _webView?.CoreWebView2?.CanGoForward ?? false;
+
+        /// <summary>Adds a script that executes on every page load (Permanent Injection).</summary>
+        public async void AddInitializationScript(string script)
         {
-            if (_webView?.CoreWebView2 != null)
-                _webView.Invoke(new Action(() => _webView.CoreWebView2.ExecuteScriptAsync(script)));
+            if (_webView?.CoreWebView2 == null) return;
+            try {
+                await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(script);
+                await _webView.CoreWebView2.ExecuteScriptAsync(script);
+            } catch (Exception ex) { Debug.WriteLine("Error adding initialization script: " + ex.Message); }
         }
 
-        /// <summary>
-        /// Inject CSS code into the current page.
-        /// </summary>
-        /// <param name="cssCode"></param>
-        public async void InjectCss(string cssCode)
+        /// <summary>Controls the context menu behavior.</summary>
+        public void SetContextMenuEnabled(bool enabled)
         {
-            // The JS wrapper you already have
-            string js = $"(function() {{ let style = document.getElementById('{StyleId}'); if (!style) {{ style = document.createElement('style'); style.id = '{StyleId}'; document.head.appendChild(style); }} style.innerHTML = `{cssCode.Replace("`", "\\` text-decoration")}`; }})();";
-
-            // Execute NOW (for the current page)
-            ExecuteScript(js);
-
-            // Persistence
-            // If there was a previous persistent CSS, we remove it to avoid filling up memory
-            if (!string.IsNullOrEmpty(_lastCssRegistrationId))
-            {
-                _webView.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(_lastCssRegistrationId);
-            }
-
-            // Register the new CSS to run on every refresh
-            _lastCssRegistrationId = await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(js);
+            _contextMenuEnabled = enabled;
+            InvokeOnUiThread(() => { if (_webView?.CoreWebView2 != null) _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true; });
         }
+        #endregion
 
-        /// <summary>
-        /// Remove previously injected CSS.
-        /// </summary>
-        public void ClearInjectedCss()
-        {
-            // Subtraction from the future (Stops automatic injection)
-            if (!string.IsNullOrEmpty(_lastCssRegistrationId))
-            {
-                _webView.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(_lastCssRegistrationId);
-                _lastCssRegistrationId = "";
-            }
-
-            // Subtraction from now
-            ExecuteScript($"(function() {{ let style = document.getElementById('{StyleId}'); if (style) style.remove(); }})();");
-        }
-
-
-        /// <summary>
-        /// Toggle audit highlights on/off.
-        /// </summary>
-        public void ToggleAuditHighlights(bool enable)
-        {
-            if (enable) InjectCss("img, h1, h2, h3, table, a { outline: 3px solid #FF6A00 !important; outline-offset: -3px !important; }");
-            else ClearInjectedCss();
-        }
-
+        #region 10. PUBLIC API: DATA EXTRACTION
         /// <summary>
         /// Retrieve the full HTML source of the current page.
         /// </summary>
@@ -1031,64 +884,16 @@ namespace NetWebView2Lib
             OnMessageReceived?.Invoke("SELECTED_TEXT|" + CleanJsString(selectedText));
         }
 
-        /// <summary>
-        /// Clean up JavaScript string results.
-        /// </summary>
-        private string CleanJsString(string input)
-        {
-            string decoded = System.Text.RegularExpressions.Regex.Unescape(input);
-            if (decoded.StartsWith("\"") && decoded.EndsWith("\"") && decoded.Length >= 2)
-                decoded = decoded.Substring(1, decoded.Length - 2);
-            return decoded;
-        }
-
-        /// <summary>
-        /// Resize the WebView control.
-        /// </summary>
-        public void Resize(int w, int h) => InvokeOnUiThread(() => _webView.Size = new Size(w, h));
-        
-        /// <summary>
-        /// Clean up resources.
-        /// </summary>
-        public void Cleanup() => _webView?.Dispose();
-
-        /// <summary>
-        /// Set the zoom factor.
-        /// </summary>
-        public void SetZoom(double factor) => InvokeOnUiThread(() => _webView.ZoomFactor = factor);
-
-        /// <summary>
-        /// Export the current page to a PDF file.
-        /// </summary>
-        public void ExportToPdf(string filePath)
-        {
-            InvokeOnUiThread(async () => {
-                try
-                {
-                    if (_webView?.CoreWebView2 != null)
-                    {
-                        await _webView.CoreWebView2.PrintToPdfAsync(filePath, null);
-                        OnMessageReceived?.Invoke("PDF_SUCCESS|" + filePath);
-                    }
-                }
-                catch (Exception ex) { OnMessageReceived?.Invoke("PDF_ERROR|" + ex.Message); }
-            });
-        }
-
-        /// <summary>
-        /// Ad Block Methods. set AdBlock active state.
-        /// </summary>
-        public void SetAdBlock(bool active) => _isAdBlockActive = active;
-
-        /// <summary>
-        /// Add a domain to the block list.
-        /// </summary>
-        public void AddBlockRule(string domain) { if (!string.IsNullOrEmpty(domain)) _blockList.Add(domain.ToLower()); }
 
         /// <summary>
         /// Parse JSON into the internal parser.
         /// </summary>
         public bool ParseJsonToInternal(string json) => _internalParser.Parse(json?.Trim());
+
+        /// <summary>
+        /// Get a value from the internal JSON parser.
+        /// </summary>
+        public string GetInternalJsonValue(string path) => _internalParser.GetTokenValue(path);
 
         /// <summary>
         /// Binds the internal JSON data to a browser variable.
@@ -1146,120 +951,26 @@ namespace NetWebView2Lib
         }
 
         /// <summary>
-        /// Get a value from the internal JSON parser.
+        /// Retrieves the entire text content (innerText) of the document and sends it back to AutoIt.
         /// </summary>
-        public string GetInternalJsonValue(string path) => _internalParser.GetTokenValue(path);
+        public async void GetInnerText()
+        {
+            if (_webView?.CoreWebView2 == null) return;
+            try {
+                string html = await _webView.CoreWebView2.ExecuteScriptAsync("document.documentElement.innerText");
+                OnMessageReceived?.Invoke("INNER_TEXT|" + CleanJsString(html));
+            } catch (Exception ex) { OnMessageReceived?.Invoke("ERROR|INNER_TEXT_FAILED: " + ex.Message); }
+        }
+        #endregion
 
-        // --- NEW ENRICHED METHODS ---
-
+        #region 11. PUBLIC API: UI & INTERACTION
         /// <summary>
-        /// Set a custom User Agent.
+        /// Execute arbitrary JavaScript code.
         /// </summary>
-        public void SetUserAgent(string userAgent)
+        public void ExecuteScript(string script)
         {
-            InvokeOnUiThread(() => {
-                if (_webView?.CoreWebView2?.Settings != null)
-                    _webView.CoreWebView2.Settings.UserAgent = userAgent;
-            });
-        }
-
-        /// <summary>
-        /// Get the Document Title.
-        /// </summary>
-        public string GetDocumentTitle()
-        {
-            return _webView?.CoreWebView2?.DocumentTitle ?? "";
-        }
-
-        /// <summary>
-        /// Get the Current Source URL.
-        /// </summary>
-        public string GetSource()
-        {
-            return _webView?.Source?.ToString() ?? "";
-        }
-
-        /// <summary>
-        /// Enables or disables automatic resizing of the WebView to fill its parent.
-        /// </summary>
-        /// <param name="enabled">True to enable auto-resize, False to disable.</param>
-        public void SetAutoResize(bool enabled)
-        {
-            if (_parentHandle == IntPtr.Zero || _parentSubclass == null) return;
-
-            _autoResizeEnabled = enabled;
-
-            if (_autoResizeEnabled)
-            {
-                // Assign the handle to start intercepting WM_SIZE
-                _parentSubclass.AssignHandle(_parentHandle);
-                // Immediately perform a resize
-                PerformSmartResize();
-            }
-            else
-            {
-                // Release the handle to stop intercepting
-                _parentSubclass.ReleaseHandle();
-            }
-        }
-
-        private void PerformSmartResize()
-        {
-            if (_webView == null || _parentHandle == IntPtr.Zero) return;
-
-            if (_webView.InvokeRequired)
-            {
-                _webView.Invoke(new Action(PerformSmartResize));
-                return;
-            }
-
-            // Get the parent window client dimensions using Win32 API
-            if (GetClientRect(_parentHandle, out Rect rect))
-            {
-                int parentWidth = rect.Right - rect.Left;
-                int parentHeight = rect.Bottom - rect.Top;
-
-                int newWidth = parentWidth - _offsetX;
-                int newHeight = parentHeight - _offsetY;
-
-                _webView.Left = _offsetX;
-                _webView.Top = _offsetY;
-                _webView.Width = Math.Max(10, newWidth);
-                _webView.Height = Math.Max(10, newHeight);
-
-                // Notify AutoIt that the resizing is finished
-                OnMessageReceived?.Invoke("WINDOW_RESIZED|" + _webView.Width + "|" + _webView.Height);
-            }
-        }
-
-        /// <summary>
-        /// NativeWindow implementation to intercept WM_SIZE from non-.NET parent windows.
-        /// </summary>
-        private class ParentWindowSubclass : NativeWindow
-        {
-            private readonly Action _onResize;
-            private const int WM_SIZE = 0x0005;
-
-            public ParentWindowSubclass(Action onResize)
-            {
-                _onResize = onResize;
-            }
-
-            protected override void WndProc(ref Message m)
-            {
-                base.WndProc(ref m);
-                if (m.Msg == WM_SIZE)
-                {
-                    _onResize?.Invoke();
-                }
-            }
-        }
-
-        /// <summary>Enable/Disable Custom Context Menu.</summary>
-        public bool CustomMenuEnabled
-        {
-            get => _customMenuEnabled;
-            set => _customMenuEnabled = value;
+            if (_webView?.CoreWebView2 != null)
+                _webView.Invoke(new Action(() => _webView.CoreWebView2.ExecuteScriptAsync(script)));
         }
 
         /// <summary>
@@ -1269,132 +980,213 @@ namespace NetWebView2Lib
         public async void ExecuteScriptOnPage(string script)
         {
             if (_webView?.CoreWebView2 == null) return;
-            // Execute script on current page
             await _webView.CoreWebView2.ExecuteScriptAsync(script);
         }
 
         /// <summary>
-        /// Clears the browser cache (DiskCache and LocalStorage).
-        /// </summary>
-        public async void ClearCache()
-        {
-            if (_webView?.CoreWebView2 == null) return;
-
-            // Clears browser cache (disk cache, shaders, local storage, etc.)
-            await _webView.CoreWebView2.Profile.ClearBrowsingDataAsync(
-                CoreWebView2BrowsingDataKinds.DiskCache |
-                CoreWebView2BrowsingDataKinds.LocalStorage
-            );
-
-            Debug.WriteLine("NetWebView2Lib: Cache cleared successfully.");
-        }
-
-        /// <summary>
         /// Executes JavaScript and returns the result synchronously using a Message Pump.
-        /// This version is safe to use within WebView2 Events.
         /// </summary>
         public string ExecuteScriptWithResult(string script)
         {
             if (_webView?.CoreWebView2 == null) return "ERROR: WebView not initialized";
-
             try
             {
-                // 1. Start asynchronous script execution
                 var task = _webView.CoreWebView2.ExecuteScriptAsync(script);
-
-                // 2. Wait for result without blocking the UI thread (Message Pumping)
                 var start = DateTime.Now;
                 while (!task.IsCompleted)
                 {
-                    // Process pending windows messages to allow WebView2 to return the result
                     System.Windows.Forms.Application.DoEvents();
-
-                    // Safety timeout
-                    if ((DateTime.Now - start).TotalSeconds > 5)
-                        return "ERROR: Script Timeout";
-
-                    // Prevent high CPU usage during the wait loop
+                    if ((DateTime.Now - start).TotalSeconds > 5) return "ERROR: Script Timeout";
                     System.Threading.Thread.Sleep(1);
                 }
-
-                // 3. Process and clean the result
                 string result = task.Result;
-
                 if (result == "null" || result == null) return string.Empty;
-
-                // Strip surrounding quotes and unescape special characters
                 if (result.StartsWith("\"") && result.EndsWith("\""))
                 {
                     result = result.Substring(1, result.Length - 2);
                     result = System.Text.RegularExpressions.Regex.Unescape(result);
                 }
-
                 return result;
             }
-            catch (Exception ex)
+            catch (Exception ex) { return "ERROR: " + ex.Message; }
+        }
+
+        /// <summary>
+        /// Inject CSS code into the current page.
+        /// </summary>
+        public async void InjectCss(string cssCode)
+        {
+            string js = $"(function() {{ let style = document.getElementById('{StyleId}'); if (!style) {{ style = document.createElement('style'); style.id = '{StyleId}'; document.head.appendChild(style); }} style.innerHTML = `{cssCode.Replace("`", "\\` text-decoration")}`; }})();";
+            ExecuteScript(js);
+            if (!string.IsNullOrEmpty(_lastCssRegistrationId)) _webView.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(_lastCssRegistrationId);
+            _lastCssRegistrationId = await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(js);
+        }
+
+        /// <summary>
+        /// Remove previously injected CSS.
+        /// </summary>
+        public void ClearInjectedCss()
+        {
+            if (!string.IsNullOrEmpty(_lastCssRegistrationId))
             {
-                return "ERROR: " + ex.Message;
+                _webView.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(_lastCssRegistrationId);
+                _lastCssRegistrationId = "";
             }
+            ExecuteScript($"(function() {{ let style = document.getElementById('{StyleId}'); if (style) style.remove(); }})();");
         }
 
         /// <summary>
-        /// Enable or Disable JavaScript execution.
+        /// Toggle audit highlights on/off.
         /// </summary>
-        public void SetScriptEnabled(bool enabled)
+        public void ToggleAuditHighlights(bool enable)
         {
-            InvokeOnUiThread(() => {
-                if (_webView?.CoreWebView2?.Settings != null)
-                    _webView.CoreWebView2.Settings.IsScriptEnabled = enabled;
-            });
-        }
-
-        /// <summary>
-        /// Enable or Disable Web Messages (Communication).
-        /// </summary>
-        public void SetWebMessageEnabled(bool enabled)
-        {
-            InvokeOnUiThread(() => {
-                if (_webView?.CoreWebView2?.Settings != null)
-                    _webView.CoreWebView2.Settings.IsWebMessageEnabled = enabled;
-            });
-        }
-
-        /// <summary>
-        /// Enable or Disable the Status Bar.
-        /// </summary>
-        public void SetStatusBarEnabled(bool enabled)
-        {
-            InvokeOnUiThread(() => {
-                if (_webView?.CoreWebView2?.Settings != null)
-                    _webView.CoreWebView2.Settings.IsStatusBarEnabled = enabled;
-            });
+            if (enable) InjectCss("img, h1, h2, h3, table, a { outline: 3px solid #FF6A00 !important; outline-offset: -3px !important; }");
+            else ClearInjectedCss();
         }
 
         /// <summary>
         /// Capture a screenshot (preview) of the current view.
         /// </summary>
-        /// <param name="filePath">The destination file path.</param>
-        /// <param name="format">The format (png or jpg).</param>
         public async void CapturePreview(string filePath, string format)
         {
             if (_webView?.CoreWebView2 == null) return;
-            
-            CoreWebView2CapturePreviewImageFormat imageFormat = CoreWebView2CapturePreviewImageFormat.Png;
-            if (format.ToLower().Contains("jpg") || format.ToLower().Contains("jpeg"))
-                imageFormat = CoreWebView2CapturePreviewImageFormat.Jpeg;
-
+            CoreWebView2CapturePreviewImageFormat imageFormat = format.ToLower().Contains("jpg") ? CoreWebView2CapturePreviewImageFormat.Jpeg : CoreWebView2CapturePreviewImageFormat.Png;
             try
             {
-                using (var fileStream = File.Create(filePath))
-                {
-                    await _webView.CoreWebView2.CapturePreviewAsync(imageFormat, fileStream);
-                }
+                using (var fileStream = File.Create(filePath)) await _webView.CoreWebView2.CapturePreviewAsync(imageFormat, fileStream);
                 OnMessageReceived?.Invoke("CAPTURE_SUCCESS|" + filePath);
             }
-            catch (Exception ex)
+            catch (Exception ex) { OnMessageReceived?.Invoke("CAPTURE_ERROR|" + ex.Message); }
+        }
+
+        /// <summary>
+        /// Shows the print UI dialog.
+        /// </summary>
+        public void ShowPrintUI() => _webView?.CoreWebView2.ShowPrintUI();
+
+        /// <summary>
+        /// Initiate the native Print dialog via JS.
+        /// </summary>
+        public void Print()
+        {
+             InvokeOnUiThread(async () => {
+                if (_webView?.CoreWebView2 != null)
+                {
+                     try { await _webView.CoreWebView2.ExecuteScriptAsync("window.print();"); } 
+                     catch(Exception ex) { OnMessageReceived?.Invoke("PRINT_ERROR|" + ex.Message); }
+                }
+             });
+        }
+
+        /// <summary>
+        /// Lock down the WebView by disabling certain features.
+        /// </summary>
+        public void LockWebView()
+        {
+            InvokeOnUiThread(() => {
+                if (_webView?.CoreWebView2 != null)
+                {
+                    var s = _webView.CoreWebView2.Settings;
+                    s.AreDefaultContextMenusEnabled = false;
+                    s.AreDevToolsEnabled = false;
+                    s.IsZoomControlEnabled = false;
+                    s.IsBuiltInErrorPageEnabled = false;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Saves the current page as a PDF file.
+        /// </summary>
+        public async void ExportToPdf(string filePath)
+        {
+            if (_webView?.CoreWebView2 == null) return;
+            try
             {
-                OnMessageReceived?.Invoke("CAPTURE_ERROR|" + ex.Message);
+                await _webView.CoreWebView2.PrintToPdfAsync(filePath);
+                OnMessageReceived?.Invoke("PDF_EXPORT_SUCCESS|" + filePath);
             }
+            catch (Exception ex) { OnMessageReceived?.Invoke("PDF_EXPORT_ERROR|" + ex.Message); }
+        }
+
+        /// <summary>
+        /// Export page data as HTML or MHTML.
+        /// </summary>
+        public string ExportPageData(int format, string filePath)
+        {
+            if (_webView?.CoreWebView2 == null) return "ERROR: WebView not initialized";
+
+            return RunOnUiThread(() =>
+            {
+                try
+                {
+                    string result = string.Empty;
+                    if (format == 0) // HTML Only
+                    {
+                        var task = _webView.CoreWebView2.ExecuteScriptAsync("document.documentElement.outerHTML");
+                        result = WaitAndGetResult(task);
+                        result = CleanJsString(result);
+                    }
+                    else if (format == 1) // MHTML Snapshot
+                    {
+                        var task = _webView.CoreWebView2.CallDevToolsProtocolMethodAsync("Page.captureSnapshot", "{}");
+                        string json = WaitAndGetResult(task);
+                        if (!string.IsNullOrEmpty(json))
+                        {
+                            var dict = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                            if (dict != null && dict.ContainsKey("data"))
+                            {
+                                result = dict["data"];
+                            }
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(result))
+                    {
+                        return "ERROR: Page capture failed or result is empty.";
+                    }
+
+                    if (!string.IsNullOrEmpty(filePath))
+                    {
+                        try
+                        {
+                            File.WriteAllText(filePath, result);
+                            return "SUCCESS: File saved to " + filePath;
+                        }
+                        catch (Exception ex)
+                        {
+                            return "ERROR: File write failed: " + ex.Message;
+                        }
+                    }
+                    return result;
+                }
+                catch (Exception ex) { return "ERROR: " + ex.Message; }
+            });
+        }
+
+        /// <summary>
+        /// Capture the current page as a PDF and return it as a Base64 string.
+        /// </summary>
+        public string PrintToPdfStream()
+        {
+            if (_webView?.CoreWebView2 == null) return "ERROR: WebView not initialized";
+
+            return RunOnUiThread(() =>
+            {
+                try
+                {
+                    var task = _webView.CoreWebView2.PrintToPdfStreamAsync(null);
+                    Stream stream = WaitAndGetResult(task);
+                    if (stream == null) return "ERROR: PDF stream is null";
+
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        stream.CopyTo(ms);
+                        return Convert.ToBase64String(ms.ToArray());
+                    }
+                }
+                catch (Exception ex) { return "ERROR: " + ex.Message; }
+            });
         }
 
         /// <summary>
@@ -1408,14 +1200,63 @@ namespace NetWebView2Lib
                 string result = await _webView.CoreWebView2.CallDevToolsProtocolMethodAsync(methodName, parametersJson);
                 OnMessageReceived?.Invoke($"CDP_RESULT|{methodName}|{result}");
             }
-            catch (Exception ex)
-            {
-                OnMessageReceived?.Invoke($"CDP_ERROR|{methodName}|{ex.Message}");
-            }
+            catch (Exception ex) { OnMessageReceived?.Invoke($"CDP_ERROR|{methodName}|{ex.Message}"); }
         }
 
         /// <summary>
-        /// Get Cookies asynchronously. Results are sent via the COOKIES_RECEIVED event.
+        /// Set the zoom factor.
+        /// </summary>
+        public void SetZoom(double factor) => InvokeOnUiThread(() => _webView.ZoomFactor = factor);
+
+        /// <summary>
+        /// Reset zoom to default (100%).
+        /// </summary>
+        public void ResetZoom() => SetZoom(1.0);
+
+        /// <summary>
+        /// Sets the mute status for audio.
+        /// </summary>
+        public void SetMuted(bool muted) => InvokeOnUiThread(() => { if (_webView?.CoreWebView2 != null) _webView.CoreWebView2.IsMuted = muted; });
+
+        /// <summary>
+        /// Gets the current mute status.
+        /// </summary>
+        public bool IsMuted() => _webView?.CoreWebView2?.IsMuted ?? false;
+
+        /// <summary>
+        /// Resize the WebView control.
+        /// </summary>
+        public void Resize(int w, int h) => InvokeOnUiThread(() => _webView.Size = new Size(w, h));
+
+        /// <summary>
+        /// Clean up resources.
+        /// </summary>
+        public void Cleanup() => _webView?.Dispose();
+
+        #endregion
+
+        #region 12. COOKIES & CACHE
+        /// <summary>
+        /// Clear browser data (cookies, cache, history, etc.).
+        /// </summary>
+        public async void ClearBrowserData()
+        {
+            await _webView.EnsureCoreWebView2Async();
+            await _webView.CoreWebView2.Profile.ClearBrowsingDataAsync();
+            OnMessageReceived?.Invoke("DATA_CLEARED");
+        }
+
+        /// <summary>
+        /// Clears the browser cache (DiskCache and LocalStorage).
+        /// </summary>
+        public async void ClearCache()
+        {
+            if (_webView?.CoreWebView2 == null) return;
+            await _webView.CoreWebView2.Profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.DiskCache | CoreWebView2BrowsingDataKinds.LocalStorage);
+        }
+
+        /// <summary>
+        /// Get Cookies asynchronously.
         /// </summary>
         public async void GetCookies(string channelId)
         {
@@ -1423,8 +1264,6 @@ namespace NetWebView2Lib
             try
             {
                 var cookieList = await _webView.CoreWebView2.CookieManager.GetCookiesAsync(null);
-                
-                // Build JSON manually since we don't depend on external JSON serializers for this simple array
                 var sb = new System.Text.StringBuilder("[");
                 for(int i=0; i<cookieList.Count; i++)
                 {
@@ -1433,21 +1272,10 @@ namespace NetWebView2Lib
                     if (i < cookieList.Count - 1) sb.Append(",");
                 }
                 sb.Append("]");
-
-                // Build the JSON string as before
-                string jsonRaw = sb.ToString();
-
-                // Convert to Base64 to ensure safe transport of large data
-                var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(jsonRaw);
-                string base64Json = Convert.ToBase64String(plainTextBytes);
-
-                //OnMessageReceived?.Invoke($"COOKIES_B64|{channelId}|{sb.ToString()}");
-                OnMessageReceived?.Invoke($"COOKIES_B64|{channelId}|{base64Json}");
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+                OnMessageReceived?.Invoke($"COOKIES_B64|{channelId}|{Convert.ToBase64String(bytes)}");
             }
-            catch (Exception ex)
-            {
-                OnMessageReceived?.Invoke($"COOKIES_ERROR|{channelId}|{ex.Message}");
-            }
+            catch (Exception ex) { OnMessageReceived?.Invoke($"COOKIES_ERROR|{channelId}|{ex.Message}"); }
         }
 
         /// <summary>
@@ -1461,10 +1289,7 @@ namespace NetWebView2Lib
                 var cookie = _webView.CoreWebView2.CookieManager.CreateCookie(name, value, domain, path);
                 _webView.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
             }
-            catch (Exception ex)
-            {
-                OnMessageReceived?.Invoke($"COOKIE_ADD_ERROR|{ex.Message}");
-            }
+            catch (Exception ex) { OnMessageReceived?.Invoke($"COOKIE_ADD_ERROR|{ex.Message}"); }
         }
 
         /// <summary>
@@ -1480,49 +1305,113 @@ namespace NetWebView2Lib
         /// <summary>
         /// Delete All Cookies.
         /// </summary>
-        public void DeleteAllCookies()
-        {
-            _webView?.CoreWebView2?.CookieManager?.DeleteAllCookies();
-        }
+        public void DeleteAllCookies() => _webView?.CoreWebView2?.CookieManager?.DeleteAllCookies();
+        #endregion
 
+        #region 13. AD BLOCKING
         /// <summary>
-        /// Initiate the native Print dialog.
+        /// Set AdBlock active state.
         /// </summary>
-        public void Print()
+        public void SetAdBlock(bool active) => _isAdBlockActive = active;
+
+        /// <summary>
+        /// Add a domain to the block list.
+        /// </summary>
+        public void AddBlockRule(string domain) { if (!string.IsNullOrEmpty(domain)) _blockList.Add(domain.ToLower()); }
+
+        /// <summary>
+        /// Clear all ad block rules.
+        /// </summary>
+        public void ClearBlockRules() => _blockList.Clear();
+        #endregion
+
+        #region 14. SMART RESIZE
+        /// <summary>
+        /// Enables or disables automatic resizing.
+        /// </summary>
+        public void SetAutoResize(bool enabled)
         {
-            // Note: This might not be available in older WebView2 SDKs, but is standard now.
-            // If strictly needed to be safe, we check method existence, but straightforward call is:
-             InvokeOnUiThread(async () => {
-                if (_webView?.CoreWebView2 != null)
-                {
-                     // Requires wrapping in try/catch as it relies on valid printing environment
-                     try { await _webView.CoreWebView2.ExecuteScriptAsync("window.print();"); } 
-                     catch(Exception ex) { OnMessageReceived?.Invoke("PRINT_ERROR|" + ex.Message); }
-                }
-             });
+            if (_parentHandle == IntPtr.Zero || _parentSubclass == null) return;
+            _autoResizeEnabled = enabled;
+            if (_autoResizeEnabled) { _parentSubclass.AssignHandle(_parentHandle); PerformSmartResize(); }
+            else _parentSubclass.ReleaseHandle();
         }
 
-        /// <summary>
-        /// Check if navigation back is possible.
-        /// </summary> 
-        public bool GetCanGoBack() => _webView?.CoreWebView2?.CanGoBack ?? false;
+        private void PerformSmartResize()
+        {
+            if (_webView == null || _parentHandle == IntPtr.Zero) return;
+            if (_webView.InvokeRequired) { _webView.Invoke(new Action(PerformSmartResize)); return; }
+            if (GetClientRect(_parentHandle, out Rect rect))
+            {
+                int newWidth = (rect.Right - rect.Left) - _offsetX - _marginRight;
+                int newHeight = (rect.Bottom - rect.Top) - _offsetY - _marginBottom;
+                _webView.Left = _offsetX; _webView.Top = _offsetY;
+                _webView.Width = Math.Max(10, newWidth); _webView.Height = Math.Max(10, newHeight);
+                OnMessageReceived?.Invoke("WINDOW_RESIZED|" + _webView.Width + "|" + _webView.Height);
+            }
+        }
 
-        /// <summary>
-        /// Check if navigation forward is possible.
-        /// </summary> 
-        public bool GetCanGoForward() => _webView?.CoreWebView2?.CanGoForward ?? false;
+        private class ParentWindowSubclass : NativeWindow
+        {
+            private const int WM_SIZE = 0x0005;
+            private readonly Action _onResize;
 
-        /// <summary>
-        /// Get the Browser Process ID.
-        /// </summary> 
+            public ParentWindowSubclass(Action onResize)
+            {
+                _onResize = onResize;
+            }
+
+            protected override void WndProc(ref Message m)
+            {
+                base.WndProc(ref m);
+                if (m.Msg == WM_SIZE) _onResize?.Invoke();
+            }
+        }
+        #endregion
+
+        #region 15. MISC PUBLIC API
+        public void SetZoomFactor(double factor)
+        {
+            if (factor < 0.1 || factor > 5.0) return;
+            InvokeOnUiThread(() => _webView.ZoomFactor = factor);
+        }
+
+        public void OpenDevToolsWindow() => InvokeOnUiThread(() => _webView?.CoreWebView2?.OpenDevToolsWindow());
+
+        public void WebViewSetFocus() => InvokeOnUiThread(() => _webView?.Focus());
+
+        public void SetUserAgent(string userAgent)
+        {
+            InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.UserAgent = userAgent; });
+        }
+
+        public string GetDocumentTitle() => _webView?.CoreWebView2?.DocumentTitle ?? "";
+
+        public string GetSource() => _webView?.Source?.ToString() ?? "";
+
         public uint GetBrowserProcessId()
         {
             try { return _webView?.CoreWebView2?.BrowserProcessId ?? 0; }
             catch { return 0; }
         }
 
-        // --- UNIFIED SETTINGS IMPLEMENTATION ---
+        public void SetScriptEnabled(bool enabled)
+        {
+            InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.IsScriptEnabled = enabled; });
+        }
 
+        public void SetWebMessageEnabled(bool enabled)
+        {
+            InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.IsWebMessageEnabled = enabled; });
+        }
+
+        public void SetStatusBarEnabled(bool enabled)
+        {
+            InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.IsStatusBarEnabled = enabled; });
+        }
+        #endregion
+
+        #region 16. UNIFIED SETTINGS (PROPERTIES)
         public bool AreDevToolsEnabled
         {
             get => RunOnUiThread(() => _webView?.CoreWebView2?.Settings?.AreDevToolsEnabled ?? false);
@@ -1598,25 +1487,65 @@ namespace NetWebView2Lib
             set { /* No-op: WebView2 does not support BorderStyle directly */ }
         }
 
-        // --- NEW METHODS ---
-
-        public void SetZoomFactor(double factor)
+        /// <summary>Enable/Disable Custom Context Menu.</summary>
+        public bool CustomMenuEnabled
         {
-            if (factor < 0.1 || factor > 5.0) return; // Basic validation
-            InvokeOnUiThread(() => _webView.ZoomFactor = factor);
+            get => _customMenuEnabled;
+            set => _customMenuEnabled = value;
         }
 
-        public void OpenDevToolsWindow() => InvokeOnUiThread(() => _webView?.CoreWebView2?.OpenDevToolsWindow());
+        /// <summary>
+        /// Gets or sets additional browser arguments (switches) to be passed to the Chromium engine.
+        /// These must be set BEFORE calling Initialize().
+        /// </summary>
+        public string AdditionalBrowserArguments
+        {
+            get => _additionalBrowserArguments;
+            set => _additionalBrowserArguments = value;
+        }
 
-        public void WebViewSetFocus() => InvokeOnUiThread(() => _webView?.Focus());
+        /// <summary>
+        /// Control PDF toolbar items visibility (bitwise combination of CoreWebView2PdfToolbarItems).
+        /// </summary>
+        public int HiddenPdfToolbarItems
+        {
+            get => RunOnUiThread(() => (int)(_webView?.CoreWebView2?.Settings?.HiddenPdfToolbarItems ?? CoreWebView2PdfToolbarItems.None));
+            set => InvokeOnUiThread(() => {
+                if (_webView?.CoreWebView2?.Settings != null)
+                    _webView.CoreWebView2.Settings.HiddenPdfToolbarItems = (CoreWebView2PdfToolbarItems)value;
+            });
+        }
+        #endregion
 
-        // --- HELPER METHODS ---
-
+        #region 17. HELPER METHODS
         private T RunOnUiThread<T>(Func<T> func)
         {
-            if (_webView == null || _webView.IsDisposed) return default(T);
+            if (_webView == null || _webView.IsDisposed) return default;
             if (_webView.InvokeRequired) return (T)_webView.Invoke(func);
             else return func();
+        }
+
+        /// Invoke actions on the UI thread
+        private void InvokeOnUiThread(Action action)
+        {
+            if (_webView == null || _webView.IsDisposed) return;
+            if (_webView.InvokeRequired) _webView.Invoke(action);
+            else action();
+        }
+
+        /// <summary>
+        /// Wait for an async task to complete and return the result (Synchronous wrapper for COM).
+        /// </summary>
+        private T WaitAndGetResult<T>(Task<T> task, int timeoutSeconds = 20)
+        {
+            var start = DateTime.Now;
+            while (!task.IsCompleted)
+            {
+                System.Windows.Forms.Application.DoEvents();
+                if ((DateTime.Now - start).TotalSeconds > timeoutSeconds) throw new TimeoutException("Operation timed out.");
+                System.Threading.Thread.Sleep(1);
+            }
+            return task.Result;
         }
 
         /// <summary>
@@ -1659,42 +1588,17 @@ namespace NetWebView2Lib
             } catch { return ""; } // Fail safe
         }
 
-        /// Invoke actions on the UI thread
-        private void InvokeOnUiThread(Action action)
-        {
-            if (_webView == null || _webView.IsDisposed) return;
-            if (_webView.InvokeRequired) _webView.Invoke(action);
-            else action();
-        }
-
-        // --- NEW SECTION: DATA EXTRACTION ---
-
         /// <summary>
-        /// Retrieves the entire text content (innerText) of the document and sends it back to AutoIt.
+        /// Clean up JavaScript string results.
         /// </summary>
-        public async void GetInnerText()
+        private string CleanJsString(string input)
         {
-            if (_webView?.CoreWebView2 == null) return;
-
-            try
-            {
-                // ExecuteScriptAsync returns the result as a JSON-encoded string (including quotes)
-                string html = await _webView.CoreWebView2.ExecuteScriptAsync("document.documentElement.innerText");
-
-                // Use CleanJsString to handle escape characters and remove surrounding quotes
-                string cleanedText = CleanJsString(html);
-
-                // Send the result to AutoIt with the "INNER_TEXT|" prefix
-                OnMessageReceived?.Invoke("INNER_TEXT|" + cleanedText);
-            }
-            catch (Exception ex)
-            {
-                // Notify AutoIt in case of an execution error
-                OnMessageReceived?.Invoke("ERROR|INNER_TEXT_FAILED: " + ex.Message);
-            }
+            if (string.IsNullOrEmpty(input)) return "";
+            string decoded = System.Text.RegularExpressions.Regex.Unescape(input);
+            if (decoded.StartsWith("\"") && decoded.EndsWith("\"") && decoded.Length >= 2)
+                decoded = decoded.Substring(1, decoded.Length - 2);
+            return decoded;
         }
-
+        #endregion
     }
-
 }
-

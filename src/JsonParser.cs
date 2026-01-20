@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-// --- Version 1.4.2 ---
+// --- Version 1.4.3 ---
 
 namespace NetWebView2Lib
 {
@@ -14,6 +14,7 @@ namespace NetWebView2Lib
     /// COM interface for JsonParser class.
     /// </summary> 
     [Guid("D1E2F3A4-B5C6-4D7E-8F9A-0B1C2D3E4F5A")]
+    [InterfaceType(ComInterfaceType.InterfaceIsDual)]
     [ComVisible(true)]
     public interface IJsonParser
     {
@@ -127,6 +128,18 @@ namespace NetWebView2Lib
         [DispId(223)] string DecodeB64(string base64Text);
         /// <summary>Decodes a Base64 string and saves it directly to a file.</summary>
         [DispId(224)] bool DecodeB64ToFile(string base64Text, string filePath);
+
+        /// <summary>Returns the count of elements (array items or object properties) at the specified path.</summary>
+        [DispId(225)] int GetTokenCount(string path);
+
+        /// <summary>Returns a delimited string of keys for the object at the specified path.</summary>
+        [DispId(226)] string GetKeys(string path, string delimiter);
+
+        /// <summary>Sorts a JSON array by a specific key.</summary>
+        [DispId(227)] bool SortArray(string arrayPath, string key, bool descending);
+
+        /// <summary>Removes duplicate objects from a JSON array based on a key's value.</summary>
+        [DispId(228)] bool SelectUnique(string arrayPath, string key);
     }
 
     /// <summary>
@@ -208,64 +221,114 @@ namespace NetWebView2Lib
             catch { return false; }
         }
 
-#if FALSE
         /// <summary>
-        /// Updates or adds a value at the specified path (only for JObject).
-        /// </summary>
+        /// Updates or adds a value at the specified path, creating missing parent objects if necessary.
+        /// Supports smart typing for numbers, booleans, and nulls.
+        /// </summary> 
         public void SetTokenValue(string path, string value)
         {
             try
             {
-                if (_jsonObj != null)
+                if (string.IsNullOrEmpty(path)) return;
+
+                JObject root = _jsonObj;
+                if (root == null)
                 {
-                    _jsonObj[path] = value;
+                    if (_jsonArray != null) return; // Cannot set named paths on a root array easily without index
+                    _jsonObj = new JObject();
+                    root = _jsonObj;
+                }
+
+                string[] parts = path.Split('.');
+                JContainer current = root;
+
+                for (int i = 0; i < parts.Length - 1; i++)
+                {
+                    string part = parts[i];
+                    var next = current.SelectToken(part);
+
+                    if (next == null || next.Type != JTokenType.Object)
+                    {
+                        var newObj = new JObject();
+                        if (current is JObject obj) obj[part] = newObj;
+                        else if (current is JArray arr) { /* Array indexing not handled in deep creation for now */ }
+                        current = newObj;
+                    }
+                    else
+                    {
+                        current = (JContainer)next;
+                    }
+                }
+
+                string lastPart = parts[parts.Length - 1];
+                if (current is JObject finalObj)
+                {
+                    finalObj[lastPart] = ParseValueSmart(value);
                 }
             }
             catch { /* Handle or log error if needed */ }
         }
-#endif
+
+        private JToken ParseValueSmart(string value)
+        {
+            if (string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)) return false;
+            if (string.Equals(value, "null", StringComparison.OrdinalIgnoreCase)) return JValue.CreateNull();
+
+            // Leading zero check: if starts with 0 and not just "0" or "0.", treat as string
+            if (value.Length > 1 && value.StartsWith("0") && !value.StartsWith("0.")) return value;
+
+            if (long.TryParse(value, out long l)) return l;
+            if (double.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d)) return d;
+
+            return value;
+        }
+
         /// <summary>
-        /// Updates or adds a value at the specified path (only for JObject).
-        /// </summary> 
-        public void SetTokenValue(string path, string value)
-		{
-			try
-			{
-				JToken root = (_jsonArray != null) ? (JToken)_jsonArray : (JToken)_jsonObj;
-				if (root != null)
-				{
-					var token = root.SelectToken(path);
-					if (token != null && token is JValue jValue)
-					{
-						jValue.Value = value;
-					}
-				}
-			}
-            catch { /* Handle or log error if needed */ }
+        /// Returns a delimited string of keys for the object at the specified path.
+        /// </summary>
+        public string GetKeys(string path, string delimiter = "|")
+        {
+            try
+            {
+                JToken root = (_jsonArray != null) ? (JToken)_jsonArray : (JToken)_jsonObj;
+                if (root == null) return "";
+
+                var token = string.IsNullOrEmpty(path) ? root : root.SelectToken(path);
+                if (token is JObject obj)
+                {
+                    var keys = obj.Properties().Select(p => p.Name);
+                    return string.Join(delimiter, keys);
+                }
+                return "";
+            }
+            catch { return ""; }
         }
 		
         /// <summary>
         /// Returns the count of elements if the JSON is an array.
         /// </summary>
-        public int GetArrayLength(string path)
+        public int GetArrayLength(string path) => GetTokenCount(path);
+
+        /// <summary>
+        /// Returns the count of elements (array items or object properties) at the specified path.
+        /// </summary>
+        public int GetTokenCount(string path)
         {
             try
             {
-                // If path is empty, check which root container is active
-                if (string.IsNullOrEmpty(path) || path == "$")
-                {
-                    if (_jsonArray != null) return _jsonArray.Count;
-                    if (_jsonObj != null) return 0; // It's an object, not an array
-                }
-
-                // If path is provided, use the active container to find the token
                 JToken root = (_jsonArray != null) ? (JToken)_jsonArray : (JToken)_jsonObj;
-                if (root == null) return 0;
+                if (root == null) return (string.IsNullOrEmpty(path)) ? 0 : -1;
 
-                var token = root.SelectToken(path);
-                return (token is JArray arr) ? arr.Count : 0;
+                var token = (string.IsNullOrEmpty(path) || path == "$") ? root : root.SelectToken(path);
+                if (token == null) return 0;
+
+                if (token is JArray arr) return arr.Count;
+                if (token is JObject obj) return obj.Properties().Count();
+                
+                return 0;
             }
-            catch { return 0; }
+            catch { return -1; }
         }
 
 
@@ -478,6 +541,60 @@ namespace NetWebView2Lib
         }
 
         /// <summary>
+        /// Sorts a JSON array by a specific key.
+        /// </summary>
+        public bool SortArray(string arrayPath, string key, bool descending = false)
+        {
+            try
+            {
+                JToken root = (_jsonArray != null) ? (JToken)_jsonArray : (JToken)_jsonObj;
+                if (root == null) return false;
+
+                JToken token = string.IsNullOrEmpty(arrayPath) ? root : root.SelectToken(arrayPath);
+                if (token is JArray arr)
+                {
+                    var sorted = descending 
+                        ? arr.OrderByDescending(x => x[key]?.ToString()).ToList()
+                        : arr.OrderBy(x => x[key]?.ToString()).ToList();
+
+                    arr.Clear();
+                    foreach (var item in sorted) arr.Add(item);
+                    return true;
+                }
+                return false;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// Removes duplicate objects from a JSON array based on a key's value.
+        /// </summary>
+        public bool SelectUnique(string arrayPath, string key)
+        {
+            try
+            {
+                JToken root = (_jsonArray != null) ? (JToken)_jsonArray : (JToken)_jsonObj;
+                if (root == null) return false;
+
+                JToken token = string.IsNullOrEmpty(arrayPath) ? root : root.SelectToken(arrayPath);
+                if (token is JArray arr)
+                {
+                    var unique = arr.Where(x => x is JObject)
+                                    .Cast<JObject>()
+                                    .GroupBy(x => x[key]?.ToString())
+                                    .Select(g => g.First())
+                                    .ToList();
+
+                    arr.Clear();
+                    foreach (var item in unique) arr.Add(item);
+                    return true;
+                }
+                return false;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
         /// Flattens the JSON structure into a single-level object with dot-notated paths.
         /// </summary> 
         public string Flatten()
@@ -587,5 +704,4 @@ namespace NetWebView2Lib
         }
 
     }
-
 }

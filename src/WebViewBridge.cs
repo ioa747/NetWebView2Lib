@@ -2,9 +2,10 @@
 using System.Runtime.InteropServices;
 using System.Threading;
 
+// --- Version 1.4.3 ---
+
 namespace NetWebView2Lib
-{
-    
+{    
     [ComVisible(true)]
     public delegate void OnMessageReceivedDelegate(string message);
 
