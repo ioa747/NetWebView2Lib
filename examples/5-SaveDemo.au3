@@ -5,11 +5,11 @@
 #include "..\NetWebView2Lib.au3"
 
 ; Global objects
-Global $hGUI, $idLabelStatus
+Global $hGUI
 
-Main()
+_Example()
 
-Func Main()
+Func _Example()
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
 
@@ -45,7 +45,7 @@ Func Main()
 	Local $dPDF_asBase64 = _NetWebView2_PrintToPdfStream($_g_oWeb)
 
 	; decode Base64 encoded data do Binary
-	Local $dBinaryDataToWrite = _Base64Decode($dPDF_asBase64)
+	Local $dBinaryDataToWrite = _NetWebView2_DecodeB64($_g_oWeb, $dPDF_asBase64)
 
 	; finally save PDF to FILE
 	Local $hFile = FileOpen($s_PDF_FileFullPath, $FO_OVERWRITE + $FO_UTF8_NOBOM + $FO_BINARY)
@@ -83,53 +83,4 @@ Func Main()
 	#EndRegion ; GUI Loop
 
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
-EndFunc   ;==>Main
-
-; #FUNCTION# ====================================================================================================================
-; Name ..........: _Base64Decode
-; Description ...:
-; Syntax ........: _Base64Decode($input_string)
-; Parameters ....: $input_string        - An integer value.
-; Return values .: None
-; Author ........: trancexx
-; Modified ......:
-; Remarks .......:
-; Related .......:
-; Link ..........: http://www.autoitscript.com/forum/topic/81332-base64encode-base64decode
-; Example .......: yes
-; ===============================================================================================================================
-Func _Base64Decode($input_string)
-
-	Local $struct = DllStructCreate("int")
-
-	Local $a_Call = DllCall("Crypt32.dll", "int", "CryptStringToBinary", _
-			"str", $input_string, _
-			"int", 0, _
-			"int", 1, _
-			"ptr", 0, _
-			"ptr", DllStructGetPtr($struct, 1), _
-			"ptr", 0, _
-			"ptr", 0)
-
-	If @error Or Not $a_Call[0] Then
-		Return SetError(1, 0, "") ; error calculating the length of the buffer needed
-	EndIf
-
-	Local $a = DllStructCreate("byte[" & DllStructGetData($struct, 1) & "]")
-
-	$a_Call = DllCall("Crypt32.dll", "int", "CryptStringToBinary", _
-			"str", $input_string, _
-			"int", 0, _
-			"int", 1, _
-			"ptr", DllStructGetPtr($a), _
-			"ptr", DllStructGetPtr($struct, 1), _
-			"ptr", 0, _
-			"ptr", 0)
-
-	If @error Or Not $a_Call[0] Then
-		Return SetError(2, 0, "") ; error decoding
-	EndIf
-
-	Return DllStructGetData($a, 1)
-
-EndFunc   ;==>_Base64Decode
+EndFunc   ;==>_Example
