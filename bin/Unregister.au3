@@ -1,25 +1,36 @@
 #RequireAdmin
+#AutoIt3Wrapper_Run_AU3Check=Y
+#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
+#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+#Tidy_Parameters=/reel
+
 #include <MsgBoxConstants.au3>
 
-; === Configuration ===
-Local $sDllName = "NetWebView2Lib.dll"
-Local $sTlbName = "NetWebView2Lib.tlb"
-Local $sNet4_x86 = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe"
-Local $sNet4_x64 = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"
+_Unregister()
 
-Local $sLog = "Unregistration Report:" & @CRLF & "----------------------" & @CRLF
+Func _Unregister()
+	; === Configuration ===
+	Local $sDllName = "NetWebView2Lib.dll"
+	Local $sTlbName = "NetWebView2Lib.tlb"
+	#forceref $sTlbName
 
-; === Unregister x86 ===
-If FileExists($sNet4_x86) Then
-    Local $iExitCode = RunWait('"' & $sNet4_x86 & '" /u "' & @ScriptDir & '\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
-    $sLog &= ($iExitCode = 0 ? "[+] x86 Unregistration: SUCCESS" : "[-] x86 Unregistration: FAILED") & @CRLF
-EndIf
+	Local $sNet4_x86 = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe"
+	Local $sNet4_x64 = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"
 
-; === Unregister x64 ===
-If FileExists($sNet4_x64) Then
-    Local $iExitCode = RunWait('"' & $sNet4_x64 & '" /u "' & @ScriptDir & '\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
-    $sLog &= ($iExitCode = 0 ? "[+] x64 Unregistration: SUCCESS" : "[-] x64 Unregistration: FAILED") & @CRLF
-EndIf
+	Local $sLog = "Unregistration Report:" & @CRLF & "----------------------" & @CRLF
+	Local $iExitCode
 
+	; === Unregister x86 ===
+	If FileExists($sNet4_x86) Then
+		$iExitCode = RunWait('"' & $sNet4_x86 & '" /u "' & @ScriptDir & '\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
+		$sLog &= ($iExitCode = 0 ? "[+] x86 Unregistration: SUCCESS" : "[-] x86 Unregistration: FAILED") & @CRLF
+	EndIf
 
-MsgBox($MB_ICONINFORMATION, "Cleanup Complete", $sLog)
+	; === Unregister x64 ===
+	If FileExists($sNet4_x64) Then
+		$iExitCode = RunWait('"' & $sNet4_x64 & '" /u "' & @ScriptDir & '\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
+		$sLog &= ($iExitCode = 0 ? "[+] x64 Unregistration: SUCCESS" : "[-] x64 Unregistration: FAILED") & @CRLF
+	EndIf
+
+	MsgBox($MB_ICONINFORMATION, "Unregistration process completed", $sLog)
+EndFunc   ;==>_Unregister
