@@ -57,16 +57,16 @@ Func Main()
 	#EndRegion ; PDF
 
 	#Region ; HTML
-	Local $s_HTML = _NetWebView2_ExportPageData($_g_oWeb, 0, "")
+	Local $s_HTML_content = _NetWebView2_ExportPageData($_g_oWeb, 0, "")
 	Local $s_HTML_FileFullPath = @ScriptDir & '\5-SaveDemo_result.html'
-	FileWrite($s_HTML_FileFullPath, $s_HTML)
+	FileWrite($s_HTML_FileFullPath, $s_HTML_content)
 	ShellExecute($s_HTML_FileFullPath)
 	#EndRegion ; HTML
 
 	#Region ; MHTML
-	Local $s_MHTML = _NetWebView2_ExportPageData($_g_oWeb, 1, "")
+	Local $s_MHTML_content = _NetWebView2_ExportPageData($_g_oWeb, 1, "")
 	Local $s_MHTML_FileFullPath = @ScriptDir & '\5-SaveDemo_result.mhtml'
-	FileWrite($s_MHTML_FileFullPath, $s_MHTML)
+	FileWrite($s_MHTML_FileFullPath, $s_MHTML_content)
 	ShellExecute($s_MHTML_FileFullPath)
 	#EndRegion ; MHTML
 
