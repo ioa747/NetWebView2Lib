@@ -23,7 +23,7 @@ Func Main()
 	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; create JavaScript Bridge
+	; create JavaScript Bridge object
 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "")
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
