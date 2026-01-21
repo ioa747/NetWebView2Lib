@@ -1,12 +1,12 @@
 #RequireAdmin
+#AutoIt3Wrapper_Run_AU3Check=Y
+#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
+#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+
 #include <GUIConstantsEx.au3>
 #include <GuiListView.au3>
 #include <MsgBoxConstants.au3>
 #include <WindowsConstants.au3>
-
-#AutoIt3Wrapper_Run_AU3Check=Y
-#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
-#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 
 _Cleaner()
 
