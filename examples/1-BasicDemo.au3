@@ -76,7 +76,7 @@ Func _BridgeMyEventsHandler_OnMessageReceived($sMessage)
 	Local Static $iMsgCnt = 0
 
 	If $sMessage = "CLOSE_APP" Then
-		If MsgBox(36, "Confirm", "Exit Application?", 0, $hGUI) = 6 Then Exit
+		If MsgBox(36, "Confirm", "Exit Application?", 0, $hGUI) = 6 Then WinClose($hGUI)
 	Else
 		MsgBox(64, "JS Notification", "Message from Browser: " & $sMessage)
 		$iMsgCnt += 1
@@ -103,3 +103,4 @@ Func __GetDemoHTML()
 			'</body></html>'
 	Return $sH
 EndFunc   ;==>__GetDemoHTML
+
