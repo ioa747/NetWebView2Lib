@@ -1129,7 +1129,6 @@ namespace NetWebView2Lib
                     }
                     else if (format == 1) // MHTML Snapshot
                     {
-                        /// parameters description can be found here:  https://github.com/ChromeDevTools/devtools-protocol/blob/master/json/browser_protocol.json
 						var task = _webView.CoreWebView2.CallDevToolsProtocolMethodAsync("Page.captureSnapshot", "{}");
                         string json = WaitAndGetResult(task);
                         if (!string.IsNullOrEmpty(json))
@@ -1602,5 +1601,5 @@ namespace NetWebView2Lib
         }
         #endregion
     }
-
 }
+
