@@ -99,7 +99,7 @@ Func _NetWebView2_CreateManager($sUserAgent = '', $s_fnEventPrefix = "", $s_AddB
 ;~ 	__NetWebView2_ObjName_FlagsValue($oWebV2M)
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, "! [NetWebView2Lib]: Manager Creation ERROR", 1)
 	If $sUserAgent Then $oWebV2M.SetUserAgent($sUserAgent)
-	If $s_AddBrowserArgs Then $oWebV2M.AdditionalBrowserArguments($s_AddBrowserArgs)
+	If $s_AddBrowserArgs Then $oWebV2M.AdditionalBrowserArguments = $s_AddBrowserArgs
 	If $s_fnEventPrefix Then $_g_sNetWebView2_User_WebViewEvents = $s_fnEventPrefix
 	ObjEvent($oWebV2M, "__NetWebView2_WebViewEvents__", "IWebViewEvents")
 	Return SetError(@error, @extended, $oWebV2M)
@@ -637,3 +637,4 @@ Func __NetWebView2_WebViewEvents__OnContextMenu($sMenuData)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnContextMenu
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
