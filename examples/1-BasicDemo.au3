@@ -27,7 +27,7 @@ Func Main()
 	GUISetState(@SW_SHOW)
 
 	; Initialize WebView2 Manager and register events
-	Local $oWebV2M = _NetWebView2_CreateManager()
+	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--disable-gpu, --mute-audio")
 	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
@@ -74,7 +74,6 @@ EndFunc   ;==>UpdateWebUI
 ; ==============================================================================
 Func _BridgeMyEventsHandler_OnMessageReceived($sMessage)
 	Local Static $iMsgCnt = 0
-	ConsoleWrite(">>> [JS MESSAGE]: " & $sMessage & @CRLF)
 
 	If $sMessage = "CLOSE_APP" Then
 		If MsgBox(36, "Confirm", "Exit Application?", 0, $hGUI) = 6 Then Exit
