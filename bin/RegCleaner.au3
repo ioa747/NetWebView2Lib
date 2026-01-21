@@ -37,14 +37,22 @@ Func _Cleaner()
 
 	; Scan
 	Local $iTotalFound = 0
+	Local $bCanceled = False
 	For $sRoot In $aTargets
-		__Registry_Scan_Recursive($sRoot, $sSearchTerm, $idListView, $iTotalFound, $idStatus)
+		__Registry_Scan_Recursive($sRoot, $sSearchTerm, $idListView, $iTotalFound, $idStatus, $idBtnCancel)
+		If @error Or GUIGetMsg() = $idBtnCancel Then
+			$bCanceled = True
+		EndIf
 	Next
-	GUICtrlSetData($idStatus, "Scan complete. Found " & $iTotalFound & " keys.")
+	If $bCanceled = True Then
+		GUICtrlSetData($idStatus, "Scan canceled. Found " & $iTotalFound & " keys.")
+	Else
+		GUICtrlSetData($idStatus, "Scan complete. Found " & $iTotalFound & " keys.")
+	EndIf
 
 	While 1
 		Switch GUIGetMsg()
-			Case $GUI_EVENT_CLOSE, $idBtnCancel
+			Case $GUI_EVENT_CLOSE
 				Exit
 
 			Case $idBtnDelete
@@ -70,7 +78,7 @@ Func _Cleaner()
 EndFunc   ;==>_Cleaner
 
 ;---------------------------------------------------------------------------------------
-Func __Registry_Scan_Recursive($sKey, $sSearch, $hLV, ByRef $iCount, $idStatus)
+Func __Registry_Scan_Recursive($sKey, $sSearch, $hLV, ByRef $iCount, $idStatus, $idBtnCancel)
 	Local $iIndex = 1
 	While 1
 		Local $sSubKey = RegEnumKey($sKey, $iIndex)
@@ -78,6 +86,7 @@ Func __Registry_Scan_Recursive($sKey, $sSearch, $hLV, ByRef $iCount, $idStatus)
 
 		If Mod($iIndex, 100) = 0 Then
 			GUICtrlSetData($idStatus, "Scanning: " & $iIndex & " keys in " & StringLeft($sKey, 40) & "...")
+			If GUIGetMsg() = $idBtnCancel Then Return SetError(1)
 		EndIf
 
 		Local $sFull = $sKey & "\" & $sSubKey
@@ -90,7 +99,9 @@ Func __Registry_Scan_Recursive($sKey, $sSearch, $hLV, ByRef $iCount, $idStatus)
 			_GUICtrlListView_SetItemChecked($hLV, _GUICtrlListView_GetItemCount($hLV) - 1)
 		EndIf
 
-		__Registry_Scan_Recursive($sFull, $sSearch, $hLV, $iCount, $idStatus)
+		__Registry_Scan_Recursive($sFull, $sSearch, $hLV, $iCount, $idStatus, $idBtnCancel)
+		If @error Then Return SetError(1)
+
 		$iIndex += 1
 	WEnd
 EndFunc   ;==>__Registry_Scan_Recursive
@@ -107,3 +118,4 @@ Func __Delete_Checked_Items($hLV)
 		EndIf
 	Next
 EndFunc   ;==>__Delete_Checked_Items
+;---------------------------------------------------------------------------------------
