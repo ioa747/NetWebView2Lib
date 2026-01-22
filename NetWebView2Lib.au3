@@ -72,7 +72,7 @@ Func _NetWebView2_Initialize(ByRef $oWebV2M, $hGUI, $sProfileDirectory, $i_Left 
 	$oWebV2M.AreDevToolsEnabled = $b_AreDevToolsEnabled ; Allow F12
 	$oWebV2M.ZoomFactor = $i_ZoomFactor
 	$oWebV2M.BackColor = $s_BackColor
-	Return SetError(@error, @extended, '')
+	Return SetError(@error, $oWebV2M.GetBrowserProcessId(), '')
 EndFunc   ;==>_NetWebView2_Initialize
 
 ; #FUNCTION# ====================================================================================================================
@@ -709,3 +709,4 @@ Func __NetWebView2_WebViewEvents__OnContextMenu($sMenuData)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnContextMenu
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
