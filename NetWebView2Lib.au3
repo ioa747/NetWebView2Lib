@@ -29,7 +29,8 @@ Global Enum _
 		$WEBVIEW2__NAVSTATUS__STARTING, _
 		$WEBVIEW2__NAVSTATUS__URL_CHANGED, _
 		$WEBVIEW2__NAVSTATUS__COMPLETED, _
-		$WEBVIEW2__NAVSTATUS__TITLE_CHANGED
+		$WEBVIEW2__NAVSTATUS__TITLE_CHANGED, _
+		$WEBVIEW2__NAVSTATUS__NAV_ERROR ; 👈
 
 #Region ; NetWebView2Lib UDF - core function
 ; #FUNCTION# ====================================================================================================================
@@ -584,6 +585,10 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived($sMsg)
 				; Filter minor resize glitches
 				If $iW > 50 And $iH > 50 Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $iW & "x" & $iH, 1)
 			EndIf
+
+		Case "NAV_ERROR"
+			__NetWebView2_NavigationStatus($WEBVIEW2__NAVSTATUS__NAV_ERROR) ; Consider it complete, even if with an error ; 👈
+
 		Case Else
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 1)
 	EndSwitch
@@ -709,4 +714,5 @@ Func __NetWebView2_WebViewEvents__OnContextMenu($sMenuData)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnContextMenu
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
 
