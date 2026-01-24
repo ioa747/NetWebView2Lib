@@ -20,11 +20,13 @@ Func Main()
 	#forceref $oMyError
 
 	; Create the UI
-	Local $iHeight = 400
-	$hGUI = GUICreate("WebView2 .NET Manager - Community Demo", 800, $iHeight)
-	$idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight -20 , 880, 20)
+	Local $iHeight = 800
+	$hGUI = GUICreate("WebView2 .NET Manager - Community Demo", 1100, $iHeight)
+	$idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 880, 20)
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
-	GUISetState(@SW_SHOW)
+
+	WinMove($hGUI, '', Default, Default, 800, 440)
+	GUISetState(@SW_SHOW, $hGUI)
 
 	; Initialize WebView2 Manager and register events
 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--disable-gpu, --mute-audio")
@@ -37,8 +39,28 @@ Func Main()
 
 	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
+	__NetWebView2_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()", 1)
 
+	; navigate to HTML string - full fill the object with your own offline content - without downloading content
 	_NetWebView2_NavigateToString($_g_oWeb, __GetDemoHTML())
+
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+
+	WinMove($hGUI, '', Default, Default, 1100, 800)
+	GUISetState(@SW_HIDE, $hGUI)
+
+	; navigate to a given URL - downloading online content
+	_NetWebView2_Navigate($_g_oWeb, 'https://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5*1000)
+	GUISetState(@SW_SHOW, $hGUI)
+
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+	; navigate to fake/broken url
+;~ 	_NetWebView2_Navigate($oWebV2M, 'htpppps://www.microsoft.com', $NETWEBVIEW2_MESSAGE__COMPLETED)
+
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+	; navigate to fake/broken url
+;~ 	_NetWebView2_Navigate($oWebV2M, 'https://w2ww.microsoft.com', $NETWEBVIEW2_MESSAGE__COMPLETED, 100)
+;~ 	__NetWebView2_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com", 1)
 
 	; Main Loop
 	While 1
@@ -76,7 +98,7 @@ Func _BridgeMyEventsHandler_OnMessageReceived($sMessage)
 	Local Static $iMsgCnt = 0
 
 	If $sMessage = "CLOSE_APP" Then
-		If MsgBox(36, "Confirm", "Exit Application?", 0, $hGUI) = 6 Then WinClose($hGUI)
+		If MsgBox(36, "Confirm", "Exit Application?", 0, $hGUI) = 6 Then Exit
 	Else
 		MsgBox(64, "JS Notification", "Message from Browser: " & $sMessage)
 		$iMsgCnt += 1
@@ -103,4 +125,3 @@ Func __GetDemoHTML()
 			'</body></html>'
 	Return $sH
 EndFunc   ;==>__GetDemoHTML
-
