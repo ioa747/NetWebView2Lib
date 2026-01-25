@@ -41,7 +41,7 @@ Func Main()
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
 	__NetWebView2_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()", 1)
 
-	; navigate to HTML string - full fill the object with your own offline content - without downloading content
+	; navigate to HTML string - full fill the object with your own offline content - without downloading any content
 	_NetWebView2_NavigateToString($_g_oWeb, __GetDemoHTML())
 
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
@@ -49,15 +49,15 @@ Func Main()
 	WinMove($hGUI, '', Default, Default, 1100, 800)
 	GUISetState(@SW_HIDE, $hGUI)
 
-	; navigate to a given URL - downloading online content
-	_NetWebView2_Navigate($_g_oWeb, 'https://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5*1000)
+	; navigate to a given URL - online content
+;~ 	_NetWebView2_Navigate($_g_oWeb, 'https://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5*1000)
 	GUISetState(@SW_SHOW, $hGUI)
-
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+
 	; navigate to fake/broken url
 ;~ 	_NetWebView2_Navigate($oWebV2M, 'htpppps://www.microsoft.com', $NETWEBVIEW2_MESSAGE__COMPLETED)
-
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+
 	; navigate to fake/broken url
 ;~ 	_NetWebView2_Navigate($oWebV2M, 'https://w2ww.microsoft.com', $NETWEBVIEW2_MESSAGE__COMPLETED, 100)
 ;~ 	__NetWebView2_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com", 1)
