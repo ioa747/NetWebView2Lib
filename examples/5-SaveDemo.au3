@@ -19,7 +19,7 @@ Func _Example()
 	$hGUI = GUICreate("WebView2 .NET Manager - Community Demo", 1000, 800)
 
 	; Initialize WebView2 Manager and register events
-	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--disable-gpu, --mute-audio")
+	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--mute-audio")
 	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
@@ -37,18 +37,20 @@ Func _Example()
 	#EndRegion ; GUI CREATION
 
 	; navigate to the page
-	_NetWebView2_Navigate($_g_oWeb, "https://www.microsoft.com/")
+	_NetWebView2_Navigate($oWebV2M, "https://www.microsoft.com/", 4) ; 4 = NAV_COMPLETED 👈
 
 	#Region ; PDF
 	; get Browser content as PDF Base64 encoded binary data
 	Local $s_PDF_FileFullPath = @ScriptDir & '\5-SaveDemo_result.pdf'
-	Local $dPDF_asBase64 = _NetWebView2_PrintToPdfStream($_g_oWeb)
+	Local $dPDF_asBase64 = _NetWebView2_PrintToPdfStream($oWebV2M)
 
 	; decode Base64 encoded data do Binary
-	Local $dBinaryDataToWrite = _NetWebView2_DecodeB64($_g_oWeb, $dPDF_asBase64)
+;~ 	Local $dBinaryDataToWrite = _NetWebView2_DecodeB64($oWebV2M, $dPDF_asBase64)
+	Local $dBinaryDataToWrite = $oWebV2M.DecodeB64ToBinary($dPDF_asBase64) ; 👈 New method
 
 	; finally save PDF to FILE
-	Local $hFile = FileOpen($s_PDF_FileFullPath, $FO_OVERWRITE + $FO_UTF8_NOBOM + $FO_BINARY)
+;~ 	Local $hFile = FileOpen($s_PDF_FileFullPath, $FO_OVERWRITE + $FO_UTF8_NOBOM + $FO_BINARY)
+	Local $hFile = FileOpen($s_PDF_FileFullPath, $FO_OVERWRITE + $FO_BINARY)
 	FileWrite($hFile, $dBinaryDataToWrite)
 	FileClose($hFile)
 
@@ -57,14 +59,19 @@ Func _Example()
 	#EndRegion ; PDF
 
 	#Region ; HTML
-	Local $s_HTML_content = _NetWebView2_ExportPageData($_g_oWeb, 0, "")
+	Local $s_HTML_content = _NetWebView2_ExportPageData($oWebV2M, 0, "")
 	Local $s_HTML_FileFullPath = @ScriptDir & '\5-SaveDemo_result.html'
 	FileWrite($s_HTML_FileFullPath, $s_HTML_content)
 	ShellExecute($s_HTML_FileFullPath)
 	#EndRegion ; HTML
 
 	#Region ; MHTML
-	Local $s_MHTML_content = _NetWebView2_ExportPageData($_g_oWeb, 1, "")
+	; This trick is because Responsive Design (CSS) stored inside MHTML, and loading="lazy" ; 👈
+	$oWebV2M.ZoomFactor = 0.5
+    Sleep(500)
+    Local $s_MHTML_content = _NetWebView2_ExportPageData($oWebV2M, 1, "")
+    $oWebV2M.ZoomFactor = 1
+
 	Local $s_MHTML_FileFullPath = @ScriptDir & '\5-SaveDemo_result.mhtml'
 	FileWrite($s_MHTML_FileFullPath, $s_MHTML_content)
 	ShellExecute($s_MHTML_FileFullPath)

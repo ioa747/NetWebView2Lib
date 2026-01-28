@@ -1,15 +1,16 @@
-﻿using System;
+﻿using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.WinForms;
 
-// --- Version 1.4.3 - (dev) ---
+// --- Version 1.5.0 ---
 
 namespace NetWebView2Lib
 {
@@ -60,12 +61,19 @@ namespace NetWebView2Lib
         /// <param name="newUrl">The new URL.</param> 
         [DispId(13)] void OnURLChanged(string newUrl);
 
-        /// <summary>Triggered when a context menu is requested (Simplified for AutoIt).</summary>
-        /// <param name="linkUrl">The URL of the link under the cursor, if any.</param>
-        /// <param name="x">The X coordinate.</param>
-        /// <param name="y">The Y coordinate.</param>
+        /// <summary>Triggered when a web resource response is received (e.g., for HttpStatusCode).</summary>
+        /// <param name="statusCode">The HTTP status code.</param>
+        /// <param name="reasonPhrase">The HTTP reason phrase.</param>
+        [DispId(5)] void OnWebResourceResponseReceived(int statusCode, string reasonPhrase);
+
         /// <param name="selectionText">The selected text under the cursor, if any.</param>
         [DispId(190)] void OnContextMenuRequested(string linkUrl, int x, int y, string selectionText);
+
+        /// <summary>Triggered when a download is starting.</summary>
+        [DispId(208)] void OnDownloadStarting(string uri, string defaultPath);
+
+        /// <summary>Triggered when a download state changed.</summary>
+        [DispId(209)] void OnDownloadStateChanged(string state, string uri, long totalBytes, long receivedBytes);
     }
 
     /// <summary>
@@ -100,6 +108,8 @@ namespace NetWebView2Lib
         [DispId(110)] void SetContextMenuEnabled(bool enabled);
         /// <summary>Lock the WebView.</summary>
         [DispId(111)] void LockWebView();
+        /// <summary>Unlock the WebView by re-enabling restricted features.</summary>
+        [DispId(215)] void UnLockWebView();
         /// <summary>Disable browser features.</summary>
         [DispId(112)] void DisableBrowserFeatures();
         /// <summary>Go Back.</summary>
@@ -239,19 +249,39 @@ namespace NetWebView2Lib
         [DispId(193)] void ClearCache();
         /// <summary>Enables or disables custom context menu handling.</summary>
         [DispId(194)] bool CustomMenuEnabled { get; set; }
+        /// <summary>Enable/Disable OnWebResourceResponseReceived event.</summary>
+        [DispId(195)] bool HttpStatusCodeEventsEnabled { get; set; }
+        /// <summary>Filter HttpStatusCode events to only include the main document.</summary>
+        [DispId(196)] bool HttpStatusCodeDocumentOnly { get; set; }
 
 
-        // --- DATA EXTRACTION & SCRAPING ---
-
-        /// <summary>Get the inner text of the entire document.</summary>
+        /// <summary>Get inner text.</summary>
         [DispId(200)] void GetInnerText();
 
-        /// <summary>Export page data as HTML or MHTML.</summary>
-        [DispId(201)] string ExportPageData(int format, string filePath);
+        /// <summary>Capture page data as MHTML or other CDP snapshot formats.</summary>
+        [DispId(201)] string CaptureSnapshot(string cdpParameters = "{\"format\": \"mhtml\"}");
+        /// <summary>Export page data as HTML or MHTML (Legacy Support).</summary>
+        [DispId(207)] string ExportPageData(int format, string filePath);
         /// <summary>Capture page as PDF and return as Base64 string.</summary>
         [DispId(202)] string PrintToPdfStream();
-        /// <summary>Control PDF toolbar items visibility (bitwise combination of CoreWebView2PdfToolbarItems).</summary>
+        /// <summary>Control PDF toolbar items visibility.</summary>
         [DispId(203)] int HiddenPdfToolbarItems { get; set; }
+        /// <summary>Custom Download Path.</summary>
+        [DispId(204)] void SetDownloadPath(string path);
+        /// <summary>Enable/Disable default Download UI.</summary>
+        [DispId(205)] bool IsDownloadUIEnabled { get; set; }
+        /// <summary>Decode a Base64 string to raw binary data (byte array).</summary>
+        [DispId(206)] byte[] DecodeB64ToBinary(string base64Text);
+
+        /// <summary>Capture preview as Base64 string.</summary>
+        [DispId(216)] string CapturePreviewAsBase64(string format);
+
+        /// <summary>Cancel an active download by its URI.</summary>
+        [DispId(210)] void CancelDownload(string uri);
+        /// <summary>Set to true to suppress the default download UI, typically set during the OnDownloadStarting event.</summary>
+        [DispId(211)] bool IsDownloadHandled { get; set; }
+        /// <summary>Enable/Disable Zoom control (Ctrl+Wheel, shortcuts).</summary>
+        [DispId(212)] bool IsZoomControlEnabled { get; set; }
     }
 
     // --- 3. THE MANAGER CLASS ---
@@ -278,6 +308,13 @@ namespace NetWebView2Lib
         private bool _autoResizeEnabled = false;
         private bool _customMenuEnabled = false;
         private string _additionalBrowserArguments = "";
+        private string _customDownloadPath = "";
+        private bool _isDownloadUIEnabled = true;
+        private bool _httpStatusCodeEventsEnabled = true;
+        private bool _httpStatusCodeDocumentOnly = true;
+        private bool _isDownloadHandledOverride = false;
+        private bool _isZoomControlEnabled = true;
+        private readonly HashSet<CoreWebView2WebResourceRequest> _pendingDocumentRequests = new HashSet<CoreWebView2WebResourceRequest>();
 
         private int _offsetX = 0;
         private int _offsetY = 0;
@@ -287,6 +324,10 @@ namespace NetWebView2Lib
         private ParentWindowSubclass _parentSubclass;
 
         private string _lastCssRegistrationId = "";
+
+        // Keeps active downloads keyed by their URI
+        private readonly Dictionary<string, CoreWebView2DownloadOperation> _activeDownloads = new Dictionary<string, CoreWebView2DownloadOperation>();
+
         #endregion
 
         #region 2. DELEGATES & EVENTS
@@ -335,6 +376,16 @@ namespace NetWebView2Lib
         /// <summary>Delegate for Lost Focus.</summary>
         public delegate void OnBrowserLostFocusDelegate(int reason);
 
+        /// <summary>Delegate for Web Resource Response Received (HttpStatusCode).</summary>
+        /// <param name="statusCode">The HTTP status code.</param>
+        /// <param name="reasonPhrase">The HTTP reason phrase.</param>
+        public delegate void OnWebResourceResponseReceivedDelegate(int statusCode, string reasonPhrase);
+
+        /// <summary>Delegate for Download Starting.</summary>
+        public delegate void OnDownloadStartingDelegate(string uri, string defaultPath);
+        /// <summary>Delegate for Download State Changed.</summary>
+        public delegate void OnDownloadStateChangedDelegate(string state, string uri, long totalBytes, long receivedBytes);
+
         /// <summary>
         /// Event fired when a message is received.
         /// </summary>
@@ -359,6 +410,14 @@ namespace NetWebView2Lib
         /// Event fired when the URL changes.
         /// </summary> 
         public event OnURLChangedDelegate OnURLChanged;
+
+        /// <summary>Event fired when a web resource response is received.</summary>
+        public event OnWebResourceResponseReceivedDelegate OnWebResourceResponseReceived;
+
+        /// <summary>Event fired when a download is starting.</summary>
+        public event OnDownloadStartingDelegate OnDownloadStarting;
+        /// <summary>Event fired when a download state changed.</summary>
+        public event OnDownloadStateChangedDelegate OnDownloadStateChanged;
 
         /// <summary>Event fired when a custom context menu is requested.</summary>
         public event OnContextMenuDelegate OnContextMenu;
@@ -603,6 +662,7 @@ namespace NetWebView2Lib
             settings.IsWebMessageEnabled = true;            // Enable Web Messages
             settings.AreDevToolsEnabled = true;             // Enable DevTools by default
             settings.AreDefaultContextMenusEnabled = true;  // Keep TRUE to ensure the event fires
+            settings.IsZoomControlEnabled = _isZoomControlEnabled; // Apply custom zoom setting
             _webView.DefaultBackgroundColor = Color.Transparent;
         }
 
@@ -691,6 +751,12 @@ namespace NetWebView2Lib
             _webView.CoreWebView2.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
             _webView.CoreWebView2.WebResourceRequested += (s, e) =>
             {
+                // Track if this is a Document request for HttpStatusCode filtering
+                if (_httpStatusCodeEventsEnabled && _httpStatusCodeDocumentOnly && e.ResourceContext == CoreWebView2WebResourceContext.Document)
+                {
+                    lock (_pendingDocumentRequests) { _pendingDocumentRequests.Add(e.Request); }
+                }
+
                 if (!_isAdBlockActive) return;
                 string uri = e.Request.Uri.ToLower();
                 foreach (var domain in _blockList)
@@ -759,6 +825,12 @@ namespace NetWebView2Lib
                 OnTitleChanged?.Invoke(_webView.CoreWebView2.DocumentTitle); 
             };
 
+            // Zoom Factor Changed Event
+            _webView.ZoomFactorChanged += (s, e) => {
+                OnZoomChanged?.Invoke(_webView.ZoomFactor);
+                OnMessageReceived?.Invoke("ZOOM_CHANGED|" + _webView.ZoomFactor);
+            };
+
             // Communication Event <---> AutoIt <---> JavaScript
             //_webView.CoreWebView2.WebMessageReceived += (s, e) => {
             //    OnMessageReceived?.Invoke(e.TryGetWebMessageAsString());
@@ -808,8 +880,120 @@ namespace NetWebView2Lib
                 }));
             };
 			
-			// Communication Event <---> AutoIt <---> JavaScript
-			_webView.CoreWebView2.AddHostObjectToScript("autoit", _bridge);
+            // Communication Event <---> AutoIt <---> JavaScript
+            _webView.CoreWebView2.AddHostObjectToScript("autoit", _bridge);
+
+            // HttpStatusCode Tracking
+            _webView.CoreWebView2.WebResourceResponseReceived += (s, e) =>
+            {
+                if (!_httpStatusCodeEventsEnabled) return;
+
+                if (_httpStatusCodeDocumentOnly)
+                {
+                    bool isDoc = false;
+                    lock (_pendingDocumentRequests)
+                    {
+                        if (_pendingDocumentRequests.Contains(e.Request))
+                        {
+                            isDoc = true;
+                            _pendingDocumentRequests.Remove(e.Request);
+                        }
+                    }
+                    if (!isDoc) return;
+                }
+
+                if (e.Response != null)
+                {
+                    OnWebResourceResponseReceived?.Invoke(e.Response.StatusCode, e.Response.ReasonPhrase);
+                }
+            };
+
+            _webView.CoreWebView2.DownloadStarting += (s, e) =>
+            {
+                string currentUri = e.DownloadOperation.Uri;
+				
+				// 1. Apply Custom Download Path if it exists
+                if (!string.IsNullOrEmpty(_customDownloadPath))
+                {
+                    string fileName = System.IO.Path.GetFileName(e.ResultFilePath);
+                    string fullPath = System.IO.Path.Combine(_customDownloadPath, fileName);
+                    e.ResultFilePath = fullPath;
+                }
+				
+				// Add to list so it can be canceled later
+				_activeDownloads[currentUri] = e.DownloadOperation;
+
+                // Reset per-download overrides
+                _isDownloadHandledOverride = false; // Default to FALSE (Let Edge handle it)
+
+                // Fire the event to AutoIt
+                OnDownloadStarting?.Invoke(e.DownloadOperation.Uri, e.ResultFilePath); // Using the updated path
+
+                // --- ROBUST WAIT FOR AUTOIT ---
+                var sw = Stopwatch.StartNew();
+                while (sw.ElapsedMilliseconds < 600 && !_isDownloadHandledOverride)
+                {
+                    System.Windows.Forms.Application.DoEvents();
+                    System.Threading.Thread.Sleep(5);
+                }
+
+                if (_isDownloadHandledOverride)
+                {
+                    e.Cancel = true;
+                    OnMessageReceived?.Invoke($"DOWNLOAD_CANCELLED|{e.DownloadOperation.Uri}");
+                    return;
+                }
+
+                // --- STANDARD MODE: EDGE ---
+                e.Handled = !_isDownloadUIEnabled;
+
+                // Using e.ResultFilePath which now contains the correct path
+                OnMessageReceived?.Invoke($"DOWNLOAD_STARTING|{e.DownloadOperation.Uri}|{e.ResultFilePath}");
+
+                e.DownloadOperation.StateChanged += (sender, args) =>
+                {
+                    long totalBytes = (long)(e.DownloadOperation.TotalBytesToReceive ?? 0);
+                    long receivedBytes = (long)e.DownloadOperation.BytesReceived;
+					
+					// Update status (InProgress, Completed, etc.)
+                    OnDownloadStateChanged?.Invoke(e.DownloadOperation.State.ToString(), e.DownloadOperation.Uri, totalBytes, receivedBytes);
+					
+					// DOWNLOAD_CANCELLED
+					if (e.DownloadOperation.State == Microsoft.Web.WebView2.Core.CoreWebView2DownloadState.Interrupted)
+					{
+						// Send DOWNLOAD_CANCELLED|URL|Reason (e.g. UserCanceled, NetworkFailed, etc.)
+						var reason = e.DownloadOperation.InterruptReason;
+						OnMessageReceived?.Invoke($"DOWNLOAD_CANCELLED|{currentUri}|{reason}");
+					}
+
+					// Clear list when finished (for any reason)
+					if (e.DownloadOperation.State != Microsoft.Web.WebView2.Core.CoreWebView2DownloadState.InProgress)
+					{
+						_activeDownloads.Remove(currentUri);
+					}
+                };
+
+                // --- Progress Tracking ---
+                int lastPercent = -1;
+                e.DownloadOperation.BytesReceivedChanged += (sender, args) =>
+                {
+                    long total = (long)(e.DownloadOperation.TotalBytesToReceive ?? 0);
+                    long received = (long)e.DownloadOperation.BytesReceived;
+
+                    if (total > 0)
+                    {
+                        int currentPercent = (int)((received * 100) / total);
+
+                        // We only send an update to AutoIt if the percentage has changed
+                        // so as not to "clog" the script with thousands of messages.
+                        if (currentPercent > lastPercent)
+                        {
+                            lastPercent = currentPercent;
+                            OnDownloadStateChanged?.Invoke("InProgress", e.DownloadOperation.Uri, total, received);
+                        }
+                    }
+                };
+            };
         }
         #endregion
 
@@ -1096,6 +1280,23 @@ namespace NetWebView2Lib
         }
 
         /// <summary>
+        /// Unlock the WebView by re-enabling restricted features.
+        /// </summary>
+        public void UnLockWebView()
+        {
+            InvokeOnUiThread(() => {
+                if (_webView?.CoreWebView2 != null)
+                {
+                    var s = _webView.CoreWebView2.Settings;
+                    s.AreDefaultContextMenusEnabled = true;
+                    s.AreDevToolsEnabled = true;
+                    s.IsZoomControlEnabled = true;
+                    s.IsBuiltInErrorPageEnabled = true;
+                }
+            });
+        }
+
+        /// <summary>
         /// Saves the current page as a PDF file.
         /// </summary>
         public async void ExportToPdf(string filePath)
@@ -1107,6 +1308,41 @@ namespace NetWebView2Lib
                 OnMessageReceived?.Invoke("PDF_EXPORT_SUCCESS|" + filePath);
             }
             catch (Exception ex) { OnMessageReceived?.Invoke("PDF_EXPORT_ERROR|" + ex.Message); }
+        }
+
+        /// <summary>
+        /// Capture page data as MHTML or other CDP snapshot formats.
+        /// </summary>
+        public string CaptureSnapshot(string cdpParameters = "{\"format\": \"mhtml\"}")
+        {
+            if (_webView?.CoreWebView2 == null) return "ERROR: WebView not initialized";
+
+            return RunOnUiThread(() =>
+            {
+                try
+                {
+                    // Use a more robust wait that pumps messages
+                    var task = _webView.CoreWebView2.CallDevToolsProtocolMethodAsync("Page.captureSnapshot", cdpParameters);
+                    string json = WaitAndGetResult(task);
+
+                    if (string.IsNullOrEmpty(json) || json == "null")
+                    {
+                        return "ERROR: CDP Page.captureSnapshot returned empty result.";
+                    }
+
+                    // CDP returns a JSON object like {"data": "..."}
+                    var dict = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                    if (dict != null && dict.ContainsKey("data"))
+                    {
+                        return dict["data"];
+                    }
+                    return "ERROR: Page capture failed - 'data' field missing in CDP response.";
+                }
+                catch (Exception ex)
+                {
+                    return "ERROR: " + ex.Message;
+                }
+            });
         }
 
         /// <summary>
@@ -1129,21 +1365,13 @@ namespace NetWebView2Lib
                     }
                     else if (format == 1) // MHTML Snapshot
                     {
-						var task = _webView.CoreWebView2.CallDevToolsProtocolMethodAsync("Page.captureSnapshot", "{}");
-                        string json = WaitAndGetResult(task);
-                        if (!string.IsNullOrEmpty(json))
-                        {
-                            var dict = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
-                            if (dict != null && dict.ContainsKey("data"))
-                            {
-                                result = dict["data"];
-                            }
-                        }
+                        result = CaptureSnapshot();
                     }
 
-                    if (string.IsNullOrEmpty(result))
+                    // Check if the result itself is an error from CaptureSnapshot
+                    if (string.IsNullOrEmpty(result) || result.StartsWith("ERROR:"))
                     {
-                        return "ERROR: Page capture failed or result is empty.";
+                        return string.IsNullOrEmpty(result) ? "ERROR: Export failed - empty result." : result;
                     }
 
                     if (!string.IsNullOrEmpty(filePath))
@@ -1515,6 +1743,107 @@ namespace NetWebView2Lib
                     _webView.CoreWebView2.Settings.HiddenPdfToolbarItems = (CoreWebView2PdfToolbarItems)value;
             });
         }
+
+        /// <summary>Sets a custom download path for file downloads.</summary>
+        public void SetDownloadPath(string path)
+        {
+            _customDownloadPath = path;
+            if (!System.IO.Directory.Exists(path))
+            {
+                System.IO.Directory.CreateDirectory(path); // Create the folder if it doesn't exist
+            }
+        }
+
+        /// <summary>Cancels an active download associated with the specified URI.</summary>
+        /// <param name="uri">The URI identifying the download to cancel.</param>
+        public void CancelDownload(string uri)
+        {
+            if (_activeDownloads.ContainsKey(uri))
+            {
+                _activeDownloads[uri].Cancel();
+                _activeDownloads.Remove(uri);
+            }
+        }
+
+        public bool IsDownloadUIEnabled
+        {
+            get => _isDownloadUIEnabled;
+            set => _isDownloadUIEnabled = value;
+        }
+
+        /// <summary>Decodes a Base64-encoded string into a byte array.</summary>
+        /// <param name="base64Text">The Base64-encoded string to decode.</param>
+        /// <returns>A byte array containing the decoded binary data, or an empty array if the input is null, empty, or invalid.</returns>
+        public byte[] DecodeB64ToBinary(string base64Text)
+        {
+            if (string.IsNullOrEmpty(base64Text)) return new byte[0];
+            try
+            {
+                return Convert.FromBase64String(base64Text);
+            }
+            catch { return new byte[0]; }
+        }
+
+        /// <summary>Enable/Disable OnWebResourceResponseReceived event.</summary>
+        public bool HttpStatusCodeEventsEnabled
+        {
+            get => _httpStatusCodeEventsEnabled;
+            set => _httpStatusCodeEventsEnabled = value;
+        }
+
+        /// <summary>Filter HttpStatusCode events to only include the main document.</summary>
+        public bool HttpStatusCodeDocumentOnly
+        {
+            get => _httpStatusCodeDocumentOnly;
+            set => _httpStatusCodeDocumentOnly = value;
+        }
+
+
+        public bool IsDownloadHandled
+        {
+            get => _isDownloadHandledOverride;
+            set => _isDownloadHandledOverride = value;
+        }
+
+        public bool IsZoomControlEnabled
+        {
+            get => _webView?.CoreWebView2?.Settings?.IsZoomControlEnabled ?? _isZoomControlEnabled;
+            set
+            {
+                _isZoomControlEnabled = value;
+                InvokeOnUiThread(() => {
+                    if (_webView?.CoreWebView2?.Settings != null)
+                        _webView.CoreWebView2.Settings.IsZoomControlEnabled = value;
+                });
+            }
+        }
+
+        /// <summary>
+        /// Captures a screenshot of the current WebView2 content and returns it as a Base64-encoded data URL.
+        /// </summary>
+        /// <param name="format">The image format for the screenshot, either 'png' or 'jpeg'.</param>
+        /// <returns>A Base64-encoded data URL representing the captured image.</returns>
+        public string CapturePreviewAsBase64(string format)
+        {
+            try
+            {
+                var imgFormat = format.ToLower() == "jpeg" ?
+                    CoreWebView2CapturePreviewImageFormat.Jpeg :
+                    CoreWebView2CapturePreviewImageFormat.Png;
+
+                using (var ms = new System.IO.MemoryStream())
+                {
+                    var task = _webView.CoreWebView2.CapturePreviewAsync(imgFormat, ms);
+                    WaitTask(task);
+                    return $"data:image/{format.ToLower()};base64,{Convert.ToBase64String(ms.ToArray())}";
+                }
+            }
+            catch (Exception ex)
+            {
+                return "Error: " + ex.Message;
+            }
+        }
+
         #endregion
 
         #region 17. HELPER METHODS
@@ -1547,6 +1876,28 @@ namespace NetWebView2Lib
             }
             return task.Result;
         }
+
+        /// <summary>
+        /// Waits for the specified Task to complete, processing Windows Forms events during the wait and enforcing a
+        /// timeout.
+        /// </summary>
+        /// <param name="task">The Task to wait for completion.</param>
+        /// <param name="timeoutSeconds">The maximum number of seconds to wait before timing out. Defaults to 20 seconds.</param>
+        /// <exception cref="TimeoutException">Thrown if the Task does not complete within the specified timeout.</exception>
+        private void WaitTask(Task task, int timeoutSeconds = 20)
+        {
+            var start = DateTime.Now;
+            while (!task.IsCompleted)
+            {
+                System.Windows.Forms.Application.DoEvents();
+                if ((DateTime.Now - start).TotalSeconds > timeoutSeconds)
+                    throw new TimeoutException("Operation timed out.");
+                System.Threading.Thread.Sleep(1);
+            }
+            if (task.IsFaulted && task.Exception != null)
+                throw task.Exception.InnerException;
+        }
+
 
         /// <summary>
         /// Encodes a string for safe use in a URL.
@@ -1602,4 +1953,3 @@ namespace NetWebView2Lib
         #endregion
     }
 }
-

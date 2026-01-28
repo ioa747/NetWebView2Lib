@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Threading;
 
-// --- Version 1.4.3 ---
+// --- Version 1.5.0 ---
 
 namespace NetWebView2Lib
 {    
