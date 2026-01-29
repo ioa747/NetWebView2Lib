@@ -4,6 +4,8 @@
 
 #include "..\NetWebView2Lib.au3"
 
+; 6-DownloadDemo.au3
+
 ; Global objects
 Global $hGUI
 
@@ -105,6 +107,6 @@ EndFunc
 
 Func _DownloadCancel()
 	ConsoleWrite("HotKeyPress: _DownloadCancel" & @CRLF)
-	$_g_oWeb.CancelDownload("https://fosszone.csd.auth.gr/tdf/libreoffice/stable/25.8.4/win/x86_64/LibreOffice_25.8.4_Win_x86-64.msi")
+	$_g_oWeb.CancelDownloads("https://fosszone.csd.auth.gr/tdf/libreoffice/stable/25.8.4/win/x86_64/LibreOffice_25.8.4_Win_x86-64.msi")
 EndFunc
 
