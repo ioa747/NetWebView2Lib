@@ -64,13 +64,13 @@ This project is provided "as-is". You are free to use, modify, and distribute it
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 🚀 What's New in v1.5.0 - Snapshots & Downloads
+## 🚀 What's New in v1.5.0 - Professional Snapshots & Downloads
 
 This major update introduces professional-grade snapshot tools using the DevTools Protocol, enhanced download management, and native HTTP status tracking for precise automation.
 
 ### ⚡ Key Features & Enhancements
 
-#### 1. Proactive Snapshot Engine
+#### **1. Proactive Snapshot Engine**
 
 The new `CaptureSnapshot(cdpParameters)` method provides direct access to the `Page.captureSnapshot` CDP method. This allows you to capture MHTML snapshots or other CDP-supported formats directly as strings.
 
@@ -78,24 +78,29 @@ The new `CaptureSnapshot(cdpParameters)` method provides direct access to the `P
 - **PascalCase Compliance:** Promoted internal `captureSnapshot` to a public, standard-compliant `CaptureSnapshot` method.
 - **Event Consistency:** Correctly wired up `OnZoomChanged` to the browser engine's zoom events.
 
-#### 2. Custom Download Management
+#### **2. Custom Download Management**
 
 You now have full control over the browser's download lifecycle.
 
 - **Automated Routing:** Use `SetDownloadPath(path)` to force all downloads into a specific folder or file. If a path points to an existing directory, the library intelligently appends the suggested filename.
 - **UI Control:** Toggle the browser's download shelf visibility using the `IsDownloadUIEnabled` property.
-- **Real-time Interception:** The `OnDownloadStarting` and `OnDownloadStateChanged` events allow you to monitor progress and dynamically change file paths (using `ByRef` in AutoIt) based on URI or metadata.
+- **Clean Event Contract**: The `OnDownloadStarting` event has been simplified to provide core metadata (URI, DefaultPath). Programmatic overrides now use the new `SetDownloadPath` and `IsDownloadHandled` properties/methods, ensuring 100% reliable path redirection from AutoIt, bypassing legacy COM `ByRef` limitations.
+- **Manual Mode Bypass**: Setting `IsDownloadHandled = True` during the `OnDownloadStarting` event will now immediately cancel the Edge download engine (`e.Cancel = true`). This allows AutoIt to handle the download externally (e.g., via `InetGet`) using its own logic. Active downloads can be monitored via `ActiveDownloadsList` and cancelled via `CancelDownloads()`
+- **IsZoomControlEnabled**: New property to enable/disable the built-in zoom mechanism (Ctrl+Wheel, etc.).
+- **UnLockWebView Method**: Added `UnLockWebView()` to re-enable restricted features previously disabled by `LockWebView()`.
 
-#### 3. Native HTTP Status Tracking & Deadlock Prevention
+#### **3. Native HTTP Status Tracking & Deadlock Prevention**
 
-Track server responses with precision using the new `OnWebResourceResponseReceived` event. This is essential for detecting link rot (404s), server errors (500s), or validating API response headers directly from AutoIt.
+Track server responses with precision using the new `OnWebResourceResponseReceived` event. This is essential for detecting link rot (404s), server errors (500s), or validating API response responses directly from AutoIt. It provides the status code, reason phrase, and the original request URL.
 
 - **Deadlock Shield:** By default, this event now only triggers for the main document (`HttpStatusCodeDocumentOnly = True`). This prevents the event flood (e.g., hundreds of 404s for missing icons or scripts) that previously caused AutoIt's GUI to deadlock.
 - **Granular Control:** Use `HttpStatusCodeEventsEnabled` to toggle the event entirely or disable the filter for deep resource auditing.
 
-#### 4. Memory-Based Binary Support
+#### **4. Memory-Based Binary Support**
 
 The new `DecodeB64ToBinary(base64Text)` method decodes Base64 data directly into a raw byte array. This is perfect for high-speed processing of images or PDFs entirely in memory.
+
+and a `CapturePreviewAsBase64(format)`  method to  Captures a screenshot of the current page  content and returns it as a Base64-encoded data URL
 
 ---
 <p align="center">
@@ -180,13 +185,13 @@ Determines whether `OnWebResourceResponseReceived` triggers for all resources (F
 Determines whether the download is handled by the application. If set to **True** during `OnDownloadStarting`, the internal Edge download is cancelled.
 `object.IsDownloadHandled[ = Value]`
 
+##### ActiveDownloadsList
+Returns a pipe-separated string of all active download URIs.
+`object.ActiveDownloadsList`
+
 ##### IsZoomControlEnabled
 Determines whether user can zoom the page (Ctrl+MouseWheel, shortcuts).
 `object.IsZoomControlEnabled[ = Value]`
-
-##### IsScrollbarEnabled
-Determines whether scrollbars are visible/active. Setting to False injects CSS `overflow: hidden`.
-`object.IsScrollbarEnabled[ = Value]`
 
 #### Method
 
@@ -416,10 +421,6 @@ Decodes a Base64 string back to **plain text** (UTF-8).
 Decodes a Base64 string directly into a **raw byte array**. Optimized for memory-based binary processing (e.g., images, PDFs).
 `object.DecodeB64ToBinary(Base64Text As String)`
 
-##### CapturePreviewAsBase64
-Captures a screenshot of the current WebView2 content and returns it as a Base64-encoded data URL.
-`object.CapturePreviewAsBase64(format As string)`
-
 ##### SetZoomFactor
 Sets the zoom factor for the control.
 `object.SetZoomFactor(Factor As Double)`
@@ -472,6 +473,10 @@ Captures page data using Chrome DevTools Protocol. Can return MHTML or other CDP
 Sets a global default folder or file path for all browser downloads. If a directory is provided, the filename is automatically appended by the library.
 `object.SetDownloadPath(Path As String)`
 
+##### CancelDownloads
+Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
+`object.CancelDownloads([Uri As String])`
+
 ##### ExportPageData
 [LEGACY] Consolidated into **CaptureSnapshot**.
 `object.ExportPageData(Format As Integer, FilePath As String)`
@@ -488,7 +493,7 @@ Fired when a message or notification is sent from the library to AutoIt.
 
 ##### OnWebResourceResponseReceived
 Fired when a web resource response is received (useful for tracking HTTP Status Codes).
-`object_OnWebResourceResponseReceived(StatusCode As Integer, ReasonPhrase As String)`
+`object_OnWebResourceResponseReceived(StatusCode As Integer, ReasonPhrase As String, RequestUrl As String)`
 
 ##### OnNavigationStarting
 Fired when the browser starts navigating to a new URL.

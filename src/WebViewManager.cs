@@ -64,7 +64,8 @@ namespace NetWebView2Lib
         /// <summary>Triggered when a web resource response is received (e.g., for HttpStatusCode).</summary>
         /// <param name="statusCode">The HTTP status code.</param>
         /// <param name="reasonPhrase">The HTTP reason phrase.</param>
-        [DispId(5)] void OnWebResourceResponseReceived(int statusCode, string reasonPhrase);
+        /// <param name="requestUrl">The full URL of the request.</param>
+        [DispId(5)] void OnWebResourceResponseReceived(int statusCode, string reasonPhrase, string requestUrl);
 
         /// <param name="selectionText">The selected text under the cursor, if any.</param>
         [DispId(190)] void OnContextMenuRequested(string linkUrl, int x, int y, string selectionText);
@@ -276,8 +277,10 @@ namespace NetWebView2Lib
         /// <summary>Capture preview as Base64 string.</summary>
         [DispId(216)] string CapturePreviewAsBase64(string format);
 
-        /// <summary>Cancel an active download by its URI.</summary>
-        [DispId(210)] void CancelDownload(string uri);
+        /// <summary>Cancels downloads. If uri is null or empty, cancels all active downloads.</summary>
+        [DispId(210)] void CancelDownloads(string uri = "");
+        /// <summary>Returns a pipe-separated string of all active download URIs.</summary>
+        [DispId(214)] string ActiveDownloadsList { get; }
         /// <summary>Set to true to suppress the default download UI, typically set during the OnDownloadStarting event.</summary>
         [DispId(211)] bool IsDownloadHandled { get; set; }
         /// <summary>Enable/Disable Zoom control (Ctrl+Wheel, shortcuts).</summary>
@@ -314,7 +317,6 @@ namespace NetWebView2Lib
         private bool _httpStatusCodeDocumentOnly = true;
         private bool _isDownloadHandledOverride = false;
         private bool _isZoomControlEnabled = true;
-        private readonly HashSet<CoreWebView2WebResourceRequest> _pendingDocumentRequests = new HashSet<CoreWebView2WebResourceRequest>();
 
         private int _offsetX = 0;
         private int _offsetY = 0;
@@ -379,7 +381,8 @@ namespace NetWebView2Lib
         /// <summary>Delegate for Web Resource Response Received (HttpStatusCode).</summary>
         /// <param name="statusCode">The HTTP status code.</param>
         /// <param name="reasonPhrase">The HTTP reason phrase.</param>
-        public delegate void OnWebResourceResponseReceivedDelegate(int statusCode, string reasonPhrase);
+        /// <param name="requestUrl">The full URL of the request.</param>
+        public delegate void OnWebResourceResponseReceivedDelegate(int statusCode, string reasonPhrase, string requestUrl);
 
         /// <summary>Delegate for Download Starting.</summary>
         public delegate void OnDownloadStartingDelegate(string uri, string defaultPath);
@@ -754,7 +757,7 @@ namespace NetWebView2Lib
                 // Track if this is a Document request for HttpStatusCode filtering
                 if (_httpStatusCodeEventsEnabled && _httpStatusCodeDocumentOnly && e.ResourceContext == CoreWebView2WebResourceContext.Document)
                 {
-                    lock (_pendingDocumentRequests) { _pendingDocumentRequests.Add(e.Request); }
+                    e.Request.Headers.SetHeader("X-NetWebView2-IsDoc", "1");
                 }
 
                 if (!_isAdBlockActive) return;
@@ -890,21 +893,18 @@ namespace NetWebView2Lib
 
                 if (_httpStatusCodeDocumentOnly)
                 {
-                    bool isDoc = false;
-                    lock (_pendingDocumentRequests)
-                    {
-                        if (_pendingDocumentRequests.Contains(e.Request))
-                        {
-                            isDoc = true;
-                            _pendingDocumentRequests.Remove(e.Request);
-                        }
-                    }
+                    bool isDoc = e.Request.Headers.Contains("X-NetWebView2-IsDoc");
                     if (!isDoc) return;
                 }
 
                 if (e.Response != null)
                 {
-                    OnWebResourceResponseReceived?.Invoke(e.Response.StatusCode, e.Response.ReasonPhrase);
+                    int statusCode = e.Response.StatusCode;
+                    string reasonPhrase = GetReasonPhrase(statusCode, e.Response.ReasonPhrase);
+                    string requestUrl = e.Request.Uri;
+                    _webView.BeginInvoke(new Action(() => {
+                        OnWebResourceResponseReceived?.Invoke(statusCode, reasonPhrase, requestUrl);
+                    }));
                 }
             };
 
@@ -1754,12 +1754,25 @@ namespace NetWebView2Lib
             }
         }
 
-        /// <summary>Cancels an active download associated with the specified URI.</summary>
-        /// <param name="uri">The URI identifying the download to cancel.</param>
-        public void CancelDownload(string uri)
+        /// <summary>Returns a pipe-separated string of all active download URIs.</summary>
+        public string ActiveDownloadsList => string.Join("|", _activeDownloads.Keys);
+
+        /// <summary>Cancels downloads. If uri is null or empty, cancels all active downloads.</summary>
+        /// <param name="uri">Optional: The specific URI to cancel.</param>
+        public void CancelDownloads(string uri = "")
         {
-            if (_activeDownloads.ContainsKey(uri))
+            if (string.IsNullOrEmpty(uri))
             {
+                // Cancel all
+                foreach (var download in _activeDownloads.Values)
+                {
+                    download.Cancel();
+                }
+                _activeDownloads.Clear();
+            }
+            else if (_activeDownloads.ContainsKey(uri))
+            {
+                // Cancel specific
                 _activeDownloads[uri].Cancel();
                 _activeDownloads.Remove(uri);
             }
@@ -1845,6 +1858,36 @@ namespace NetWebView2Lib
         }
 
         #endregion
+
+        /// <summary>
+        /// Provides a standard HTTP reason phrase if the server response is empty (common in HTTP/2+).
+        /// </summary>
+        private string GetReasonPhrase(int statusCode, string originalReason)
+        {
+            if (!string.IsNullOrEmpty(originalReason)) return originalReason;
+
+            switch (statusCode)
+            {
+                case 200: return "OK";
+                case 201: return "Created";
+                case 204: return "No Content";
+                case 301: return "Moved Permanently";
+                case 302: return "Found";
+                case 304: return "Not Modified";
+                case 400: return "Bad Request";
+                case 401: return "Unauthorized";
+                case 403: return "Forbidden";
+                case 404: return "Not Found";
+                case 429: return "Too Many Requests";
+                case 500: return "Internal Server Error";
+                case 502: return "Bad Gateway";
+                case 503: return "Service Unavailable";
+                case 504: return "Gateway Timeout";
+                default: 
+                    try { return ((System.Net.HttpStatusCode)statusCode).ToString(); }
+                    catch { return "Unknown"; }
+            }
+        }
 
         #region 17. HELPER METHODS
         private T RunOnUiThread<T>(Func<T> func)
