@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-// --- Version 1.4.3 ---
+// --- Version 1.5.0 ---
 
 namespace NetWebView2Lib
 {
@@ -140,6 +140,9 @@ namespace NetWebView2Lib
 
         /// <summary>Removes duplicate objects from a JSON array based on a key's value.</summary>
         [DispId(228)] bool SelectUnique(string arrayPath, string key);
+
+        /// <summary>Decodes a Base64 string to raw binary data (byte array).</summary>
+        [DispId(229)] byte[] DecodeB64ToBinary(string base64Text);
     }
 
     /// <summary>
@@ -701,6 +704,16 @@ namespace NetWebView2Lib
                 return true;
             }
             catch { return false; }
+        }
+
+        public byte[] DecodeB64ToBinary(string base64Text)
+        {
+            if (string.IsNullOrEmpty(base64Text)) return new byte[0];
+            try
+            {
+                return Convert.FromBase64String(base64Text);
+            }
+            catch { return new byte[0]; }
         }
 
     }

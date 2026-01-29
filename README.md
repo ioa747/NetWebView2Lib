@@ -64,45 +64,50 @@ This project is provided "as-is". You are free to use, modify, and distribute it
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 🚀 What's New in v1.4.3 - Major Update
+## 🚀 What's New in v1.5.0 - Professional Snapshots & Downloads
 
-This update introduces critical flexibility for Chromium engine initialization, allowing developers to pass command-line arguments directly to the browser.
+This major update introduces professional-grade snapshot tools using the DevTools Protocol, enhanced download management, and native HTTP status tracking for precise automation.
 
 ### ⚡ Key Features & Enhancements
 
-#### **1. Command-Line Argument Support**
+#### **1. Proactive Snapshot Engine**
 
-The new `AdditionalBrowserArguments` property allows you to configure the Chromium engine with specialized switches before it starts. This is essential for advanced automation, proxy configuration, and performance tuning.
+The new `CaptureSnapshot(cdpParameters)` method provides direct access to the `Page.captureSnapshot` CDP method. This allows you to capture MHTML snapshots or other CDP-supported formats directly as strings.
 
-- **Pre-Initialization:** These arguments are applied during the environment creation phase. You must set this property **before** calling `.Initialize()`.
-- **Powerful Switches:** Support for many Chromium flags, including:
-    - `--disable-gpu`: Disables hardware acceleration (useful for legacy hardware or headless snapshots).
-    - `--mute-audio`: Starts the browser in complete silence.
-    - `--proxy-server="http://1.2.3.4:8080"`: Forces all traffic through a specific proxy.
-    - `--incognito`: Starts in private browsing mode.
-    - `--user-agent="..."`: A secondary way to override the default identity.
+- **Unified Method:** `ExportPageData` has been consolidated into `CaptureSnapshot` for a cleaner API.
+- **PascalCase Compliance:** Promoted internal `captureSnapshot` to a public, standard-compliant `CaptureSnapshot` method.
+- **Event Consistency:** Correctly wired up `OnZoomChanged` to the browser engine's zoom events.
 
-#### **2. Advanced JSON Manipulation (JsonParser)**
+#### **2. Custom Download Management**
 
-The `NetJson.Parser` has received a massive feature upgrade to support production-grade data manipulation directly from AutoIt.
+You now have full control over the browser's download lifecycle.
 
-- **Smart Typing & Deep Creation:** `SetTokenValue` now automatically creates missing parent objects and intelligently detects data types (Boolean, Null, Numbers) while preserving leading zeros in identifiers.
-- **Data Querying:** New `GetTokenCount` and `GetKeys` methods allow for deep inspection of JSON structures without manual parsing.
-- **Array Power Tools:** Built-in `SortArray` and `SelectUnique` (deduplication) leverage native LINQ performance to manage large data sets in memory.
+- **Automated Routing:** Use `SetDownloadPath(path)` to force all downloads into a specific folder or file. If a path points to an existing directory, the library intelligently appends the suggested filename.
+- **UI Control:** Toggle the browser's download shelf visibility using the `IsDownloadUIEnabled` property.
+- **Clean Event Contract**: The `OnDownloadStarting` event has been simplified to provide core metadata (URI, DefaultPath). Programmatic overrides now use the new `SetDownloadPath` and `IsDownloadHandled` properties/methods, ensuring 100% reliable path redirection from AutoIt, bypassing legacy COM `ByRef` limitations.
+- **Manual Mode Bypass**: Setting `IsDownloadHandled = True` during the `OnDownloadStarting` event will now immediately cancel the Edge download engine (`e.Cancel = true`). This allows AutoIt to handle the download externally (e.g., via `InetGet`) using its own logic. Active downloads can be monitored via `ActiveDownloadsList` and cancelled via `CancelDownloads()`
+- **IsZoomControlEnabled**: New property to enable/disable the built-in zoom mechanism (Ctrl+Wheel, etc.).
+- **UnLockWebView Method**: Added `UnLockWebView()` to re-enable restricted features previously disabled by `LockWebView()`.
 
-#### **3. Advanced Export & PDF Management**
+#### **3. Native HTTP Status Tracking & Deadlock Prevention**
 
-- **ExportPageData(format, filePath):** Automate saving pages as HTML or MHTML (Single File) without dialogs.
-- **PrintToPdfStream():** Capture the page as a PDF and retrieve it as a Base64 string directly in AutoIt—no temporary files needed.
-- **HiddenPdfToolbarItems:** Take full control of the PDF viewer toolbar by hiding specific buttons (Save, Print, Search, etc.) through bitwise flags.
+Track server responses with precision using the new `OnWebResourceResponseReceived` event. This is essential for detecting link rot (404s), server errors (500s), or validating API response responses directly from AutoIt. It provides the status code, reason phrase, and the original request URL.
 
+- **Deadlock Shield:** By default, this event now only triggers for the main document (`HttpStatusCodeDocumentOnly = True`). This prevents the event flood (e.g., hundreds of 404s for missing icons or scripts) that previously caused AutoIt's GUI to deadlock.
+- **Granular Control:** Use `HttpStatusCodeEventsEnabled` to toggle the event entirely or disable the filter for deep resource auditing.
+
+#### **4. Memory-Based Binary Support**
+
+The new `DecodeB64ToBinary(base64Text)` method decodes Base64 data directly into a raw byte array. This is perfect for high-speed processing of images or PDFs entirely in memory.
+
+and a `CapturePreviewAsBase64(format)`  method to  Captures a screenshot of the current page  content and returns it as a Base64-encoded data URL
 
 ---
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
-## 📖 NetWebView2Lib Version 1.4.3 - (2026-01-20) (Quick Reference)
+## 📖 NetWebView2Lib Version 1.5.0 - (Quick Reference)
+
 
 ### NetWebView2Lib (ProgId: NetWebView2.Manager)
 
@@ -164,6 +169,30 @@ Sets additional command-line arguments to be passed to the Chromium engine durin
 Controls the visibility of buttons in the PDF viewer toolbar using a bitwise combination of CoreWebView2PdfToolbarItems (e.g., 1=Save, 2=Print, 4=Search).
 `object.HiddenPdfToolbarItems[ = Value]`
 
+##### IsDownloadUIEnabled
+Determines whether the browser's default download UI (shelf/bubble) is shown.
+`object.IsDownloadUIEnabled[ = Value]`
+
+##### HttpStatusCodeEventsEnabled
+Enables or disables the `OnWebResourceResponseReceived` event entirely.
+`object.HttpStatusCodeEventsEnabled[ = Value]`
+
+##### HttpStatusCodeDocumentOnly
+Determines whether `OnWebResourceResponseReceived` triggers for all resources (False) or only for the main document (True). Essential for preventing GUI deadlocks in AutoIt.
+`object.HttpStatusCodeDocumentOnly[ = Value]`
+
+##### IsDownloadHandled
+Determines whether the download is handled by the application. If set to **True** during `OnDownloadStarting`, the internal Edge download is cancelled.
+`object.IsDownloadHandled[ = Value]`
+
+##### ActiveDownloadsList
+Returns a pipe-separated string of all active download URIs.
+`object.ActiveDownloadsList`
+
+##### IsZoomControlEnabled
+Determines whether user can zoom the page (Ctrl+MouseWheel, shortcuts).
+`object.IsZoomControlEnabled[ = Value]`
+
 #### Method
 
 ##### Initialize
@@ -208,8 +237,12 @@ Toggles between Native (true) and Custom (false) context menu modes.
 `object.SetContextMenuEnabled(Enabled As Boolean)`
 
 ##### LockWebView
-Locks down the WebView by disabling DevTools, Context Menus, and Zoom.
+Locks down the WebView by disabling context menus, dev tools, zoom control, and default error pages.
 `object.LockWebView()`
+
+##### UnLockWebView
+Re-enables the features previously restricted by `LockWebView()`.
+`object.UnLockWebView()`
 
 ##### DisableBrowserFeatures
 Disables major browser features for a controlled environment.
@@ -381,8 +414,12 @@ Encodes a string to Base64 (UTF-8).
 `object.EncodeB64(Value As String)`
 
 ##### DecodeB64
-Decodes a Base64 string back to plain text.
+Decodes a Base64 string back to **plain text** (UTF-8).
 `object.DecodeB64(Value As String)`
+
+##### DecodeB64ToBinary
+Decodes a Base64 string directly into a **raw byte array**. Optimized for memory-based binary processing (e.g., images, PDFs).
+`object.DecodeB64ToBinary(Base64Text As String)`
 
 ##### SetZoomFactor
 Sets the zoom factor for the control.
@@ -428,8 +465,20 @@ Clears the browser cache (DiskCache and LocalStorage).
 Asynchronously retrieves the entire visible text content of the document (sent via OnMessageReceived with 'Inner_Text|').
 `object.GetInnerText()`
 
+##### CaptureSnapshot
+Captures page data using Chrome DevTools Protocol. Can return MHTML or other CDP formats based on the `cdpParameters` JSON string.
+`object.CaptureSnapshot(CdpParameters As String)`
+
+##### SetDownloadPath
+Sets a global default folder or file path for all browser downloads. If a directory is provided, the filename is automatically appended by the library.
+`object.SetDownloadPath(Path As String)`
+
+##### CancelDownloads
+Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
+`object.CancelDownloads([Uri As String])`
+
 ##### ExportPageData
-Exports the current page data as HTML (0) or MHTML (1). If FilePath is provided, it saves to disk; otherwise, it returns the content as a string.
+[LEGACY] Consolidated into **CaptureSnapshot**.
 `object.ExportPageData(Format As Integer, FilePath As String)`
 
 ##### PrintToPdfStream
@@ -441,6 +490,10 @@ Captures the current page as a PDF and returns the content as a Base64-encoded s
 ##### OnMessageReceived
 Fired when a message or notification is sent from the library to AutoIt.
 `object_OnMessageReceived(Message As String)`
+
+##### OnWebResourceResponseReceived
+Fired when a web resource response is received (useful for tracking HTTP Status Codes).
+`object_OnWebResourceResponseReceived(StatusCode As Integer, ReasonPhrase As String, RequestUrl As String)`
 
 ##### OnNavigationStarting
 Fired when the browser starts navigating to a new URL.
@@ -477,6 +530,14 @@ Fired when the browser loses focus.
 ##### OnContextMenuRequested
 Fired when a context menu is requested (Simplified for AutoIt).
 `object_OnContextMenuRequested(LinkUrl As String, X As Integer, Y As Integer, SelectionText As String)`
+
+##### OnDownloadStarting
+Fired when a download is starting. Provides core metadata to allow decision making. Path overrides and UI suppression should be handled via the `DownloadResultPath` and `IsDownloadHandled` properties.
+`object_OnDownloadStarting(Uri As String, DefaultPath As String)`
+
+##### OnDownloadStateChanged
+Fired when a download state changes (e.g., Progress, Completed, Failed).
+`object_OnDownloadStateChanged(State As String, Uri As String, TotalBytes As Long, ReceivedBytes As Long)`
   
 
 ---
@@ -582,7 +643,7 @@ Encodes a string to Base64 (UTF-8).
 `string EncodeB64(PlainText As String)`
 
 ##### DecodeB64
-Decodes a Base64 string back to plain text.
+Decodes a Base64 string back to **plain text** (UTF-8).
 `string DecodeB64(Base64Text As String)`
 
 ##### DecodeB64ToFile
