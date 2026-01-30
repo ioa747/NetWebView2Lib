@@ -509,15 +509,34 @@ namespace NetWebView2Lib
                 _offsetY = y;
 
                 // Calculate Margins based on Parent's size at initialization
+                int calcWidth = width;
+                int calcHeight = height;
+
                 if (GetClientRect(_parentHandle, out Rect parentRect))
                 {
                     int pWidth = parentRect.Right - parentRect.Left;
                     int pHeight = parentRect.Bottom - parentRect.Top;
 
-                    // If user provides a width/height, we calculate how much space is left (the margin)
-                    // If they provide 0 (or less), we assume they want to touch the edge (Margin = 0)
-                    _marginRight = (width > 0) ? Math.Max(0, (pWidth - x) - width) : 0;
-                    _marginBottom = (height > 0) ? Math.Max(0, (pHeight - y) - height) : 0;
+                    // If user provides 0 (or less), we assume they want to fill the parent
+                    if (width <= 0)
+                    {
+                        calcWidth = Math.Max(10, pWidth - x);
+                        _marginRight = 0;
+                    }
+                    else
+                    {
+                        _marginRight = Math.Max(0, (pWidth - x) - width);
+                    }
+
+                    if (height <= 0)
+                    {
+                        calcHeight = Math.Max(10, pHeight - y);
+                        _marginBottom = 0;
+                    }
+                    else
+                    {
+                        _marginBottom = Math.Max(0, (pHeight - y) - height);
+                    }
                 }
                 else
                 {
@@ -541,7 +560,7 @@ namespace NetWebView2Lib
                 // UI Setup on the main UI thread
                 InvokeOnUiThread(() => {
                     _webView.Location = new Point(x, y);
-                    _webView.Size = new Size(width, height);
+                    _webView.Size = new Size(calcWidth, calcHeight);
                     // Attach the WebView to the AutoIt window/container
                     SetParent(_webView.Handle, _parentHandle);
                     _webView.Visible = false;
