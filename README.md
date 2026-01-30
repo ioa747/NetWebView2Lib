@@ -650,6 +650,10 @@ Decodes a Base64 string back to **plain text** (UTF-8).
 Decodes a Base64 string and saves the binary content directly to a file.
 `bool DecodeB64ToFile(Base64Text As String, FilePath As String)`
 
+##### DecodeB64ToBinary
+Decodes a Base64 string directly into a **raw byte array**. Optimized for memory-based binary processing (e.g., images, PDFs).
+`object.DecodeB64ToBinary(Base64Text As String)`
+
 ##### SortArray
 Sorts a JSON array by a specific key.
 `bool SortArray(ArrayPath As String, Key As String, Descending As Boolean)`
