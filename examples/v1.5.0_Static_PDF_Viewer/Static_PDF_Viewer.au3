@@ -50,7 +50,8 @@ Func _Example()
 	; navigate to the page
 	SetupStaticPDF($_g_oWeb, @ScriptDir & "\invoice-plugin-sample.pdf", True, True)
 
-	$_g_oWeb.ExecuteScriptOnPage("extractPDFText();")
+	Local $sResult = _NetWebView2_ExecuteScript($_g_oWeb, "extractPDFText();", 2)
+	MsgBox($MB_TOPMOST, "$sResult", $sResult)
 
 	; Main Loop
 	While 1
