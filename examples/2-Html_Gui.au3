@@ -6,9 +6,6 @@
 
 #include "..\NetWebView2Lib.au3"
 
-; Global objects
-Global $oWebV2M, $oBridge
-
 ; Global variables for data management
 Global $aMessages[0][3]
 Global $sFilePath = @ScriptDir & "\messages.csv"
@@ -17,10 +14,6 @@ Global $hGUI
 Main()
 
 Func Main()
-	; Local error handler for COM objects
-	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
-	#forceref $oMyError
-
 	; Create GUI with resizing support
 	$hGUI = GUICreate("WebView2 Theme Switcher", 500, 480, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x1E1E1E)
@@ -34,63 +27,62 @@ Func Main()
 	GUICtrlSetColor(-1, 0xFF0000)
 
 	; Get the WebView2 Manager object and register events
-	$oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "__EVENTS_Manager_", "--mute-audio")
+	$_g_oWeb = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "Manager_", "--allow-file-access-from-files") ; 👈
 
-	; ⚠️ Important: Enclose ($hGUI) in parentheses to force "Pass-by-Value".
-	; This prevents the COM layer from changing the AutoIt variable type from Ptr to Int64.
-	_NetWebView2_Initialize($oWebV2M, ($hGUI), "", 0, 50, 500, 400)
+	; initialize browser - put it on the GUI
+	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
+	_NetWebView2_Initialize($_g_oWeb, $hGUI, $sProfileDirectory, 0, 50, 500, 400, True, False, False, 1.1)
 
 	; Get the bridge object and register events
-	$oBridge = _NetWebView2_GetBridge($oWebV2M, "__EVENTS_Bridge_")
+	Local $oBridge = _NetWebView2_GetBridge($_g_oWeb, "__MyEVENTS_Bridge_")
+	#forceref $oBridge
+
+	$_g_oWeb.IsZoomControlEnabled = False
+	$_g_oWeb.IsScrollbarEnabled = False
 
 	; Register the WM_SIZE message to handle window resizing
 	GUIRegisterMsg($WM_SIZE, WM_SIZE)
-
-	GUISetState(@SW_SHOW)
 
 	; Main Application Loop
 	While 1
 		Switch GUIGetMsg()
 			Case $GUI_EVENT_CLOSE
-				$oWebV2M.Cleanup()
+				$_g_oWeb.Cleanup()
 				Exit
 
 			Case $idBlue
 				; Update CSS variables dynamically via JavaScript
-				$oWebV2M.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#4db8ff');")
-				$oWebV2M.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#0078d7');")
+				$_g_oWeb.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#4db8ff');")
+				$_g_oWeb.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#0078d7');")
 
 			Case $idRed
 				; Update CSS variables dynamically via JavaScript
-				$oWebV2M.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#ff4d4d');")
-				$oWebV2M.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#d70000');")
+				$_g_oWeb.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#ff4d4d');")
+				$_g_oWeb.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#d70000');")
 		EndSwitch
 	WEnd
 
 EndFunc   ;==>Main
 
 ; Handles data received from the WebView2 Manager
-Func __EVENTS_Manager_OnMessageReceived($sMessage)
+Func __MyEVENTS_OnMessageReceived($sMessage)
 	; Local error handler for COM objects
-	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
+	Local $oMyError = ObjEvent("AutoIt.Error", __HtmlGUI_ErrFunc)
 	#forceref $oMyError
 
 	Local Static $bIsInitialized = False
 	If $sMessage = "INIT_READY" And Not $bIsInitialized Then
 		$bIsInitialized = True ; We note that we are finished.
-		Local $sHTML = "<html><head><meta charset='UTF-8'>" & __FormCSS() & "</head><body>" & __FormHTML() & "</body></html>"
-		$oWebV2M.NavigateToString($sHTML)
-		$oWebV2M.SetZoom(1.2)
-		$oWebV2M.DisableBrowserFeatures()
-		$oWebV2M.LockWebView()
+		Local $sHTML = "<html><head><meta charset='UTF-8'><style>:" & __FormCSS() & "</style></head><body>" & __FormHTML() & "</body></html>"
+		$_g_oWeb.NavigateToString($sHTML)
 		GUISetState(@SW_SHOW, $hGUI)
 	EndIf
-EndFunc   ;==>__EVENTS_Manager_OnMessageReceived
+EndFunc   ;==>__MyEVENTS_OnMessageReceived
 
 ; Handles data received from the JavaScript 'postMessage'
-Func __EVENTS_Bridge_OnMessageReceived($sMessage)
+Func __MyEVENTS_Bridge_OnMessageReceived($sMessage)
 	; Local error handler for COM objects
-	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
+	Local $oMyError = ObjEvent("AutoIt.Error", __HtmlGUI_ErrFunc)
 	#forceref $oMyError
 
 	ConsoleWrite("$sMessage=" & $sMessage & @CRLF)
@@ -128,12 +120,12 @@ Func __EVENTS_Bridge_OnMessageReceived($sMessage)
 			EndIf
 		EndIf
 	EndIf
-EndFunc   ;==>__EVENTS_Bridge_OnMessageReceived
+EndFunc   ;==>__MyEVENTS_Bridge_OnMessageReceived
 
 ; Generates the CSS block with dynamic variables
 Func __FormCSS()
 	Local $sCSS = _
-			"<style>:root {" & @CRLF & _
+			"root {" & @CRLF & _
 			"	--bg-color: #1e1e1e;" & @CRLF & _
 			"	--form-bg: #2d2d2d;" & @CRLF & _
 			"	--accent-color: #4db8ff;" & @CRLF & _
@@ -180,12 +172,6 @@ Func __FormCSS()
 			"	width: 100%;" & @CRLF & _
 			"	font-size: 16px;" & @CRLF & _
 			"}" & @CRLF & _
-			"body {" & @CRLF & _
-			"	overflow: hidden;" & @CRLF & _
-			"	text-overflow: clip;" & @CRLF & _
-			"	white-space: nowrap;" & @CRLF & _
-			"}" & @CRLF & _
-			"</style>" & @CRLF & _
 			""
 	Return $sCSS
 EndFunc   ;==>__FormCSS
@@ -219,43 +205,42 @@ EndFunc   ;==>__FormHTML
 ; Injects a temporary notification box into the web page
 Func ShowWebNotification($sMessage, $sBgColor = "#4CAF50", $iDuration = 3000)
 	; Local error handler for COM objects
-	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
+	Local $oMyError = ObjEvent("AutoIt.Error", __HtmlGUI_ErrFunc)
 	#forceref $oMyError
 
 	; We use a unique ID 'autoit-notification' to find and replace existing alerts
 	Local $sJS = _
-			"var oldDiv = document.getElementById('autoit-notification');" & _
-			"if (oldDiv) { oldDiv.remove(); }" & _
-			"var div = document.createElement('div');" & _
-			"div.id = 'autoit-notification';" & _ ; Assign the ID
-			"div.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); padding:15px; background:" & $sBgColor & _
-			"; color:white; border-radius:8px; z-index:9999; font-family:sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: opacity 0.5s;';" & _
-			"div.innerText = '" & $sMessage & "';" & _
-			"document.body.appendChild(div);" & _
-			"setTimeout(() => {" & _
-			"   var target = document.getElementById('autoit-notification');" & _
-			"   if(target) { target.style.opacity = '0'; setTimeout(() => target.remove(), 500); }" & _
-			"}, " & $iDuration & ");"
+			"var oldDiv = document.getElementById('autoit-notification');" & @CRLF & _
+			"if (oldDiv) { oldDiv.remove(); }" & @CRLF & _
+			"var div = document.createElement('div');" & @CRLF & _
+			"div.id = 'autoit-notification'; // Assign the ID" & @CRLF & _
+			"var div.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); padding:15px; background:" & $sBgColor & "; color:white; border-radius:8px; z-index:9999; font-family:sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: opacity 0.5s; '" & @CRLF & _
+			"div.innerText = '" & $sMessage & "';" & @CRLF & _
+			"document.body.appendChild(div);" & @CRLF & _
+			"setTimeout(() => {" & @CRLF & _
+			"	var target = document.getElementById('autoit-notification');" & @CRLF & _
+			"	If (target) { " & @CRLF & _
+			"		target.style.opacity = '0';" & @CRLF & _
+			"		setTimeout(() => target.remove(), 500); " & @CRLF & _
+			"	}" & @CRLF & _
+			"}, " & $iDuration & ");" & @CRLF & _
+			""
 
-	$oWebV2M.ExecuteScript($sJS)
+	$_g_oWeb.ExecuteScript($sJS)
 EndFunc   ;==>ShowWebNotification
 
 ; Synchronizes WebView size with the GUI window
 Func WM_SIZE($hWnd, $iMsg, $wParam, $lParam)
 	#forceref $hWnd, $iMsg, $wParam
-	; Local error handler for COM objects
-	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
-	#forceref $oMyError
-
 	If $hWnd <> $hGUI Then Return $GUI_RUNDEFMSG ; critical, to respond only to the $hGUI
 	If $wParam = 1 Then Return $GUI_RUNDEFMSG ; 1 = SIZE_MINIMIZED
 	Local $iW = BitAND($lParam, 0xFFFF), $iH = BitShift($lParam, 16) - 50
-	If IsObj($oWebV2M) Then $oWebV2M.Resize(($iW < 10 ? 10 : $iW), ($iH < 10 ? 10 : $iH))
+	If IsObj($_g_oWeb) Then $_g_oWeb.Resize(($iW < 10 ? 10 : $iW), ($iH < 10 ? 10 : $iH))
 	Return $GUI_RUNDEFMSG
 EndFunc   ;==>WM_SIZE
 
 ; User's COM error function. Will be called if COM error occurs
-Func _ErrFunc($oError)
+Func __HtmlGUI_ErrFunc(ByRef $oError)
 	; Do anything here.
 	ConsoleWrite(@ScriptName & " (" & $oError.scriptline & ") : ==> COM Error intercepted !" & @CRLF & _
 			@TAB & "err.number is: " & @TAB & @TAB & "0x" & Hex($oError.number) & @CRLF & _
@@ -267,4 +252,4 @@ Func _ErrFunc($oError)
 			@TAB & "err.lastdllerror is: " & @TAB & $oError.lastdllerror & @CRLF & _
 			@TAB & "err.scriptline is: " & @TAB & $oError.scriptline & @CRLF & _
 			@TAB & "err.retcode is: " & @TAB & "0x" & Hex($oError.retcode) & @CRLF & @CRLF)
-EndFunc   ;==>_ErrFunc
+EndFunc   ;==>__HtmlGUI_ErrFunc
