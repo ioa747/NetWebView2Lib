@@ -4,12 +4,10 @@
 #include <WindowsConstants.au3>
 #include <Array.au3>
 
-; Global objects
-Global $oManager, $oBridge
-Global $oEvtManager, $oEvtBridge
+#include "..\NetWebView2Lib.au3"
 
-; Global error handler for COM objects
-Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc")
+; Global objects
+Global $oWebV2M, $oBridge
 
 ; Global variables for data management
 Global $aMessages[0][3]
@@ -19,8 +17,12 @@ Global $hGUI
 Main()
 
 Func Main()
+	; Local error handler for COM objects
+	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
+	#forceref $oMyError
+
 	; Create GUI with resizing support
-	$hGUI = GUICreate("WebView2 Theme Switcher", 500, 450, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
+	$hGUI = GUICreate("WebView2 Theme Switcher", 500, 480, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x1E1E1E)
 
 	Local $idBlue = GUICtrlCreateLabel("Blue Theme", 10, 10, 100, 30)
@@ -32,56 +34,65 @@ Func Main()
 	GUICtrlSetColor(-1, 0xFF0000)
 
 	; Get the WebView2 Manager object and register events
-	$oManager = ObjCreate("NetWebView2.Manager")
-	$oEvtManager = ObjEvent($oManager, "Manager_", "IWebViewEvents")
+	$oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "__EVENTS_Manager_", "--mute-audio")
 
 	; ⚠️ Important: Enclose ($hGUI) in parentheses to force "Pass-by-Value".
 	; This prevents the COM layer from changing the AutoIt variable type from Ptr to Int64.
-	$oManager.Initialize(($hGUI), "", 0, 50, 500, 400)
+	_NetWebView2_Initialize($oWebV2M, ($hGUI), "", 0, 50, 500, 400)
 
 	; Get the bridge object and register events
-	$oBridge = $oManager.GetBridge()
-	$oEvtBridge = ObjEvent($oBridge, "Bridge_", "IBridgeEvents")
+	$oBridge = _NetWebView2_GetBridge($oWebV2M, "__EVENTS_Bridge_")
 
 	; Register the WM_SIZE message to handle window resizing
-	GUIRegisterMsg($WM_SIZE, "WM_SIZE")
+	GUIRegisterMsg($WM_SIZE, WM_SIZE)
 
-	;GUISetState(@SW_SHOW)
+	GUISetState(@SW_SHOW)
 
 	; Main Application Loop
 	While 1
 		Switch GUIGetMsg()
 			Case $GUI_EVENT_CLOSE
-				$oManager.Cleanup()
+				$oWebV2M.Cleanup()
 				Exit
 
 			Case $idBlue
 				; Update CSS variables dynamically via JavaScript
-				$oManager.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#4db8ff');")
-				$oManager.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#0078d7');")
+				$oWebV2M.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#4db8ff');")
+				$oWebV2M.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#0078d7');")
 
 			Case $idRed
 				; Update CSS variables dynamically via JavaScript
-				$oManager.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#ff4d4d');")
-				$oManager.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#d70000');")
+				$oWebV2M.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#ff4d4d');")
+				$oWebV2M.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#d70000');")
 		EndSwitch
 	WEnd
 
 EndFunc   ;==>Main
 
 ; Handles data received from the WebView2 Manager
-Func Manager_OnMessageReceived($sMessage)
+Func __EVENTS_Manager_OnMessageReceived($sMessage)
+	; Local error handler for COM objects
+	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
+	#forceref $oMyError
+
 	Local Static $bIsInitialized = False
 	If $sMessage = "INIT_READY" And Not $bIsInitialized Then
 		$bIsInitialized = True ; We note that we are finished.
-		Local $sHTML = "<html><head><meta charset='UTF-8'>" & _FormCSS() & "</head><body>" & _FormHTML() & "</body></html>"
-		$oManager.NavigateToString($sHTML)
+		Local $sHTML = "<html><head><meta charset='UTF-8'>" & __FormCSS() & "</head><body>" & __FormHTML() & "</body></html>"
+		$oWebV2M.NavigateToString($sHTML)
+		$oWebV2M.SetZoom(1.2)
+		$oWebV2M.DisableBrowserFeatures()
+		$oWebV2M.LockWebView()
 		GUISetState(@SW_SHOW, $hGUI)
 	EndIf
-EndFunc   ;==>Manager_OnMessageReceived
+EndFunc   ;==>__EVENTS_Manager_OnMessageReceived
 
 ; Handles data received from the JavaScript 'postMessage'
-Func Bridge_OnMessageReceived($sMessage)
+Func __EVENTS_Bridge_OnMessageReceived($sMessage)
+	; Local error handler for COM objects
+	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
+	#forceref $oMyError
+
 	ConsoleWrite("$sMessage=" & $sMessage & @CRLF)
 
 	; Check for the specific form submission prefix
@@ -117,27 +128,72 @@ Func Bridge_OnMessageReceived($sMessage)
 			EndIf
 		EndIf
 	EndIf
-EndFunc   ;==>Bridge_OnMessageReceived
+EndFunc   ;==>__EVENTS_Bridge_OnMessageReceived
 
 ; Generates the CSS block with dynamic variables
-Func _FormCSS()
-	Local $sTxt = "<style>" & @CRLF & _
-			":root {" & @CRLF & _
-			"  --bg-color: #1e1e1e; --form-bg: #2d2d2d;" & @CRLF & _
-			"  --accent-color: #4db8ff; --btn-color: #0078d7; --txt-color: #e0e0e0;" & @CRLF & _
+Func __FormCSS()
+	Local $sCSS = _
+			"<style>:root {" & @CRLF & _
+			"	--bg-color: #1e1e1e;" & @CRLF & _
+			"	--form-bg: #2d2d2d;" & @CRLF & _
+			"	--accent-color: #4db8ff;" & @CRLF & _
+			"	--btn-color: #0078d7;" & @CRLF & _
+			"	--txt-color: #e0e0e0;" & @CRLF & _
 			"}" & @CRLF & _
-			"body { background-color: var(--bg-color); color: var(--txt-color); font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }" & @CRLF & _
-			"#contactForm { max-width: 400px; background-color: var(--form-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }" & @CRLF & _
-			"label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--accent-color); }" & @CRLF & _
-			"input, textarea { width: 100%; padding: 10px; background-color: #3d3d3d; border: 1px solid #555; border-radius: 4px; color: #fff; box-sizing: border-box; margin-bottom: 15px; }" & @CRLF & _
-			"button { background-color: var(--btn-color); color: white; border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }" & @CRLF & _
-			"</style>"
-	Return $sTxt
-EndFunc   ;==>_FormCSS
+			"body {" & @CRLF & _
+			"	background-color: var(--bg-color);" & @CRLF & _
+			"	color: var(--txt-color);" & @CRLF & _
+			"	font-family: 'Segoe UI', sans-serif;" & @CRLF & _
+			"	padding: 20px;" & @CRLF & _
+			"	margin: 0;" & @CRLF & _
+			"}" & @CRLF & _
+			"#contactForm {" & @CRLF & _
+			"	max-width: 400px;" & @CRLF & _
+			"	background-color: var(--form-bg);" & @CRLF & _
+			"	padding: 20px;" & @CRLF & _
+			"	border-radius: 8px;" & @CRLF & _
+			"	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);" & @CRLF & _
+			"}" & @CRLF & _
+			"label {" & @CRLF & _
+			"	display: block;" & @CRLF & _
+			"	margin-bottom: 5px;" & @CRLF & _
+			"	font-weight: bold;" & @CRLF & _
+			"	color: var(--accent-color);" & @CRLF & _
+			"}" & @CRLF & _
+			"input, textarea {" & @CRLF & _
+			"	width: 100%;" & @CRLF & _
+			"	padding: 10px;" & @CRLF & _
+			"	background-color: #3d3d3d;" & @CRLF & _
+			"	border: 1px solid #555;" & @CRLF & _
+			"	border-radius: 4px;" & @CRLF & _
+			"	color: #fff;" & @CRLF & _
+			"	box-sizing: border-box;" & @CRLF & _
+			"	margin-bottom: 15px;" & @CRLF & _
+			"}" & @CRLF & _
+			"button {" & @CRLF & _
+			"	background-color: var(--btn-color);" & @CRLF & _
+			"	color: white;" & @CRLF & _
+			"	border: none;" & @CRLF & _
+			"	padding: 12px 20px;" & @CRLF & _
+			"	border-radius: 4px;" & @CRLF & _
+			"	cursor: pointer;" & @CRLF & _
+			"	width: 100%;" & @CRLF & _
+			"	font-size: 16px;" & @CRLF & _
+			"}" & @CRLF & _
+			"body {" & @CRLF & _
+			"	overflow: hidden;" & @CRLF & _
+			"	text-overflow: clip;" & @CRLF & _
+			"	white-space: nowrap;" & @CRLF & _
+			"}" & @CRLF & _
+			"</style>" & @CRLF & _
+			""
+	Return $sCSS
+EndFunc   ;==>__FormCSS
 
 ; Generates the HTML form and JavaScript logic
-Func _FormHTML()
-	Local $sTxt = "<form id='contactForm'>" & @CRLF & _
+Func __FormHTML()
+	Local $sHTML = _
+			"<form id='contactForm'>" & @CRLF & _
 			"  <label>Name:</label><input type='text' id='name'>" & @CRLF & _
 			"  <label>Email:</label><input type='email' id='mail'>" & @CRLF & _
 			"  <label>Message:</label><textarea id='msg'></textarea>" & @CRLF & _
@@ -157,11 +213,15 @@ Func _FormHTML()
 			"    document.getElementById('contactForm').reset();" & @CRLF & _
 			"  }" & @CRLF & _
 			"</script>"
-	Return $sTxt
-EndFunc   ;==>_FormHTML
+	Return $sHTML
+EndFunc   ;==>__FormHTML
 
 ; Injects a temporary notification box into the web page
 Func ShowWebNotification($sMessage, $sBgColor = "#4CAF50", $iDuration = 3000)
+	; Local error handler for COM objects
+	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
+	#forceref $oMyError
+
 	; We use a unique ID 'autoit-notification' to find and replace existing alerts
 	Local $sJS = _
 			"var oldDiv = document.getElementById('autoit-notification');" & _
@@ -177,16 +237,20 @@ Func ShowWebNotification($sMessage, $sBgColor = "#4CAF50", $iDuration = 3000)
 			"   if(target) { target.style.opacity = '0'; setTimeout(() => target.remove(), 500); }" & _
 			"}, " & $iDuration & ");"
 
-	$oManager.ExecuteScript($sJS)
+	$oWebV2M.ExecuteScript($sJS)
 EndFunc   ;==>ShowWebNotification
 
 ; Synchronizes WebView size with the GUI window
 Func WM_SIZE($hWnd, $iMsg, $wParam, $lParam)
 	#forceref $hWnd, $iMsg, $wParam
+	; Local error handler for COM objects
+	Local $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
+	#forceref $oMyError
+
 	If $hWnd <> $hGUI Then Return $GUI_RUNDEFMSG ; critical, to respond only to the $hGUI
 	If $wParam = 1 Then Return $GUI_RUNDEFMSG ; 1 = SIZE_MINIMIZED
 	Local $iW = BitAND($lParam, 0xFFFF), $iH = BitShift($lParam, 16) - 50
-	If IsObj($oManager) Then $oManager.Resize(($iW < 10 ? 10 : $iW), ($iH < 10 ? 10 : $iH))
+	If IsObj($oWebV2M) Then $oWebV2M.Resize(($iW < 10 ? 10 : $iW), ($iH < 10 ? 10 : $iH))
 	Return $GUI_RUNDEFMSG
 EndFunc   ;==>WM_SIZE
 
