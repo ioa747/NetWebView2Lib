@@ -43,7 +43,7 @@ Func _Example()
 	#EndRegion ; GUI CREATION
 
 	; navigate to the page
-	_NetWebView2_Navigate($oWebV2M, "https://www.microsoft.com/", 4) ; 4 = NAV_COMPLETED
+	_NetWebView2_Navigate($oWebV2M, "https://www.microsoft.com/", $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 
 	#Region ; PDF
 	; get Browser content as PDF Base64 encoded binary data
