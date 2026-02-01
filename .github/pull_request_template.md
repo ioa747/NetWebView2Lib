@@ -25,6 +25,7 @@ Closes #\<number>
 
 - [ ] 🪲 Bugfix (change which fixes an issue)
 - [ ] ⭐ New Feature (change which adds functionality)
+- [ ] ⭐ New Example (this PR adds a new example)
 - [ ] 🔒 Security fix (change which improves security)
 - [ ] 🔮 Code style update (formatting, renaming)
 - [ ] 🔨 Refactoring (code optimization without functional change)
@@ -52,16 +53,15 @@ Closes #\<number>
 - [ ] Windows 11 (x64)
 - [ ] Windows 10 (x64)
 - [ ] Windows 10 (x86)
-- [ ] other Windows version
-- [ ] other operating system
+- [ ] Windows Server ......
 
 *Context:*
 
-- [ ] in Browser \<name and version>
-- [ ] with Go \<version>
-- [ ] with Node.js \<version>
-- [ ] with AutoIt \<version>
-- [ ] with .NET (C#) \<version>
+- [ ] COM object `NetJson.Parser`
+- [ ] COM object `NetWebView2.Manager - WebView2`
+- [ ] COM object `NetWebView2.Manager - Bridge`
+- [ ] UDF - NetWebView2Lib.au3
+- [ ] Examples: ...
 - [ ] with ...
 
 #### 🔬 Describe how you tested your changes
