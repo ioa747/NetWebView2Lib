@@ -8,7 +8,7 @@
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; ⚠️ to make this work, download
 ; https://github.com/mozilla/pdf.js/releases/download/v5.4.530/pdfjs-5.4.530-dist.zip
-; to @ScriptDir and rename it to pdfjs
+; and unzip to:   @ScriptDir & "/pdfjs/"
 ; from https://mozilla.github.io/pdf.js/
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -17,7 +17,7 @@
 #include "..\..\NetWebView2Lib.au3"
 
 ; Global objects
-Global $oWebV2M, $oBridge
+Global $oBridge
 Global $hGUI
 
 _Example()
@@ -32,16 +32,15 @@ Func _Example()
 	$hGUI = GUICreate("WebView2 .NET Manager", 800, 1000)
 
 	; Get the WebView2 Manager object and register events
-	$oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", _
+	$_g_oWeb = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", _
 			"", "--allow-file-access-from-files") ; 👈
 
 	; initialize browser - put it on the GUI
 	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, False, False, 0.7)
+	_NetWebView2_Initialize($_g_oWeb, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, False, False, 0.7)
 
 	; Get the bridge object and register events
-	$oBridge = $oWebV2M.GetBridge()
-	ObjEvent($oBridge, "__EVENTS_Bridge_", "IBridgeEvents")
+	_NetWebView2_GetBridge($_g_oWeb, "__EVENTS_Bridge_")
 
 	; show the GUI after browser was fully initialized
 	GUISetState(@SW_SHOW)
@@ -49,10 +48,9 @@ Func _Example()
 	#EndRegion ; GUI CREATION
 
 	; navigate to the page
-	SetupStaticPDF($oWebV2M, @ScriptDir & "\invoice-plugin-sample.pdf", True, True)
+	SetupStaticPDF($_g_oWeb, @ScriptDir & "\invoice-plugin-sample.pdf", True, True)
 
-	$oWebV2M.ExecuteScriptOnPage("extractPDFText();")
-
+	$_g_oWeb.ExecuteScriptOnPage("extractPDFText();")
 
 	; Main Loop
 	While 1
@@ -64,7 +62,7 @@ Func _Example()
 
 	GUIDelete($hGUI)
 
-	_NetWebView2_CleanUp($oWebV2M, $oBridge)
+	_NetWebView2_CleanUp($_g_oWeb, $oBridge)
 EndFunc   ;==>_Example
 
 
@@ -73,8 +71,7 @@ Func __EVENTS_Bridge_OnMessageReceived($sMsg)
 	ConsoleWrite(">>> [__EVENTS_Bridge]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $sFirstChar = StringLeft($sMsg, 1)
 
-	; 1. JSON Messaging
-	If $sFirstChar = "{" Or $sFirstChar = "[" Then
+	If $sFirstChar = "{" Or $sFirstChar = "[" Then ; 1. JSON Messaging
 		ConsoleWrite("+> : Processing JSON Messaging..." & @CRLF)
 		Local $oJson = ObjCreate("NetJson.Parser")
 		If Not IsObj($oJson) Then Return ConsoleWrite("!> Error: Failed to create NetJson object." & @CRLF)
@@ -87,8 +84,7 @@ Func __EVENTS_Bridge_OnMessageReceived($sMsg)
 				ConsoleWrite("- COM_TEST Confirmed: " & $oJson.GetTokenValue("status") & @CRLF)
 		EndSwitch
 
-	Else
-		; 2. Legacy / Native Pipe-Delimited Messaging
+	Else ; 2. Legacy / Native Pipe-Delimited Messaging
 		ConsoleWrite("+> : Legacy / Native Pipe-Delimited Messaging..." & @CRLF)
 		Local $sCommand, $sData, $iSplitPos
 		$iSplitPos = StringInStr($sMsg, "|") - 1
@@ -191,6 +187,7 @@ Func SetupStaticPDF(ByRef $oWeb, $sPdfPath, $bBlockLinks = False, $bBlockSelecti
 
 	; Fix slashes in Path for URL
 	Local $sPdfUrl = StringReplace($sPdfPath, "\", "/")
+	$sPdfPath = StringReplace($sPdfPath, ' ', '%20')
 	Local $sViewerUrl = "file:///" & StringReplace(@ScriptDir & "/pdfjs/web/viewer.html?file=" & $sPdfUrl, "\", "/")
 
 	$oWeb.Navigate($sViewerUrl)
