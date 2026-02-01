@@ -92,8 +92,9 @@ Func _NetWebView2_Initialize(ByRef $oWebV2M, $hGUI, $sProfileDirectory, $i_Left 
 	Local $iInit = $oWebV2M.Initialize(($hGUI), $sProfileDirectory, $i_Left, $i_Top, $i_Width, $i_Height)
 	If @error Then Return SetError(@error, @extended, $iInit)
 
-	If $b_LoadWait Then _NetWebView2_LoadWait($oWebV2M, $NETWEBVIEW2_MESSAGE__INIT_FAILED)
-	If @error Then Return SetError(@error, @extended, $iInit)
+	Do ; Wait for the engine to be ready before navigating
+		Sleep(50)
+	Until $b_LoadWait And $oWebV2M.IsReady
 
 	; WebView2 Configuration
 	$oWebV2M.SetAutoResize($b_SetAutoResize) ; Using SetAutoResize(True) to skip WM_SIZE
@@ -631,7 +632,7 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived($sMsg)
 	Local Static $sCommand_static = ''
 
 	If Not @Compiled And $sCommand_static <> $sCommand Then
-		ConsoleWrite('TEST IFNC: ' & $s_Prefix & ' @SLN=' & @ScriptLineNumber & ' ' & $sCommand & @CRLF)
+		ConsoleWrite('TEST IFNC: ' & $s_Prefix & ' @SLN=' & @ScriptLineNumber & ' ' & $sCommand & ' Data=' & $sData & @CRLF)
 		$sCommand_static = $sCommand
 	EndIf
 
