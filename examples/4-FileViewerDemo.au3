@@ -23,8 +23,7 @@
 #SciTE4AutoIt3_AutoItGotoDefinition_debug=n                    ;debug.autoitgotodefinition=n/y
 #SciTE4AutoIt3_AutoItIndentFix_debug=n                         ;debug.autoitindentfix=n/y
 
-;~ #include "..\NetWebView2Lib.au3"
-#include "..\NetWebView2Lib-org.au3"
+#include "..\NetWebView2Lib.au3"
 
 ; ==============================================================================
 ; WebView2 Multi-Channel Presentation Script^
@@ -48,27 +47,28 @@ Func Main()
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 
 	; Initialize WebView2 Manager and register events
+;~ 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--mute-audio")
 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--mute-audio")
 	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	; Initialize JavaScript Bridge
-	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
+	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M)
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
+	_NetWebView2_Initialize($oWebV2M, ($hGUI), $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
 
 	GUISetState(@SW_SHOW, $hGUI)
 	WinSetOnTop($hGUI, '', True)
 
 	Local $s_PDF_FileFullPath
 
-	_WebView2_ShowPD($hGUI, $oWebV2M, "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
+	#TIP: FitToPage: https://stackoverflow.com/questions/78820187/how-to-change-webview2-fit-to-page-button-on-pdf-toolbar-default-to-fit-to-width#comment138971950_78821231
+	_WebView2_ShowPD($hGUI, $oWebV2M, "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf#view=FitH")
 
-	_WebView2_ShowPD($hGUI, $oWebV2M, "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf")
-
-	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_1.pdf'
+	#TIP: Open desired PAGE: https://stackoverflow.com/questions/68500164/cycle-pdf-pages-in-wpf-webview2#comment135402565_68566860
+	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_1.pdf#page=1'
 	_WebView2_ShowPD($hGUI, $oWebV2M, $s_PDF_FileFullPath)
 ;~ 	MsgBox($MB_TOPMOST, " _WebView2_ShowPD() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
 
@@ -76,7 +76,7 @@ Func Main()
 	_WebView2_ShowPD($hGUI, $oWebV2M, $s_PDF_FileFullPath)
 ;~ 	MsgBox($MB_TOPMOST, " _WebView2_ShowPD() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
 
-	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_3.pdf'
+	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_3.pdf#view=FitH'
 	_WebView2_ShowPD($hGUI, $oWebV2M, $s_PDF_FileFullPath)
 
 ;~ 	MsgBox($MB_TOPMOST, " _WebView2_ShowPD() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
