@@ -12,6 +12,7 @@ Global $sFilePath = @ScriptDir & "\messages.csv"
 Global $hGUI
 
 Main()
+Exit
 
 Func Main()
 	; Create GUI with resizing support
@@ -26,14 +27,14 @@ Func Main()
 	GUICtrlSetFont(-1, 12, Default, $GUI_FONTUNDER, "Segoe UI")
 	GUICtrlSetColor(-1, 0xFF0000)
 
-	; Get the WebView2 Manager object and register events
-	$_g_oWeb = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "Manager_", "--allow-file-access-from-files") ; 👈
+	; Create WebView2 Manager object and register events
+	$_g_oWeb = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "__MyEVENTS_Manager_", "--allow-file-access-from-files")
 
 	; initialize browser - put it on the GUI
 	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($_g_oWeb, $hGUI, $sProfileDirectory, 0, 50, 500, 400, True, False, False, 1.1)
 
-	; Get the bridge object and register events
+	; Create bridge object and register events
 	Local $oBridge = _NetWebView2_GetBridge($_g_oWeb, "__MyEVENTS_Bridge_")
 	#forceref $oBridge
 
@@ -47,25 +48,25 @@ Func Main()
 	While 1
 		Switch GUIGetMsg()
 			Case $GUI_EVENT_CLOSE
-				$_g_oWeb.Cleanup()
-				Exit
+				_NetWebView2_CleanUp($_g_oWeb, $oBridge)
+				ExitLoop
 
 			Case $idBlue
 				; Update CSS variables dynamically via JavaScript
-				$_g_oWeb.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#4db8ff');")
-				$_g_oWeb.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#0078d7');")
+				_NetWebView2_ExecuteScript($_g_oWeb, "document.documentElement.style.setProperty('--accent-color', '#4db8ff');")
+				_NetWebView2_ExecuteScript($_g_oWeb, "document.documentElement.style.setProperty('--btn-color', '#0078d7');")
 
 			Case $idRed
 				; Update CSS variables dynamically via JavaScript
-				$_g_oWeb.ExecuteScript("document.documentElement.style.setProperty('--accent-color', '#ff4d4d');")
-				$_g_oWeb.ExecuteScript("document.documentElement.style.setProperty('--btn-color', '#d70000');")
+				_NetWebView2_ExecuteScript($_g_oWeb, "document.documentElement.style.setProperty('--accent-color', '#ff4d4d');")
+				_NetWebView2_ExecuteScript($_g_oWeb, "document.documentElement.style.setProperty('--btn-color', '#d70000');")
 		EndSwitch
 	WEnd
 
 EndFunc   ;==>Main
 
 ; Handles data received from the WebView2 Manager
-Func __MyEVENTS_OnMessageReceived($sMessage)
+Func __MyEVENTS_Manager_OnMessageReceived($sMessage)
 	; Local error handler for COM objects
 	Local $oMyError = ObjEvent("AutoIt.Error", __HtmlGUI_ErrFunc)
 	#forceref $oMyError
@@ -77,7 +78,7 @@ Func __MyEVENTS_OnMessageReceived($sMessage)
 		$_g_oWeb.NavigateToString($sHTML)
 		GUISetState(@SW_SHOW, $hGUI)
 	EndIf
-EndFunc   ;==>__MyEVENTS_OnMessageReceived
+EndFunc   ;==>__MyEVENTS_Manager_OnMessageReceived
 
 ; Handles data received from the JavaScript 'postMessage'
 Func __MyEVENTS_Bridge_OnMessageReceived($sMessage)
