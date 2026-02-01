@@ -1,48 +1,22 @@
 #AutoIt3Wrapper_UseX64=y
 ; Html_Gui.au3
+#include <Array.au3>
+#include <FileConstants.au3>
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
-#include <Array.au3>
 
 #include "..\NetWebView2Lib.au3"
 
 ; Global variables for data management
 Global $aMessages[0][3]
 Global $sFilePath = @ScriptDir & "\messages.csv"
-Global $hGUI
-
+Global $hGUI, $oBridge, $idBlue, $idRed
 Main()
 Exit
 
 Func Main()
-	; Create GUI with resizing support
-	$hGUI = GUICreate("WebView2 Theme Switcher", 500, 480, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
-	GUISetBkColor(0x1E1E1E)
 
-	Local $idBlue = GUICtrlCreateLabel("Blue Theme", 10, 10, 100, 30)
-	GUICtrlSetFont(-1, 12, Default, $GUI_FONTUNDER, "Segoe UI")
-	GUICtrlSetColor(-1, 0x0078D7)
-
-	Local $idRed = GUICtrlCreateLabel("Red Theme", 120, 10, 100, 30)
-	GUICtrlSetFont(-1, 12, Default, $GUI_FONTUNDER, "Segoe UI")
-	GUICtrlSetColor(-1, 0xFF0000)
-
-	; Create WebView2 Manager object and register events
-	$_g_oWeb = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "__MyEVENTS_Manager_", "--allow-file-access-from-files")
-
-	; initialize browser - put it on the GUI
-	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($_g_oWeb, $hGUI, $sProfileDirectory, 0, 50, 500, 400, True, False, False, 1.1)
-
-	; Create bridge object and register events
-	Local $oBridge = _NetWebView2_GetBridge($_g_oWeb, "__MyEVENTS_Bridge_")
-	#forceref $oBridge
-
-	$_g_oWeb.IsZoomControlEnabled = False
-	$_g_oWeb.IsScrollbarEnabled = False
-
-	; Register the WM_SIZE message to handle window resizing
-	GUIRegisterMsg($WM_SIZE, WM_SIZE)
+	_Show_Form()
 
 	; Main Application Loop
 	While 1
@@ -65,20 +39,40 @@ Func Main()
 
 EndFunc   ;==>Main
 
-; Handles data received from the WebView2 Manager
-Func __MyEVENTS_Manager_OnMessageReceived($sMessage)
-	; Local error handler for COM objects
-	Local $oMyError = ObjEvent("AutoIt.Error", __HtmlGUI_ErrFunc)
-	#forceref $oMyError
+Func _Show_Form()
+	; Create GUI with resizing support
+	$hGUI = GUICreate("WebView2 Theme Switcher", 500, 480, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
+	GUISetBkColor(0x1E1E1E)
 
-	Local Static $bIsInitialized = False
-	If $sMessage = "INIT_READY" And Not $bIsInitialized Then
-		$bIsInitialized = True ; We note that we are finished.
-		Local $sHTML = "<html><head><meta charset='UTF-8'><style>:" & __FormCSS() & "</style></head><body>" & __FormHTML() & "</body></html>"
-		$_g_oWeb.NavigateToString($sHTML)
-		GUISetState(@SW_SHOW, $hGUI)
-	EndIf
-EndFunc   ;==>__MyEVENTS_Manager_OnMessageReceived
+	$idBlue = GUICtrlCreateLabel("Blue Theme", 10, 10, 100, 30)
+	GUICtrlSetFont(-1, 12, Default, $GUI_FONTUNDER, "Segoe UI")
+	GUICtrlSetColor(-1, 0x0078D7)
+
+	$idRed = GUICtrlCreateLabel("Red Theme", 120, 10, 100, 30)
+	GUICtrlSetFont(-1, 12, Default, $GUI_FONTUNDER, "Segoe UI")
+	GUICtrlSetColor(-1, 0xFF0000)
+
+	; Create WebView2 Manager object and register events
+	$_g_oWeb = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "__MyEVENTS_Manager_", "")
+
+	; initialize browser - put it on the GUI
+	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
+	_NetWebView2_Initialize($_g_oWeb, $hGUI, $sProfileDirectory, 0, 50, 500, 400, True, False, False, 1.1)
+
+	; Create bridge object and register events
+	$oBridge = _NetWebView2_GetBridge($_g_oWeb, "__MyEVENTS_Bridge_")
+
+	$_g_oWeb.IsZoomControlEnabled = False
+	$_g_oWeb.IsScrollbarEnabled = False
+
+	; Register the WM_SIZE message to handle window resizing
+	GUIRegisterMsg($WM_SIZE, WM_SIZE)
+
+	Local $sHTML = "<html><head><meta charset='UTF-8'><style>:" & __FormCSS() & "</style></head><body>" & __FormHTML() & "</body></html>"
+	$_g_oWeb.NavigateToString($sHTML)
+	GUISetState(@SW_SHOW, $hGUI)
+
+EndFunc   ;==>_Show_Form
 
 ; Handles data received from the JavaScript 'postMessage'
 Func __MyEVENTS_Bridge_OnMessageReceived($sMessage)
@@ -106,7 +100,7 @@ Func __MyEVENTS_Bridge_OnMessageReceived($sMessage)
 				_ArrayAdd($aMessages, $sName & "|" & $sEmail & "|" & $sMsg)
 
 				; Append data to CSV file safely
-				Local $hFile = FileOpen($sFilePath, 9) ; 1 (Write) + 8 (Create Path)
+				Local $hFile = FileOpen($sFilePath,  $FO_APPEND + $FO_CREATEPATH)
 				If $hFile <> -1 Then
 					; Clean the message string for CSV compatibility (remove line breaks)
 					Local $sCleanMsg = StringReplace($sMsg, @CRLF, " ")
