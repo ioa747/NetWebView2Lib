@@ -244,12 +244,12 @@ Func _NetWebView2_LoadWait(ByRef $oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE_
 	ElseIf $iWaitMessage > $NETWEBVIEW2_MESSAGE__NAV_ERROR Then ; higher messsages are not for NAVIGATION thus not checking in _NetWebView2_LoadWait()
 		$RETURN_VALUE = False
 		SetError(1)
-	ElseIf $iTimeOut_ms Then
+	Else
 		Local $hTimer = TimerInit() ; Begin the timer and store the handle in a variable.
 
 		; Wait for WebView2 to be ready
 		While Sleep(10)
-			If TimerDiff($hTimer) > $iTimeOut_ms Then
+			If $iTimeOut_ms And TimerDiff($hTimer) > $iTimeOut_ms Then
 				SetError(2)
 				$RETURN_VALUE = False
 				ExitLoop
@@ -895,3 +895,4 @@ Func __NetWebView2_WebViewEvents__OnContextMenu($sMenuData)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnContextMenu
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+

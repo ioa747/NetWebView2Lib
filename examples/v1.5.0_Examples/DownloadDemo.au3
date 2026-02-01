@@ -50,7 +50,7 @@ Func _Example()
 	$oWebV2M.SetDownloadPath(@ScriptDir & "\Downloads_Test")
 
 	; navigate to the page
-	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/download/download-libreoffice/", 4) ; 4 = NAV_COMPLETED 👈
+	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/download/download-libreoffice/", $NETWEBVIEW2_MESSAGE__TITLE_CHANGED) ; 4 = NAV_COMPLETED 👈
 
 	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/donate/dl/win-x86_64/25.8.4/en-US/LibreOffice_25.8.4_Win_x86-64.msi")
 
@@ -113,4 +113,3 @@ Func _DownloadCancel()
 	ConsoleWrite("HotKeyPress: _DownloadCancel" & @CRLF)
 	$_g_oWeb.CancelDownloads("https://fosszone.csd.auth.gr/tdf/libreoffice/stable/25.8.4/win/x86_64/LibreOffice_25.8.4_Win_x86-64.msi")
 EndFunc
-
