@@ -167,23 +167,47 @@ EndFunc   ;==>_NetWebView2_GetBridge
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_ExecuteScript
 ; Description ...:
-; Syntax ........: _NetWebView2_ExecuteScript(ByRef $oWebV2M, $sJavaScript)
+; Syntax ........: _NetWebView2_ExecuteScript(ByRef $oWebV2M, $sJavaScript[, $iMode = 0])
 ; Parameters ....: $oWebV2M             - [in/out] an object.
 ;                  $sJavaScript         - a string value.
+;                  $iMode               - [optional] One of the following search modes:
+;                  |0 - Execute, do not wait "Fire-and-Forget" - Default
+;                  |1 - ExecuteScriptOnPage "Async-Void Trap"
+;                  |2 - ExecuteScriptWithResult - This is the only method designed to return data
 ; Return values .: None
 ; Author ........: mLipok, ioa747
 ; Modified ......:
-; Remarks .......:
+; Remarks .......: $iMode additionall information:
+; 					0. ExecuteScript (Fire-and-Forget)
+; 						In the C# bridge, this is defined as a public void. It uses _webView.Invoke to send the command to the UI thread and exits immediately. It does not wait for the JavaScript to execute, and it has no return type.
+; 						Use case: Clicking buttons, scrolling, or triggering JS events where you don't care about the result.
+; 					1. ExecuteScriptOnPage (Async-Void Trap)
+; 						This is defined as public async void. In COM Interop (which AutoIt uses), an async void method returns control to the caller (AutoIt) the moment it hits the first internal await. The script runs in the background, but the result is never passed back to the COM interface.
+; 						Use case: Fast execution where background processing is acceptable, but again, no return value.
+; 					2. ExecuteScriptWithResult
+; 						This is the only method designed to return data. It implements a Message Pump (using Application.DoEvents()) to keep the interface responsive while waiting up to 5 seconds for the result.
+; 						Key Features of ExecuteScriptWithResult:
+; 						Blocking: It waits for the script to finish (Sync-like behavior for AutoIt).
+; 						JSON Cleaning: WebView2 returns results as JSON strings (e.g., "Hello"). This method automatically strips the extra quotes and unescapes the string for you.
+; 						Error Handling: Returns ERROR: Script Timeout if the JS takes longer than 5 seconds.
 ; Related .......:
-; Link ..........:
+; Link ..........: https://github.com/ioa747/NetWebView2Lib/issues/45#issuecomment-3831184514
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_ExecuteScript(ByRef $oWebV2M, $sJavaScript)
-	Local Const $s_Prefix = "[_NetWebView2_ExecuteScript]:"
+Func _NetWebView2_ExecuteScript(ByRef $oWebV2M, $sJavaScript, $iMode = 0)
+	Local Const $s_Prefix = "[_NetWebView2_ExecuteScript]:" & " TYPE: " & $iMode
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	Local $iRet = $oWebV2M.ExecuteScript($sJavaScript)
+	Local $iRet
+	Switch $iMode
+		Case 0
+			$iRet = $oWebV2M.ExecuteScript($sJavaScript)
+		Case 1
+			$iRet = $oWebV2M.ExecuteScriptOnPage($sJavaScript)
+		Case 2
+			$iRet = $oWebV2M.ExecuteScriptWithResult($sJavaScript)
+	EndSwitch
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	Return SetError(@error, @extended, $iRet)
 EndFunc   ;==>_NetWebView2_ExecuteScript
@@ -895,4 +919,5 @@ Func __NetWebView2_WebViewEvents__OnContextMenu($sMenuData)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnContextMenu
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
 
