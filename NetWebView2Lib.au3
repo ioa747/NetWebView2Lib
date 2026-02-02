@@ -34,7 +34,9 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_WebViewEvents__
 		$NETWEBVIEW2_MESSAGE__SOURCE_CHANGED, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/get-started/wpf#step-7---navigation-events
 		$NETWEBVIEW2_MESSAGE__CONTENT_LOADING, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/get-started/wpf#step-7---navigation-events
 		$NETWEBVIEW2_MESSAGE__HISTORY_CHANGED, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/get-started/wpf#step-7---navigation-events
-		$NETWEBVIEW2_MESSAGE__COMPLETED, _
+		$NETWEBVIEW2_MESSAGE__BASIC_AUTHENTICATION_REQUESTED, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events
+		$NETWEBVIEW2_MESSAGE__DOM_CONTENT_LOADED, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events
+		$NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED, _
 		$NETWEBVIEW2_MESSAGE__TITLE_CHANGED, _
 		$NETWEBVIEW2_MESSAGE__NAV_ERROR, _
 		$NETWEBVIEW2_MESSAGE__EXTENSION, _
@@ -693,7 +695,7 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived($sMsg)
 
 		Case "NAV_COMPLETED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__COMPLETED)
+			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
 
 		Case "TITLE_CHANGED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
