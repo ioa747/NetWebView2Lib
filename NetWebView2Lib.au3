@@ -67,9 +67,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_WebViewEvents__
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_Initialize
 ; Description ...:
-; Syntax ........: _NetWebView2_Initialize(ByRef $oWebV2M, $hGUI, $sProfileDirectory[, $i_Left = 0[, $i_Top = 0[, $i_Width = 0[,
-;                  $i_Height = 0[, $b_LoadWait = True[, $b_SetAutoResize = True[, $b_AreDevToolsEnabled = True[,
-;                  $i_ZoomFactor = 1.0[, $s_BackColor = "0x2B2B2B"]]]]]]]]])
+; Syntax ........: _NetWebView2_Initialize(ByRef $oWebV2M, $hGUI, $sProfileDirectory[, $i_Left = 0[, $i_Top = 0[, $i_Width = 0[, $i_Height = 0[, $b_LoadWait = True[, $b_SetAutoResize = True[, $b_AreDevToolsEnabled = True[, $i_ZoomFactor = 1.0[, $s_BackColor = "0x2B2B2B"[, $bInitializeConsoleBridge = False]]]]]]]]]])
 ; Parameters ....: $oWebV2M             - [in/out] an object.
 ;                  $hGUI                - a handle value.
 ;                  $sProfileDirectory   - a string value.
@@ -82,6 +80,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_WebViewEvents__
 ;                  $b_AreDevToolsEnabled- [optional] a boolean value. Default is True.
 ;                  $i_ZoomFactor        - [optional] an integer value. Default is 1.0.
 ;                  $s_BackColor         - [optional] a string value. Default is "0x2B2B2B".
+;                  $bInitializeConsoleBridge- [optional] a boolean value. Default is False.
 ; Return values .: None
 ; Author ........: mLipok, ioa747
 ; Modified ......:
@@ -90,7 +89,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_WebViewEvents__
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_Initialize(ByRef $oWebV2M, $hGUI, $sProfileDirectory, $i_Left = 0, $i_Top = 0, $i_Width = 0, $i_Height = 0, $b_LoadWait = True, $b_SetAutoResize = True, $b_AreDevToolsEnabled = True, $i_ZoomFactor = 1.0, $s_BackColor = "0x2B2B2B")
+Func _NetWebView2_Initialize(ByRef $oWebV2M, $hGUI, $sProfileDirectory, $i_Left = 0, $i_Top = 0, $i_Width = 0, $i_Height = 0, $b_LoadWait = True, $b_SetAutoResize = True, $b_AreDevToolsEnabled = True, $i_ZoomFactor = 1.0, $s_BackColor = "0x2B2B2B", $bInitializeConsoleBridge = False)
 	Local Const $s_Prefix = "[_NetWebView2_Initialize]:" & " GUI:" & $hGUI & " ProfileDirectory:" & $sProfileDirectory & " LEFT:" & $i_Left & " TOP:" & $i_Top & " WIDTH" & $i_Width & " HEIGHT:" & $i_Height & " LOADWAIT:" & $b_LoadWait & " SETAUTORESIZE:" & $b_SetAutoResize & " SetAutoResize:" & $b_AreDevToolsEnabled & " ZoomFactor:" & $i_ZoomFactor & " BackColor:" & $s_BackColor
 
 	; ⚠️ Important: Enclose ($hGUI) in parentheses to force "Pass-by-Value".
@@ -98,15 +97,22 @@ Func _NetWebView2_Initialize(ByRef $oWebV2M, $hGUI, $sProfileDirectory, $i_Left 
 	Local $iInit = $oWebV2M.Initialize(($hGUI), $sProfileDirectory, $i_Left, $i_Top, $i_Width, $i_Height)
 	If @error Then Return SetError(@error, @extended, $iInit)
 
+	ConsoleWrite("#" & @ScriptLineNumber & " - " & @CRLF)
 	Do ; Wait for the engine to be ready before navigating
 		Sleep(50)
 	Until $b_LoadWait And $oWebV2M.IsReady
+	ConsoleWrite("#" & @ScriptLineNumber & " - " & @CRLF)
 
 	; WebView2 Configuration
 	$oWebV2M.SetAutoResize($b_SetAutoResize) ; Using SetAutoResize(True) to skip WM_SIZE
 	$oWebV2M.AreDevToolsEnabled = $b_AreDevToolsEnabled ; Allow F12
 	$oWebV2M.ZoomFactor = $i_ZoomFactor
 	$oWebV2M.BackColor = $s_BackColor
+
+	If $bInitializeConsoleBridge Then
+		$oWebV2M.AddInitializationScript(__Get_Core_Bridge_JS())
+	EndIf
+
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Manager Creation ERROR", 1)
 	Return SetError(@error, $oWebV2M.GetBrowserProcessId(), '')
 EndFunc   ;==>_NetWebView2_Initialize
@@ -167,6 +173,7 @@ Func _NetWebView2_GetBridge(ByRef $oWebV2M, $s_fnEventPrefix = "")
 
 	If $s_fnEventPrefix Then $_g_sNetWebView2_User_JSEvents = $s_fnEventPrefix
 	ObjEvent($oWebJS, "__NetWebView2_JSEvents__", "IBridgeEvents")
+
 	Return SetError(@error, @extended, $oWebJS)
 EndFunc   ;==>_NetWebView2_GetBridge
 
@@ -616,6 +623,96 @@ Func __NetWebView2_ObjName_FlagsValue(ByRef $oObj)
 
 	ConsoleWrite($sInfo & @CRLF)
 EndFunc   ;==>__NetWebView2_ObjName_FlagsValue
+
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __Get_Core_Bridge_JS
+; Description ...: Get JavaScript for Bridge
+; Syntax ........: __Get_Core_Bridge_JS()
+; Parameters ....: None
+; Return values .: JavaScript for Bridge
+; Author ........: ioa747
+; Modified ......: mLipok
+; Remarks .......:
+; Related .......:
+; Link ..........:
+; Example .......: No
+; ===============================================================================================================================
+Func __Get_Core_Bridge_JS()
+	Local $sJS = _
+			"/**" & @CRLF & _
+			" * NetWebView2Lib Core Bridge" & @CRLF & _
+			" * Handles Console Hijacking and Global Error Reporting" & @CRLF & _
+			" */" & @CRLF & _
+			"" & @CRLF & _
+			"(function() {" & @CRLF & _
+			"    // 1. Configuration & State" & @CRLF & _
+			"    window.NET_BRIDGE_ENABLED = true;" & @CRLF & _
+			"" & @CRLF & _
+			"    /**" & @CRLF & _
+			"     * Centralized message dispatcher to AutoIt" & @CRLF & _
+			"     */" & @CRLF & _
+			"    const dispatchToAutoIt = (data) => {" & @CRLF & _
+			"        try {" & @CRLF & _
+			"            if (window.chrome && window.chrome.webview) {" & @CRLF & _
+			"                window.chrome.webview.postMessage(JSON.stringify(data));" & @CRLF & _
+			"            }" & @CRLF & _
+			"        } catch (e) {" & @CRLF & _
+			"            // Silent fail if bridge is not fully ready" & @CRLF & _
+			"        }" & @CRLF & _
+			"    };" & @CRLF & _
+			"" & @CRLF & _
+			"    /**" & @CRLF & _
+			"     * Console Hijacking Logic" & @CRLF & _
+			"     */" & @CRLF & _
+			"    const originalConsole = {" & @CRLF & _
+			"        log: console.log," & @CRLF & _
+			"        error: console.error," & @CRLF & _
+			"        warn: console.warn," & @CRLF & _
+			"        info: console.info" & @CRLF & _
+			"    };" & @CRLF & _
+			"" & @CRLF & _
+			"    const createWrappedConsole = (type) => {" & @CRLF & _
+			"        return function() {" & @CRLF & _
+			"            // Send to AutoIt" & @CRLF & _
+			"            dispatchToAutoIt({" & @CRLF & _
+			"                type: ""CONSOLE_LOG""," & @CRLF & _
+			"                level: type.toUpperCase()," & @CRLF & _
+			"                message: Array.from(arguments).map(arg => " & @CRLF & _
+			"                    (typeof arg === 'object') ? JSON.stringify(arg) : String(arg)" & @CRLF & _
+			"                ).join(' ')," & @CRLF & _
+			"                timestamp: new Date().toISOString()" & @CRLF & _
+			"            });" & @CRLF & _
+			"            // Keep original browser behavior" & @CRLF & _
+			"            originalConsole[type].apply(console, arguments);" & @CRLF & _
+			"        };" & @CRLF & _
+			"    };" & @CRLF & _
+			"" & @CRLF & _
+			"    // Replace standard console methods" & @CRLF & _
+			"    console.log = createWrappedConsole('log');" & @CRLF & _
+			"    console.error = createWrappedConsole('error');" & @CRLF & _
+			"    console.warn = createWrappedConsole('warn');" & @CRLF & _
+			"    console.info = createWrappedConsole('info');" & @CRLF & _
+			"" & @CRLF & _
+			"    /**" & @CRLF & _
+			"     * 2. Global Runtime Error Handler" & @CRLF & _
+			"     */" & @CRLF & _
+			"    window.onerror = function(message, source, lineno, colno, error) {" & @CRLF & _
+			"        dispatchToAutoIt({" & @CRLF & _
+			"            type: ""JS_ERROR""," & @CRLF & _
+			"            message: message," & @CRLF & _
+			"            source: source," & @CRLF & _
+			"            line: lineno," & @CRLF & _
+			"            column: colno," & @CRLF & _
+			"            stack: error ? error.stack : """"" & @CRLF & _
+			"        });" & @CRLF & _
+			"        return false; // Let browser handle it as well" & @CRLF & _
+			"    };" & @CRLF & _
+			"" & @CRLF & _
+			"    // Signal that bridge is active" & @CRLF & _
+			"    dispatchToAutoIt({ type: ""SYSTEM"", message: ""Core Bridge Injected"" });" & @CRLF & _
+			"})();"
+	Return $sJS
+EndFunc   ;==>__Get_Core_Bridge_JS
 #EndRegion ; NetWebView2Lib UDF - #INTERNAL_USE_ONLY#
 
 #Region ; NetWebView2Lib UDF - === EVENT HANDLERS ===
