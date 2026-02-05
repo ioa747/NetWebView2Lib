@@ -97,6 +97,7 @@ We have abandoned the legacy synchronous polling for accelerator keys in favor o
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
+
 ## 📖 NetWebView2Lib Version 2.0.0-beta.1 (Quick Reference)
 
 ### NetWebView2Lib (ProgId: NetWebView2.Manager)
