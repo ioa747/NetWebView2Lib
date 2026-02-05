@@ -27,7 +27,7 @@ Func _Example()
 	$hGUI = GUICreate("WebView2 .NET Manager - [ Press ESC to cancell the download ]", 1000, 800)
 
 	; Initialize WebView2 Manager and register events
-	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "__MyNetWebView2_WebViewEvents__", "--mute-audio")
+	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--mute-audio")
 	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
@@ -72,44 +72,6 @@ EndFunc   ;==>_Example
 ; =======================================================================================
 ; EVENT HANDLERS (CALLBACKS)
 ; =======================================================================================
-
-; Listen for Manager OnDownloadStarting Events
-Func __MyNetWebView2_WebViewEvents__OnDownloadStarting($sUri, $sDefaultPath)
-	ConsoleWrite("-> [OnDownloadStarting]:: $sUri: " & $sUri & ", $sDefaultPath: " & $sDefaultPath & @CRLF)
-
-	; --- STANDARD MODE (EDGE) ---
-	; If you do nothing, Edge will download to the $sDefaultPath.
-	; If you previously set $oWeb.SetDownloadPath("C:\MyFolder"), it will go there.
-
-	; --- MANUAL MODE (BYPASS EDGE) ---
-	; If you want to handle the download yourself with InetGet:
-	; $oWeb.IsDownloadHandled = True
-	; InetGet($sUri, @ScriptDir & "\Manual_Download.zip", 1, 1) ; 1 = wait for completion, 1 = force reload
-	; ConsoleWrite("--> Edge download CANCELLED. AutoIt is handling it via InetGet." & @CRLF)
-
-	ConsoleWrite("<- OnDownloadStarting event finished. Standard Edge download proceeds unless IsDownloadHandled=True." & @CRLF)
-EndFunc   ;==>__MyNetWebView2_WebViewEvents__OnDownloadStarting
-
-; Listen for Manager OnDownloadStateChanged Events
-Func __MyNetWebView2_WebViewEvents__OnDownloadStateChanged($sState, $sUri, $iTotal_Bytes, $iReceived_Bytes)
-	ConsoleWrite("! __MyNetWebView2_WebViewEvents__OnDownloadStateChanged" & @CRLF)
-
-	Local $iPercent = 0
-	If $iTotal_Bytes > 0 Then $iPercent = Round(($iReceived_Bytes / $iTotal_Bytes) * 100)
-
-	; Convert to MB for easy-to-read log
-	Local $iReceived_MegaBytes = Round($iReceived_Bytes / 1024 / 1024)
-	Local $iTotal_MegaBytes = Round($iTotal_Bytes / 1024 / 1024)
-
-	Switch $sState
-		Case "InProgress"
-			ConsoleWrite("++> Downloading: " & $iPercent & "% (" & $iReceived_MegaBytes & " / " & $iTotal_MegaBytes & " _MegaBytes)" & @CRLF)
-		Case "Interrupted"
-			ConsoleWrite("!!!> DOWNLOAD STOPPED/INTERRUPTED: " & $sUri & @CRLF)
-		Case "Completed"
-			ConsoleWrite("--> DOWNLOAD FINISHED: " & $sUri & @CRLF)
-	EndSwitch
-EndFunc   ;==>__MyNetWebView2_WebViewEvents__OnDownloadStateChanged
 
 Func _DownloadCancel()
 	ConsoleWrite("HotKeyPress: _DownloadCancel" & @CRLF)
