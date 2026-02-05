@@ -91,11 +91,11 @@ Func __MyNetWebView2_WebViewEvents__OnDownloadStarting($sUri, $sDefaultPath)
 EndFunc   ;==>__MyNetWebView2_WebViewEvents__OnDownloadStarting
 
 ; Listen for Manager OnDownloadStateChanged Events
-Func __MyNetWebView2_WebViewEvents__OnDownloadStateChanged($sState, $sUri, $iTotalBytes, $iReceivedBytes)
+Func __MyNetWebView2_WebViewEvents__OnDownloadStateChanged($sState, $sUri, $iTotal_Bytes, $iReceived_Bytes)
 	ConsoleWrite("! __MyNetWebView2_WebViewEvents__OnDownloadStateChanged" & @CRLF)
 
 	Local $iPercent = 0
-	If $iTotalBytes > 0 Then $iPercent = Round(($iReceivedBytes / $iTotalBytes) * 100)
+	If $iTotal_Bytes > 0 Then $iPercent = Round(($iReceived_Bytes / $iTotal_Bytes) * 100)
 
 	; Convert to MB for easy-to-read log
 	Local $iReceived_MegaBytes = Round($iReceived_Bytes / 1024 / 1024)
