@@ -61,6 +61,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_WebViewEvents__
 		$NETWEBVIEW2_MESSAGE__COOKIES_ERROR, _
 		$NETWEBVIEW2_MESSAGE__COOKIE_ADD_ERROR, _
 		$NETWEBVIEW2_MESSAGE__BLOCKED_AD, _
+		$NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING, _
 		$NETWEBVIEW2_MESSAGE___FAKE_COUNTER
 
 #Region ; NetWebView2Lib UDF - _NetWebView2_* core functions
@@ -142,7 +143,14 @@ Func _NetWebView2_CreateManager($sUserAgent = '', $s_fnEventPrefix = "", $s_AddB
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Manager Creation ERROR", 1)
 	If $sUserAgent Then $oWebV2M.SetUserAgent($sUserAgent)
 	If $s_AddBrowserArgs Then $oWebV2M.AdditionalBrowserArguments = $s_AddBrowserArgs
-	If $s_fnEventPrefix Then $_g_sNetWebView2_User_WebViewEvents = $s_fnEventPrefix
+	If $s_fnEventPrefix Then
+		If $_g_sNetWebView2_User_WebViewEvents = '__NetWebView2_WebViewEvents__' Then ; prevent Recursion
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' : Please do not use UDF defined prefix: "__NetWebView2_WebViewEvents__"', 1)
+			$_g_sNetWebView2_User_WebViewEvents = ''
+		Else
+			$_g_sNetWebView2_User_WebViewEvents = $s_fnEventPrefix
+		EndIf
+	EndIf
 	ObjEvent($oWebV2M, "__NetWebView2_WebViewEvents__", "IWebViewEvents")
 	Return SetError(@error, @extended, $oWebV2M)
 EndFunc   ;==>_NetWebView2_CreateManager
@@ -169,7 +177,14 @@ Func _NetWebView2_GetBridge(ByRef $oWebV2M, $s_fnEventPrefix = "")
 	Local $oWebJS = $oWebV2M.GetBridge()
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " : Manager.GetBridge() ERROR", 1)
 
-	If $s_fnEventPrefix Then $_g_sNetWebView2_User_JSEvents = $s_fnEventPrefix
+	If $s_fnEventPrefix Then
+		If $_g_sNetWebView2_User_JSEvents = '__NetWebView2_JSEvents__' Then ; prevent Recursion
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' : Please do not use UDF defined prefix: "__NetWebView2_JSEvents__"', 1)
+			$_g_sNetWebView2_User_JSEvents = ''
+		Else
+			$_g_sNetWebView2_User_JSEvents = $s_fnEventPrefix
+		EndIf
+	EndIf
 	ObjEvent($oWebJS, "__NetWebView2_JSEvents__", "IBridgeEvents")
 
 	Return SetError(@error, @extended, $oWebJS)
@@ -762,12 +777,18 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived($sMsg)
 
 	Switch $sCommand
 		Case "WINDOW_RESIZED"
-			$aParts = StringSplit($sData, "|")
-			If $aParts[0] >= 2 Then
-				Local $iW = Int($aParts[1]), $iH = Int($aParts[2])
-				; Filter minor resize glitches
-				If $iW > 50 And $iH > 50 Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $iW & "x" & $iH, 1)
+			Local Static $sData_static = Null
+			If $sData_static <> $sData Then
+				$sData_static = $sData
+				$aParts = StringSplit($sData, "|")
+
+				If $aParts[0] >= 2 Then
+					Local $iW = Int($aParts[1]), $iH = Int($aParts[2])
+					; Filter minor resize glitches
+					If $iW > 50 And $iH > 50 Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' WINDOW_RESIZED:' & $iW & "x" & $iH, 1)
+				EndIf
 			EndIf
+
 		Case "NAV_STARTING"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
 			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__NAV_STARTING)
@@ -888,6 +909,10 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived($sMsg)
 		Case "BLOCKED_AD"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
 			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__BLOCKED_AD)
+
+		Case "DOWNLOAD_STARTING"
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
+			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 
 ;~ 		Case "*"
 ;~ 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
