@@ -7,7 +7,6 @@
 
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
-#include "..\..\NetWebView2Lib.au3"
 
 Opt("GUIOnEventMode", 1)
 OnAutoItExitRegister("_ExitApp")
@@ -59,3 +58,4 @@ Func _ExitApp()
     $oWeb = 0
     Exit
 EndFunc
+
