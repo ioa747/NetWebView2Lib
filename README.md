@@ -355,7 +355,6 @@ Enables or disables the Web Message communication system.
 ##### SetStatusBarEnabled
 Enables or disables the browser status bar.
 `object.SetStatusBarEnabled(Enabled As Boolean)`
-
   
 ##### CapturePreview
 Captures a screenshot of the current view to a file.
