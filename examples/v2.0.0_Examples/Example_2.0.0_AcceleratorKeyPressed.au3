@@ -15,7 +15,6 @@ OnAutoItExitRegister("_ExitApp")
 ; Global objects
 Global $oWeb, $oJS
 Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc") ; COM Error Handler
-Global $g_DebugInfo = True
 Global $g_sProfilePath = @ScriptDir & "\UserDataFolder"
 Global $hGUI
 
@@ -92,3 +91,4 @@ Func _ExitApp()
 	Exit
 EndFunc   ;==>_ExitApp
 #EndRegion ; === UTILS ===
+
