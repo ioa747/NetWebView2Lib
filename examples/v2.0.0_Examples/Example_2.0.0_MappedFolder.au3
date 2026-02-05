@@ -34,10 +34,6 @@ Func _Main()
     Local $sLocalFolder = @ScriptDir & "\MappedFolder"
     $oWeb.SetVirtualHostNameToFolderMapping("myapp.local", $sLocalFolder, 0)
 
-;~     ; Add Script (Now it will return a normal ID and not an Error)
-;~     Local $sScriptId = $oWeb.AddInitializationScript("window.onload = function() { if(window.setScriptStatus) window.setScriptStatus('Script Running (v2.0.0 Ready)'); };")
-;~     ConsoleWrite("+++ [Script Management]: Added Init Script. ID: " & $sScriptId & @CRLF)
-
     ; Finish Navigate
     $oWeb.Navigate("https://myapp.local/index.html")
 	Sleep(1500)
@@ -58,4 +54,3 @@ Func _ExitApp()
     $oWeb = 0
     Exit
 EndFunc
-
