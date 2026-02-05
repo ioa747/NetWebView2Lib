@@ -58,7 +58,6 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
 
----
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
@@ -93,7 +92,7 @@ We have abandoned the legacy synchronous polling for accelerator keys in favor o
 
 - **Improved Stability**: A new internal messaging system ensures that background state updates never interfere with the primary UI event loop, ensuring a smoother user experience during heavy navigation sequences.
 
----
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
