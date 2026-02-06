@@ -193,7 +193,7 @@ Returns a pipe-separated string of all active download URIs.
 Determines whether user can zoom the page (Ctrl+MouseWheel, shortcuts).
 `object.IsZoomControlEnabled[ = Value]`
 
-#### ===Methods=== 
+#### === Methods === 
 
 ##### Initialize
 Initializes the WebView2 control within a parent window.
@@ -228,7 +228,6 @@ Saves the current page as a PDF file.
 `object.ExportToPdf(FilePath As String)`
 
 ##### IsReady
-
 Checks if the WebView2 control is fully initialized and ready for use.
 `object.IsReady()`
 
@@ -351,7 +350,6 @@ Enables or disables the Web Message communication system.
 ##### SetStatusBarEnabled
 Enables or disables the browser status bar.
 `object.SetStatusBarEnabled(Enabled As Boolean)`
-
   
 ##### CapturePreview
 Captures a screenshot of the current view to a file.
