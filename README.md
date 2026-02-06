@@ -111,7 +111,7 @@ and a `CapturePreviewAsBase64(format)`  method to  Captures a screenshot of the 
 
 ### NetWebView2Lib (ProgId: NetWebView2.Manager)
 
-#### Properties
+#### === Properties ===
 
 ##### AreDevToolsEnabled
 Determines whether the user is able to use the context menu or keyboard shortcuts to open the DevTools window.
@@ -193,7 +193,7 @@ Returns a pipe-separated string of all active download URIs.
 Determines whether user can zoom the page (Ctrl+MouseWheel, shortcuts).
 `object.IsZoomControlEnabled[ = Value]`
 
-#### Method
+#### === Methods === 
 
 ##### Initialize
 Initializes the WebView2 control within a parent window.
@@ -485,7 +485,7 @@ Cancels active downloads. If `uri` is empty or omitted, cancels all active downl
 Captures the current page as a PDF and returns the content as a Base64-encoded string.
 `object.PrintToPdfStream()`
 
-#### Events
+#### === Events === 
 
 ##### OnMessageReceived
 Fired when a message or notification is sent from the library to AutoIt.
@@ -544,7 +544,7 @@ Fired when a download state changes (e.g., Progress, Completed, Failed).
 
 ### JsonParser (ProgId: NetJson.Parser)
 
-#### Methods
+#### === Methods ===
 
 ##### Parse
 Parses a JSON string. Automatically detects if it's an Object or an Array.
