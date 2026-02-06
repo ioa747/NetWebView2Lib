@@ -27,7 +27,7 @@ EndIf
 Global $oWebV2M, $oJSBridge
 Global $hGUI, $Bar
 Global $hDLL = DllOpen("user32.dll")
-Global $g_sProfilePath = @ScriptDir & "\UserDataFolder"
+Global $g_sProfilePath = @TempDir & "\UserDataFolder"
 
 _Example()
 

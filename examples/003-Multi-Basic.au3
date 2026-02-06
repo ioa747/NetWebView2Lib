@@ -18,11 +18,11 @@ Func Main()
 
 	; --- BROWSER 1 ---
 	Local $oWeb1, $hCont1, $oBridge1
-	_Browser_Setup($hMainGUI, "Web1_", @ScriptDir & "\User_A", 10, 10, 480, 500, $oWeb1, $hCont1, $oBridge1)
+	_Browser_Setup($hMainGUI, "Web1_", @TempDir & "\User_A", 10, 10, 480, 500, $oWeb1, $hCont1, $oBridge1)
 
 	; --- BROWSER 2 ---
 	Local $oWeb2, $hCont2, $oBridge2
-	_Browser_Setup($hMainGUI, "Web2_", @ScriptDir & "\User_B", 510, 10, 480, 500, $oWeb2, $hCont2, $oBridge2)
+	_Browser_Setup($hMainGUI, "Web2_", @TempDir & "\User_B", 510, 10, 480, 500, $oWeb2, $hCont2, $oBridge2)
 
 	; --- Main Loop ---
 	While 1

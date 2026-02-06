@@ -1,7 +1,7 @@
 #AutoIt3Wrapper_UseX64=y
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
-#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+;~ #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 
 ; 001-BasicDemo.au3
 
@@ -22,7 +22,6 @@ Func Main()
 	; Create the UI
 	Local $iHeight = 800
 	Local $hGUI = GUICreate("WebView2 .NET Manager - Community Demo", 1100, $iHeight)
-	$idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 880, 20)
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 
 	WinMove($hGUI, '', Default, Default, 800, 440)
@@ -30,7 +29,6 @@ Func Main()
 
 	; Initialize WebView2 Manager and register events
 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--disable-gpu, --mute-audio")
-	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	; Initialize JavaScript Bridge
@@ -42,14 +40,14 @@ Func Main()
 	__NetWebView2_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()", 1)
 
 	; navigate to HTML string - full fill the object with your own offline content - without downloading any content
-	_NetWebView2_NavigateToString($_g_oWeb, __GetDemoHTML())
+	_NetWebView2_NavigateToString($oWebV2M, __GetDemoHTML())
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to string')
 
 	GUISetState(@SW_HIDE, $hGUI)
 	WinMove($hGUI, '', Default, Default, 1100, 800)
 
 	; navigate to a given URL - online content
-	_NetWebView2_Navigate($_g_oWeb, 'https://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5 * 1000)
+	_NetWebView2_Navigate($oWebV2M, 'https://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5 * 1000)
 	GUISetState(@SW_SHOW, $hGUI)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to a given URL - online content')
 
@@ -73,7 +71,7 @@ Func Main()
 
 	GUIDelete($hGUI)
 
-	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
+	_NetWebView2_CleanUp($oWebV2M)
 EndFunc   ;==>Main
 
 ; ==============================================================================
@@ -89,7 +87,7 @@ Func UpdateWebUI($oWebV2M, $sElementId, $sNewText)
 	$sCleanText = StringReplace($sCleanText, @LF, "\n")
 
 	Local $sJavaScript = "document.getElementById('" & $sElementId & "').innerText = '" & $sCleanText & "';"
-	_NetWebView2_ExecuteScript($oWebV2M)
+	_NetWebView2_ExecuteScript($oWebV2M, $sJavaScript)
 EndFunc   ;==>UpdateWebUI
 
 ; ==============================================================================

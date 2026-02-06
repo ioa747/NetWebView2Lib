@@ -77,6 +77,7 @@ EndFunc   ;==>_Show_Form
 
 ; Handles data received from the JavaScript 'postMessage'
 Func __MyEVENTS_Bridge_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
+	#forceref $oWebV2M, $hGUI
 	ConsoleWrite("$sMessage=" & $sMessage & @CRLF)
 
 	; Check for the specific form submission prefix

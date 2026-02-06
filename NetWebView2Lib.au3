@@ -1,9 +1,9 @@
-;~ #AutoIt3Wrapper_UseX64=y
-#AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #Au3Stripper_Ignore_Funcs=__NetWebView2_WebViewEvents__*,__NetWebView2_JSEvents__*
+
+; NetWebView2Lib.au3
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
