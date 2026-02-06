@@ -3,17 +3,18 @@
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 
-; 004-FileViewerDemo.au3
+; 004-FileViewerDemo_Loop.au3
 
+#include <File.au3>
 #include <GUIConstantsEx.au3>
 #include <SendMessage.au3>
 #include <StaticConstants.au3>
 #include <WinAPIGdi.au3>
-#include <WinAPISysWin.au3>
-#include <WindowsConstants.au3>
-#include <WinAPIGdi.au3>
 #include <WinAPIGdiDC.au3>
 #include <WinAPIHObj.au3>
+#include <WinAPISysWin.au3>
+#include <WindowsConstants.au3>
+
 
 #SciTE4AutoIt3_Dynamic_Include_Path=;..\NetWebView2Lib.au3
 #SciTE4AutoIt3_Dynamic_Include=y                               ;dynamic.include=y/n
@@ -31,15 +32,6 @@
 
 #include "..\NetWebView2Lib.au3"
 
-; ==============================================================================
-; WebView2 Multi-Channel Presentation Script^
-; ==============================================================================
-
-; Global objects
-
-; GUI & Controls
-Global $hGUI, $idLabelStatus
-
 Main()
 
 Func Main()
@@ -48,8 +40,9 @@ Func Main()
 
 	; Create the UI
 	Local $iHeight = 800
-	$hGUI = GUICreate("WebView2 .NET Manager - Demo: " & @ScriptName, 1100, $iHeight, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
-	$idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 880, 20)
+	Local $hGUI = GUICreate("WebView2 .NET Manager - Demo: " & @ScriptName, 1100, $iHeight, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
+	Local $idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 880, 20)
+	#forceref $idLabelStatus
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 
 	; Initialize WebView2 Manager and register events
@@ -57,33 +50,28 @@ Func Main()
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 ;~ 	; Initialize JavaScript Bridge
-;~ 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M)
+;~ 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
 ;~ 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	Local $sProfileDirectory = @TempDir & "\..\UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
+	Local $i_ProcessID = @extended
+	#forceref $i_ProcessID
 
 	GUISetState(@SW_SHOW, $hGUI)
-	WinSetOnTop($hGUI, '', True)
-
+	ConsoleWrite("! ===" & @ScriptLineNumber & @CRLF)
+;~ 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 0)
 	Local $s_PDF_FileFullPath
 
-	#TIP: FitToPage: https://stackoverflow.com/questions/78820187/how-to-change-webview2-fit-to-page-button-on-pdf-toolbar-default-to-fit-to-width#comment138971950_78821231
-	_WebView2_ShowPD($hGUI, $oWebV2M, "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf#view=FitH")
+	Local $s_PDF_Directory = FileSelectFolder('Choose folder with PDF', '')
 
-	#TIP: Open desired PAGE: https://stackoverflow.com/questions/68500164/cycle-pdf-pages-in-wpf-webview2#comment135402565_68566860
-	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_1.pdf#page=1'
-	_WebView2_ShowPD($hGUI, $oWebV2M, $s_PDF_FileFullPath)
-;~ 	MsgBox($MB_TOPMOST, " _WebView2_ShowPD() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
-
-	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_2.pdf'
-	_WebView2_ShowPD($hGUI, $oWebV2M, $s_PDF_FileFullPath)
-;~ 	MsgBox($MB_TOPMOST, " _WebView2_ShowPD() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
-
-	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_3.pdf#view=FitH'
-	_WebView2_ShowPD($hGUI, $oWebV2M, $s_PDF_FileFullPath)
-
-;~ 	MsgBox($MB_TOPMOST, " _WebView2_ShowPD() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
+	Local $a_Files = _FileListToArrayRec($s_PDF_Directory, '*.pdf', $FLTAR_FILES, $FLTAR_RECUR, $FLTAR_NOSORT, $FLTAR_FULLPATH)
+	Local Static $hWebView2_Window = _WinAPI_GetWindow($hGUI, $GW_CHILD)
+	For $IDX_File = 1 To $a_Files[0]
+		$s_PDF_FileFullPath = $a_Files[$IDX_File]
+		_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, $hWebView2_Window, '#view=FitH', 1000)
+		ConsoleWrite("! === @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
+	Next
 
 	; Main Loop
 	While 1
@@ -93,30 +81,40 @@ Func Main()
 		EndSwitch
 	WEnd
 
-	GUIDelete($hGUI)
-
 	_NetWebView2_CleanUp($oWebV2M)
+	GUIDelete($hGUI)
 EndFunc   ;==>Main
 
-Func _GetFirstChildWindowHWND($hWnd)
+Func _EnumWindow($hWnd)
 	Local $aData = _WinAPI_EnumChildWindows($hWnd)
 	ConsoleWrite("! $aData[1][0] = " & $aData[1][0] & @CRLF)
-;~  _ArrayDisplay($aData, '_WinAPI_EnumChildWindows')
+;~ 	_ArrayDisplay($aData, '_WinAPI_EnumChildWindows')
 
 	If Not @error And UBound($aData) Then Return $aData[1][0]
 
 	Return SetError(1, @extended, False)
-EndFunc   ;==>_GetFirstChildWindowHWND
+EndFunc   ;==>_EnumWindow
 
+Func __NetWebView2_freezer($hWebView2_Window, $idPic = 0)
+	#Region ; if $idPic is given then it means you already have it and want to delete it - unfreeze - show WebView2 content
+	If $idPic Then
+		_SendMessage($hWebView2_Window, $WM_SETREDRAW, True, 0) ; Enables
+		_WinAPI_RedrawWindow($hWebView2_Window, 0, 0, BitOR($RDW_FRAME, $RDW_INVALIDATE, $RDW_ALLCHILDREN))  ; Repaints
+		GUICtrlDelete($idPic)
+		Return
+	EndIf
+	#EndRegion ; if $idPic is given then it means you already have it and want to delete it - unfreeze - show WebView2 content
 
-Func __WebView2_freezer($hMainGUI_Window, $hWebView2_Window)
+	#Region ; freeze $hWebView2_Window
+
+	#Region ; add PIC to parent window
+	Local $hMainGUI_Window = _WinAPI_GetWindow($hWebView2_Window, $GW_HWNDPREV)
 	Local $aPos = WinGetPos($hWebView2_Window)
-
 	Local $hPrev = GUISwitch($hMainGUI_Window)
-;~     Local $idPic = GUICtrlCreatePic('', $aPos[0], $aPos[1], $aPos[2], $aPos[3])
-	Local $idPic = GUICtrlCreatePic('', 0, 0, $aPos[2], $aPos[3])
+	$idPic = GUICtrlCreatePic('', 0, 0, $aPos[2], $aPos[3])
 	Local $hPic = GUICtrlGetHandle($idPic)
 	GUISwitch($hPrev)
+	#EndRegion ; add PIC to parent window
 
 	; Create bitmap
 	Local $hDC = _WinAPI_GetDC($hPic)
@@ -142,17 +140,34 @@ Func __WebView2_freezer($hMainGUI_Window, $hWebView2_Window)
 	If $hObj <> $hBitmap Then
 		_WinAPI_DeleteObject($hBitmap)
 	EndIf
-	Return $idPic
-EndFunc   ;==>__WebView2_freezer
 
-Func _WebView2_ShowPD($hMainGUI_Window, $oWebV2M, $s_PDF_FileFullPath)
-	Local $hWebView2_Window = _WinAPI_GetWindow($hMainGUI_Window, $GW_CHILD)
-	Local $idPic = __WebView2_freezer($hMainGUI_Window, $hWebView2_Window)
 	_SendMessage($hWebView2_Window, $WM_SETREDRAW, False, 0) ; Disables ; https://www.autoitscript.com/forum/topic/199172-disable-gui-updating-repainting/
-	_NetWebView2_Navigate($oWebV2M, $s_PDF_FileFullPath)
-	Sleep(1000)
-	_SendMessage($hWebView2_Window, $WM_SETREDRAW, True, 0) ; Enables
-	_WinAPI_RedrawWindow($hWebView2_Window, 0, 0, BitOR($RDW_FRAME, $RDW_INVALIDATE, $RDW_ALLCHILDREN))  ; Repaints
-	GUICtrlDelete($idPic)
-EndFunc   ;==>_WebView2_ShowPD
+	Return $idPic
+	#EndRegion ; freeze $hWebView2_Window
+EndFunc   ;==>__NetWebView2_freezer
 
+Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, $hWebView2_Window = 0, $s_Parameters = '', $iSleep_ms = 1000)
+	Local $idPic
+	If FileExists($s_URL_or_FileFullPath) Then
+		$s_URL_or_FileFullPath = StringReplace($s_URL_or_FileFullPath, ' ', '%20')
+		$s_URL_or_FileFullPath = "file:///" & $s_URL_or_FileFullPath
+		If $iSleep_ms Then
+			$iSleep_ms -= 400
+			If $iSleep_ms < 600 Then $iSleep_ms = 600
+		EndIf
+	EndIf
+
+	If $s_Parameters Then
+		$s_URL_or_FileFullPath &= $s_Parameters
+		#TIP: FitToPage: https://stackoverflow.com/questions/78820187/how-to-change-webview2-fit-to-page-button-on-pdf-toolbar-default-to-fit-to-width#comment138971950_78821231
+		#TIP: Open desired PAGE: https://stackoverflow.com/questions/68500164/cycle-pdf-pages-in-wpf-webview2#comment135402565_68566860
+	EndIf
+
+	If $hWebView2_Window Then $idPic = __NetWebView2_freezer($hWebView2_Window)
+
+	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FileFullPath)
+	Sleep($iSleep_ms)
+	If $hWebView2_Window Then
+		__NetWebView2_freezer($hWebView2_Window, $idPic)
+	EndIf
+EndFunc   ;==>_NetWebView2_NavigateToPDF
