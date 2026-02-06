@@ -1,4 +1,10 @@
 #AutoIt3Wrapper_UseX64=y
+#AutoIt3Wrapper_Run_AU3Check=Y
+#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
+#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+
+; 003-Multi-Basic.au3
+
 #include <WindowsConstants.au3>
 #include <GUIConstantsEx.au3>
 #include "..\NetWebView2Lib.au3"
@@ -36,10 +42,11 @@ EndFunc   ;==>Main
 
 ; Manager Events
 Func Web1_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+	#forceref $hGUI
 	ConsoleWrite("+> [Browser 1]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
-		$oWebV2M.ExecuteScript('window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
-		$oWebV2M.NavigateToString(_GetDemoHTML("Browser 1 Content"))
+		_NetWebView2_ExecuteScript($oWebV2M, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
+		_NetWebView2_NavigateToString($oWebV2M, _GetDemoHTML("Browser 1 Content"))
 	EndIf
 EndFunc   ;==>Web1_OnMessageReceived
 
@@ -66,10 +73,11 @@ EndFunc   ;==>Web1_Bridge_OnMessageReceived
 
 ; Manager Events
 Func Web2_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+	#forceref $hGUI
 	ConsoleWrite("+> [Browser 2]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
-		$oWebV2M.ExecuteScript('window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
-		$oWebV2M.NavigateToString(_GetDemoHTML("Browser 2 Content"))
+		_NetWebView2_ExecuteScript($oWebV2M, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
+		_NetWebView2_NavigateToString($oWebV2M, _GetDemoHTML("Browser 2 Content"))
 	EndIf
 EndFunc   ;==>Web2_OnMessageReceived
 
@@ -97,7 +105,7 @@ EndFunc   ;==>Web2_Bridge_OnMessageReceived
 Func UpdateWebUI($oManager, $sElementId, $sNewText)
 	If Not IsObj($oManager) Then Return
 	Local $sJS = StringFormat("document.getElementById('%s').innerText = '%s';", $sElementId, $sNewText)
-	$oManager.ExecuteScript($sJS)
+	_NetWebView2_ExecuteScript($oManager, $sJS)
 EndFunc   ;==>UpdateWebUI
 
 Func _Browser_Setup($hParent, $sPrefix, $sProfile, $iX, $iY, $iW, $iH, ByRef $oOutWeb, ByRef $hOutCont, ByRef $oOutBridge)

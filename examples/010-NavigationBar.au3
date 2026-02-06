@@ -1,10 +1,9 @@
-#AutoIt3Wrapper_UseX64=n
+#AutoIt3Wrapper_UseX64=y
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
-#Au3Stripper_Ignore_Funcs=__NetWebView2_WebEvents_*,__NetWebView2_JSEvents_*
 
-; _Web_MakeBar.au3
+; 010-NavigationBar.au3
 
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
@@ -12,7 +11,6 @@
 #include <Misc.au3>
 #include <GuiMenu.au3>
 #include <WinAPIMisc.au3>
-
 #include "_WV2_ExtensionPicker.au3"
 #include "..\NetWebView2Lib.au3"
 
@@ -271,4 +269,3 @@ Func WM_COMMAND($hWnd, $iMsg, $wParam, $lParam) ; Register the WM_COMMAND (CALLB
 	Return $GUI_RUNDEFMSG
 EndFunc   ;==>WM_COMMAND
 ;---------------------------------------------------------------------------------------
-

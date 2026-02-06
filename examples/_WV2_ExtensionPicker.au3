@@ -1,6 +1,12 @@
 #include-once
+#AutoIt3Wrapper_UseX64=y
+#AutoIt3Wrapper_Run_AU3Check=Y
+#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
+#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+
 ; _WV2_ExtensionPicker.au3
-; Comprehensive Extension Manager v1.0.0 for NetWebView2Lib v1.3.0 +
+; Extension Manager v0.0.2 for NetWebView2Lib
+
 #include <File.au3>
 #include <WindowsStylesConstants.au3>
 #include <WinAPISysWin.au3>
@@ -122,21 +128,21 @@ Func __ExtensionPickerLoad()
 			EndIf
 
 			If StringLen($sExtensionID) = 32 Then
-                Local $bIsActive = FileExists($__sActiveExtensionsBase & "\" & $sExtensionID)
+				Local $bIsActive = FileExists($__sActiveExtensionsBase & "\" & $sExtensionID)
 
-                ; finding the Popup Path from the manifest
-                Local $sPopupPath = "index.html" ; Default
-                Local $sManifestPath = $__sExtSourcePath & "\" & $aFolders[$i] & "\manifest.json"
+				; finding the Popup Path from the manifest
+				Local $sPopupPath = "index.html" ; Default
+				Local $sManifestPath = $__sExtSourcePath & "\" & $aFolders[$i] & "\manifest.json"
 				If FileExists($sManifestPath) And IsObj($oJson) Then
-                    $oJson.Parse(FileRead($sManifestPath))
-                    ; 1. Test for Manifest V3 (action)
-                    Local $sFound = $oJson.GetTokenValue("action.default_popup")
-                    ; 2. Test for Manifest V2 if V3 is empty (browser_action)
-                    If $sFound == "" Then $sFound = $oJson.GetTokenValue("browser_action.default_popup")
-                    ; 3. Test for page-action (rare but exists)
-                    If $sFound == "" Then $sFound = $oJson.GetTokenValue("page_action.default_popup")
-                    ; 4. apply if Found
-                    If $sFound <> "" Then $sPopupPath = $sFound
+					$oJson.Parse(FileRead($sManifestPath))
+					; 1. Test for Manifest V3 (action)
+					Local $sFound = $oJson.GetTokenValue("action.default_popup")
+					; 2. Test for Manifest V2 if V3 is empty (browser_action)
+					If $sFound == "" Then $sFound = $oJson.GetTokenValue("browser_action.default_popup")
+					; 3. Test for page-action (rare but exists)
+					If $sFound == "" Then $sFound = $oJson.GetTokenValue("page_action.default_popup")
+					; 4. apply if Found
+					If $sFound <> "" Then $sPopupPath = $sFound
 				EndIf
 
 				$sListBody &= '<div class="card"><div class="info">'
@@ -204,13 +210,13 @@ Func __PopBridge_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
 			$oWebV2M.NavigateToString(__ExtensionPickerLoad())
 
 		Case "NAV_EXT" ; NAV_EXT|ID|PopupPath
-            If $aParts[0] > 2 Then
-                Local $sTargetID = $aParts[2]
-                Local $sPopupPath = $aParts[3]
+			If $aParts[0] > 2 Then
+				Local $sTargetID = $aParts[2]
+				Local $sPopupPath = $aParts[3]
 
-                ConsoleWrite("> Launching Extension: " & $sTargetID & " Path: " & $sPopupPath & @CRLF)
-                $oWebV2M.Navigate("extension://" & $sTargetID & "/" & $sPopupPath)
-            EndIf
+				ConsoleWrite("> Launching Extension: " & $sTargetID & " Path: " & $sPopupPath & @CRLF)
+				$oWebV2M.Navigate("extension://" & $sTargetID & "/" & $sPopupPath)
+			EndIf
 
 		Case "ADD_EXT"
 			Local $sExtPath = $__sExtSourcePath & "\" & $aParts[2]
