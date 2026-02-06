@@ -8,11 +8,6 @@
 ; WebView2 Multi-Channel Presentation Script
 ; ==============================================================================
 
-; Global objects
-
-; GUI & Controls
-Global $hGUI, $idLabelStatus
-
 Main()
 
 Func Main()
@@ -21,7 +16,7 @@ Func Main()
 
 	; Create the UI
 	Local $iHeight = 800
-	$hGUI = GUICreate("WebView2 .NET Manager - Community Demo", 1100, $iHeight)
+	Local $hGUI = GUICreate("WebView2 .NET Manager - Community Demo", 1100, $iHeight)
 	$idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 880, 20)
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 
@@ -43,8 +38,7 @@ Func Main()
 
 	; navigate to HTML string - full fill the object with your own offline content - without downloading any content
 	_NetWebView2_NavigateToString($_g_oWeb, __GetDemoHTML())
-
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to string')
 
 	GUISetState(@SW_HIDE, $hGUI)
 	WinMove($hGUI, '', Default, Default, 1100, 800)
@@ -52,16 +46,17 @@ Func Main()
 	; navigate to a given URL - online content
 	_NetWebView2_Navigate($_g_oWeb, 'https://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5 * 1000)
 	GUISetState(@SW_SHOW, $hGUI)
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to a given URL - online content')
 
 	; navigate to fake/broken url
-;~ 	_NetWebView2_Navigate($oWebV2M, 'htpppps://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
-;~ 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+	_NetWebView2_Navigate($oWebV2M, 'htpppps://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5 * 1000)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to fake/broken url')
 
-	; navigate to fake/broken url
-;~ 	_NetWebView2_Navigate($oWebV2M, 'https://w2ww.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 100)
-;~ 	__NetWebView2_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com", 1)
-;~ 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point')
+	; navigate to fake not ex url
+	__NetWebView2_Log(@ScriptLineNumber, "Before: https://w2ww.microsoft.com", 1)
+	_NetWebView2_Navigate($oWebV2M, 'https://w2ww.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5 * 1000)
+	__NetWebView2_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com", 1)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to fake/broken url' & @CRLF & 'HostNameNotResolved')
 
 	; Main Loop
 	While 1
@@ -79,8 +74,8 @@ EndFunc   ;==>Main
 ; ==============================================================================
 ; ; Function to update a text element inside the WebView UI
 ; ==============================================================================
-Func UpdateWebUI(ByRef $oWeb, $sElementId, $sNewText)
-	If Not IsObj($oWeb) Then Return ''
+Func UpdateWebUI($oWebV2M, $sElementId, $sNewText)
+	If Not IsObj($oWebV2M) Then Return ''
 
 	; Escape backslashes, single quotes and handle new lines for JavaScript safety
 	Local $sCleanText = StringReplace($sNewText, "\", "\\")
@@ -89,13 +84,13 @@ Func UpdateWebUI(ByRef $oWeb, $sElementId, $sNewText)
 	$sCleanText = StringReplace($sCleanText, @LF, "\n")
 
 	Local $sJavaScript = "document.getElementById('" & $sElementId & "').innerText = '" & $sCleanText & "';"
-	_NetWebView2_ExecuteScript($oWeb, $sJavaScript)
+	_NetWebView2_ExecuteScript($oWebV2M)
 EndFunc   ;==>UpdateWebUI
 
 ; ==============================================================================
 ; MY EVENT HANDLER: Bridge (JavaScript Messages)
 ; ==============================================================================
-Func _BridgeMyEventsHandler_OnMessageReceived($sMessage)
+Func _BridgeMyEventsHandler_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
 	Local Static $iMsgCnt = 0
 
 	If $sMessage = "CLOSE_APP" Then
@@ -103,7 +98,7 @@ Func _BridgeMyEventsHandler_OnMessageReceived($sMessage)
 	Else
 		MsgBox(64, "JS Notification", "Message from Browser: " & $sMessage)
 		$iMsgCnt += 1
-		UpdateWebUI($_g_oWeb, "mainTitle", $iMsgCnt & " Hello from AutoIt!")
+		UpdateWebUI($oWebV2M, "mainTitle", $iMsgCnt & " Hello from AutoIt!")
 	EndIf
 EndFunc   ;==>_BridgeMyEventsHandler_OnMessageReceived
 
@@ -111,7 +106,8 @@ EndFunc   ;==>_BridgeMyEventsHandler_OnMessageReceived
 ; HELPER: Demo HTML Content
 ; ==============================================================================
 Func __GetDemoHTML()
-	Local $sH = '<html><head><style>' & _
+	Local $sH = _
+			'<html><head><style>' & _
 			'body { font-family: "Segoe UI", sans-serif; background: #202020; color: white; padding: 40px; text-align: center; }' & _
 			'.card { background: #2d2d2d; padding: 20px; border-radius: 8px; border: 1px solid #444; }' & _
 			'button { padding: 12px 24px; cursor: pointer; background: #0078d4; color: white; border: none; border-radius: 4px; font-size: 16px; margin: 5px; }' & _

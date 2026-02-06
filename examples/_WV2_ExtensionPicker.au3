@@ -19,7 +19,7 @@ Global $__sExtSourcePath, $__sActiveExtensionsBase
 ;                  $sExtSourcePath - Path to your Extensions Library folder (Format: Name_ID)
 ;                  $sUserDataPath  - Path to the current WebView2 User Data Folder
 ; ===============================================================================================================================
-Func _WV2_ShowExtensionPicker($iWidth = 500, $iHeight = 600, $hWND = 0, $sExtSourcePath = "", $sUserDataPath = "")
+Func _WV2_ShowExtensionPicker($iWidth = 500, $iHeight = 650, $hWND = 0, $sExtSourcePath = "", $sUserDataPath = "")
 
 	If Not FileExists($sExtSourcePath) Then Return MsgBox(48, "Extension Manager", "Extension Libpary is empty" & _
 			@CRLF & "or path not exist")
@@ -36,7 +36,7 @@ Func _WV2_ShowExtensionPicker($iWidth = 500, $iHeight = 600, $hWND = 0, $sExtSou
 	Opt("GUIOnEventMode", 1)
 
 	; Create Modal GUI
-	$__hPop = GUICreate("Extension Manager", $iWidth, $iHeight, -1, -1, -1, -1, $hWND)
+	$__hPop = GUICreate("Extension Manager", $iWidth, $iHeight, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN), -1, $hWND)
 	GUISetBkColor(0x1A1A1A, $__hPop)
 	GUISetOnEvent($GUI_EVENT_CLOSE, "__ExtensionPickerEvents")
 
@@ -57,6 +57,7 @@ Func _WV2_ShowExtensionPicker($iWidth = 500, $iHeight = 600, $hWND = 0, $sExtSou
 
 	; Use the UserDataPath folder for the picker's internal data
 	$__oWeb.Initialize($__hPop, $sUserDataPath, 0, 35, $iWidth, $iHeight - 35)
+	$__oWeb.SetAutoResize(True)
 
 	; Wait for the engine to be ready
 	Do
@@ -166,7 +167,8 @@ Func __ExtensionPickerLoad()
 EndFunc   ;==>__ExtensionPickerLoad
 
 ; #INTERNAL_CALLBACK# ===========================================================================================================
-Func __PopWebView_OnMessageReceived($sMessage)
+Func __PopWebView_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
+	#forceref $hGUI
 	ConsoleWrite("+PopWebViewMessage=" & $sMessage & @CRLF)
 	Local $aParts = StringSplit($sMessage, "|")
 	Local $sCommand = StringStripWS($aParts[1], 3)
@@ -174,7 +176,7 @@ Func __PopWebView_OnMessageReceived($sMessage)
 		Case "EXTENSION_LOADED"
 
 		Case "EXTENSION_REMOVED"
-			$__oWeb.NavigateToString(__ExtensionPickerLoad())
+			$oWebV2M.NavigateToString(__ExtensionPickerLoad())
 
 		Case "TITLE_CHANGED"
 			Local $sTitle = $aParts[2]
@@ -191,14 +193,15 @@ Func __PopWebView_OnMessageReceived($sMessage)
 EndFunc   ;==>__PopWebView_OnMessageReceived
 
 ; #INTERNAL_CALLBACK# ===========================================================================================================
-Func __PopBridge_OnMessageReceived($sMessage)
+Func __PopBridge_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
+	#forceref $hGUI
 	ConsoleWrite("-PopBridgeMessage=" & $sMessage & @CRLF)
 	Local $aParts = StringSplit($sMessage, "|")
 	Local $sCommand = StringStripWS($aParts[1], 3)
 
 	Switch $sCommand
 		Case "GO_BACK_TO_LIST"
-			$__oWeb.NavigateToString(__ExtensionPickerLoad())
+			$oWebV2M.NavigateToString(__ExtensionPickerLoad())
 
 		Case "NAV_EXT" ; NAV_EXT|ID|PopupPath
             If $aParts[0] > 2 Then
@@ -206,17 +209,17 @@ Func __PopBridge_OnMessageReceived($sMessage)
                 Local $sPopupPath = $aParts[3]
 
                 ConsoleWrite("> Launching Extension: " & $sTargetID & " Path: " & $sPopupPath & @CRLF)
-                $__oWeb.Navigate("extension://" & $sTargetID & "/" & $sPopupPath)
+                $oWebV2M.Navigate("extension://" & $sTargetID & "/" & $sPopupPath)
             EndIf
 
 		Case "ADD_EXT"
 			Local $sExtPath = $__sExtSourcePath & "\" & $aParts[2]
 			ConsoleWrite("> Loading Extension: " & $sExtPath & @CRLF)
-			$__oWeb.AddExtension($sExtPath)
+			$oWebV2M.AddExtension($sExtPath)
 
 		Case "REMOVE_EXT"
 			ConsoleWrite("> Remove Extension: " & $aParts[2] & @CRLF)
-			$__oWeb.RemoveExtension($aParts[2])
+			$oWebV2M.RemoveExtension($aParts[2])
 
 	EndSwitch
 EndFunc   ;==>__PopBridge_OnMessageReceived
