@@ -477,7 +477,7 @@ EndFunc   ;==>_NetWebView2_PrintToPdfStream
 ;                  $sScript - The JavaScript code to inject.
 ; Return values .: Success  - Returns a Script ID (string).
 ;                  Failure  - Returns the error message and sets @error.
-; Author ........: mLipok, ioa747
+; Author ........: ioa747
 ; Modified ......:
 ; Remarks .......:
 ; Related .......:
@@ -522,7 +522,7 @@ EndFunc   ;==>_NetWebView2_RemoveInitializationScript
 ;                  $iAccessKind - 0: Allow, 1: Deny, 2: Allow (Cross-Origin restricted).
 ; Return values .: Success      - True
 ;                  Failure      - False and sets @error
-; Author ........: mLipok, ioa747
+; Author ........: ioa747
 ; Modified ......:
 ; Remarks .......:
 ; Related .......:
