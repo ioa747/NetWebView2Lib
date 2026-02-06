@@ -66,7 +66,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_WebViewEvents__
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_IN_PROGRESS, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_INTERRUPTED, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_COMPLETED, _
-		$NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED, _ ; 👈
+		$NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED, _
 		$NETWEBVIEW2_MESSAGE___FAKE_COUNTER
 
 #Region ; NetWebView2Lib UDF - _NetWebView2_* core functions
@@ -942,7 +942,7 @@ Func __NetWebView2_WebViewEvents__OnMessageReceived(ByRef $oWebV2M, $hGUI, $sMsg
 				If $aParts[0] >= 2 Then
 					Local $iW = Int($aParts[1]), $iH = Int($aParts[2])
 					; Filter minor resize glitches
-						If $iW > 50 And $iH > 50 Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix  & ' COMMAND:' & $sCommand & ':' & $iW & "x" & $iH, 1)
+					If $iW > 50 And $iH > 50 Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand & ':' & $iW & "x" & $iH, 1)
 				EndIf
 				__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__WINDOW_RESIZED)
 			EndIf
@@ -1229,21 +1229,23 @@ EndFunc   ;==>__NetWebView2_WebViewEvents__OnContextMenu
 Func __NetWebView2_WebViewEvents__OnWebResourceResponseReceived(ByRef $oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
 	Local Const $s_Prefix = "[WebViewEvents__OnWebResourceResponseReceived]: HTTP: " & $iStatusCode & " (" & $sReasonPhrase & ")  URL: " & $sRequestUrl
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED)
 	If $_g_sNetWebView2_User_WebViewEvents Then
 		Call($_g_sNetWebView2_User_WebViewEvents & 'OnWebResourceResponseReceived', $oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
 	EndIf
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnWebResourceResponseReceived
 
-Func __NetWebView2_WebViewEvents__OnDownloadStarting(ByRef $oWebV2M, $hGUI, $sUrl, $sDefaultPath)
-	Local Const $s_Prefix = "[WebViewEvents__OnDownloadStarting]: URL: " & $sUrl & " DEFAULT_PATH: " & $sDefaultPath
+Func __NetWebView2_WebViewEvents__OnDownloadStarting(ByRef $oWebV2M, $hGUI, $sURL, $sDefaultPath)
+	Local Const $s_Prefix = "[WebViewEvents__OnDownloadStarting]: URL: " & $sURL & " DEFAULT_PATH: " & $sDefaultPath
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 	If $_g_sNetWebView2_User_WebViewEvents Then
-		Call($_g_sNetWebView2_User_WebViewEvents & 'OnDownloadStarting', $oWebV2M, $hGUI, $sUrl, $sDefaultPath)
+		Call($_g_sNetWebView2_User_WebViewEvents & 'OnDownloadStarting', $oWebV2M, $hGUI, $sURL, $sDefaultPath)
 	EndIf
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnDownloadStarting
 
-Func __NetWebView2_WebViewEvents__OnDownloadStateChanged(ByRef $oWebV2M, $hGUI, $sState, $sUrl, $iTotalBytes, $iReceivedBytes)
-	Local Const $s_Prefix = "[WebViewEvents__OnDownloadStateChanged]: State: " & $sState & " Uri: " & $sUri & " Total_Bytes: " & $iTotal_Bytes & " Received_Bytes: " & $iReceived_Bytes
+Func __NetWebView2_WebViewEvents__OnDownloadStateChanged(ByRef $oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
+	Local Const $s_Prefix = "[WebViewEvents__OnDownloadStateChanged]: State: " & $sState & " URL: " & $sURL & " Total_Bytes: " & $iTotal_Bytes & " Received_Bytes: " & $iReceived_Bytes
 	Local $iPercent = 0
 	If $iTotal_Bytes > 0 Then $iPercent = Round(($iReceived_Bytes / $iTotal_Bytes) * 100)
 
@@ -1260,12 +1262,12 @@ Func __NetWebView2_WebViewEvents__OnDownloadStateChanged(ByRef $oWebV2M, $hGUI, 
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $s_Message, 1)
 			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_INTERRUPTED)
 		Case "Completed"
-			ConsoleWrite("--> DOWNLOAD_COMPLETED: Finished: " & $sUri & @CRLF)
+			ConsoleWrite("--> DOWNLOAD_COMPLETED: Finished: " & $sURL & @CRLF)
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $s_Message, 1)
 			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_COMPLETED)
 	EndSwitch
 	If $_g_sNetWebView2_User_WebViewEvents Then
-		Call($_g_sNetWebView2_User_WebViewEvents & 'OnDownloadStateChanged', $oWebV2M, $hGUI, $sState, $sUrl, $iTotalBytes, $iReceivedBytes)
+		Call($_g_sNetWebView2_User_WebViewEvents & 'OnDownloadStateChanged', $oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
 	EndIf
 EndFunc   ;==>__NetWebView2_WebViewEvents__OnDownloadStateChanged
 
