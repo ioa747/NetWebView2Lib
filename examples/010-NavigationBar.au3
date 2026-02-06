@@ -100,7 +100,7 @@ Func _Example()
 
 	GUIDelete($hGUI)
 	DllClose($hDLL)
-	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
+	_NetWebView2_CleanUp($oWebV2M)
 EndFunc   ;==>_Example
 ;---------------------------------------------------------------------------------------
 Func _ShowApplicationMenu($oWebV2M)
@@ -271,3 +271,4 @@ Func WM_COMMAND($hWnd, $iMsg, $wParam, $lParam) ; Register the WM_COMMAND (CALLB
 	Return $GUI_RUNDEFMSG
 EndFunc   ;==>WM_COMMAND
 ;---------------------------------------------------------------------------------------
+
