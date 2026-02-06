@@ -111,7 +111,7 @@ and a `CapturePreviewAsBase64(format)`  method to  Captures a screenshot of the 
 
 ### NetWebView2Lib (ProgId: NetWebView2.Manager)
 
-#### ===Properties===
+#### === Properties ===
 
 ##### AreDevToolsEnabled
 Determines whether the user is able to use the context menu or keyboard shortcuts to open the DevTools window.
