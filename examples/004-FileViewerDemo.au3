@@ -33,9 +33,9 @@
 
 Global $idLabelStatus
 
-Main()
+_Example()
 
-Func Main()
+Func _Example()
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
 
@@ -89,18 +89,7 @@ Func Main()
 	Local $oJSBridge
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 	GUIDelete($hGUI)
-EndFunc   ;==>Main
-
-Func _GetFirstChildWindowHWND($hWnd)
-	Local $aData = _WinAPI_EnumChildWindows($hWnd)
-	ConsoleWrite("! $aData[1][0] = " & $aData[1][0] & @CRLF)
-;~  _ArrayDisplay($aData, '_WinAPI_EnumChildWindows')
-
-	If Not @error And UBound($aData) Then Return $aData[1][0]
-
-	Return SetError(1, @extended, False)
-EndFunc   ;==>_GetFirstChildWindowHWND
-
+EndFunc   ;==>_Example
 
 Func __WebView2_freezer($hMainGUI_Window, $hWebView2_Window)
 	Local $aPos = WinGetPos($hWebView2_Window)
