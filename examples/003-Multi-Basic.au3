@@ -50,7 +50,7 @@ EndFunc   ;==>Main
 Func UpdateWebUI($oManager, $sElementId, $sNewText)
 	If Not IsObj($oManager) Then Return
 	Local $sJS = StringFormat("document.getElementById('%s').innerText = '%s';", $sElementId, $sNewText)
-	_NetWebView2_ExecuteScript($oManager, $sJS)
+	_NetWebView2_ExecuteScript($oManager, $sJS, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 EndFunc   ;==>UpdateWebUI
 
 Func _NetWebView2_BrowserSetupWrapper($hOuterParentWindow, ByRef $oOuterWeb, $sEventPrefix, $sProfile, ByRef $oOuterBridge, ByRef $hInnerWebViewWindow, $iX, $iY, $iW, $iH, $s_AddBrowserArgs)
@@ -90,9 +90,9 @@ Func __UserEventHandler_Web1__Manager__OnMessageReceived($oWebView, $hGUI, $sMsg
 	#forceref $hGUI
 	ConsoleWrite("- [Browser 1]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
-		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
+		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));', $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 	EndIf
-EndFunc   ;==>__UserEventHandler_Web1__OnMessageReceived
+EndFunc   ;==>__UserEventHandler_Web1__Manager__OnMessageReceived
 
 ; BROWSER 1 - JavaScript Bridge Events
 Func __UserEventHandler_Web1__Bridge__OnMessageReceived($oWebView, $hGUI, $sMsg)
@@ -110,16 +110,16 @@ Func __UserEventHandler_Web1__Bridge__OnMessageReceived($oWebView, $hGUI, $sMsg)
 		UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
 		UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
 	EndIf
-EndFunc   ;==>__UserEventHandler_Web1__Bridge_OnMessageReceived
+EndFunc   ;==>__UserEventHandler_Web1__Bridge__OnMessageReceived
 
 ; BROWSER 2 - Manager Events
 Func __UserEventHandler_Web2__Manager__OnMessageReceived($oWebView, $hGUI, $sMsg)
 	#forceref $hGUI
 	ConsoleWrite("- [Browser 2]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
-		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
+		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));', $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 	EndIf
-EndFunc   ;==>__UserEventHandler_Web2__OnMessageReceived
+EndFunc   ;==>__UserEventHandler_Web2__Manager__OnMessageReceived
 
 ; BROWSER 2 - JavaScript Bridge Events
 Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView, $hWindow, $sMsg)
@@ -137,5 +137,5 @@ Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView, $hWindow, $sM
 		UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
 		UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
 	EndIf
-EndFunc   ;==>__UserEventHandler_Bridge_OnMessageReceived
+EndFunc   ;==>__UserEventHandler_Web2__Bridge__OnMessageReceived
 #EndRegion ; USER DEFINED EVENTS HANDLER FUNCTION
