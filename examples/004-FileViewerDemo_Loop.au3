@@ -15,7 +15,6 @@
 #include <WinAPISysWin.au3>
 #include <WindowsConstants.au3>
 
-
 #SciTE4AutoIt3_Dynamic_Include_Path=;..\NetWebView2Lib.au3
 #SciTE4AutoIt3_Dynamic_Include=y                               ;dynamic.include=y/n
 #SciTE4AutoIt3_Dynamic_Include_whiletyping=y                   ;dynamic.include.whiletyping=y/n
@@ -51,7 +50,7 @@ Func _Example()
 ;~ 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
 ;~ 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	Local $sProfileDirectory = @TempDir & "\..\UserDataFolder"
+	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hMainGUIWindow, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
 	Local $i_ProcessID = @extended
 	#forceref $i_ProcessID
