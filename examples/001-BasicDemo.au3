@@ -35,9 +35,9 @@ Func Main()
 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
+	Local $sProfileDirectory = @TempDir & "\UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
-	__NetWebView2_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()", 1)
+	__Example_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()")
 
 	; navigate to HTML string - full fill the object with your own offline content - without downloading any content
 	_NetWebView2_NavigateToString($oWebV2M, __GetDemoHTML())
@@ -56,9 +56,9 @@ Func Main()
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to fake/broken url')
 
 	; navigate to fake not ex url
-	__NetWebView2_Log(@ScriptLineNumber, "Before: https://w2ww.microsoft.com", 1)
+	__Example_Log(@ScriptLineNumber, "Before: https://w2ww.microsoft.com")
 	_NetWebView2_Navigate($oWebV2M, 'https://w2ww.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5 * 1000)
-	__NetWebView2_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com", 1)
+	__Example_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com")
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to fake/broken url' & @CRLF & 'HostNameNotResolved')
 
 	; Main Loop
@@ -71,7 +71,8 @@ Func Main()
 
 	GUIDelete($hGUI)
 
-	_NetWebView2_CleanUp($oWebV2M)
+
+	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 EndFunc   ;==>Main
 
 ; ==============================================================================
@@ -125,3 +126,8 @@ Func __GetDemoHTML()
 			'</body></html>'
 	Return $sH
 EndFunc   ;==>__GetDemoHTML
+
+Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
+	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
+	Return SetError($iError, $iExtended, '')
+EndFunc   ;==>__Example_Log
