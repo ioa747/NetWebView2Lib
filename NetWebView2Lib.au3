@@ -491,9 +491,10 @@ EndFunc   ;==>_NetWebView2_ExportPageData
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_PrintToPdfStream
 ; Description ...:
-; Syntax ........: _NetWebView2_PrintToPdfStream($oWebV2M)
-; Parameters ....: $oWebV2M     - an object.
-; Return values .: Success      - String with Base64 encoded binary content of the PDF
+; Syntax ........: _NetWebView2_PrintToPdfStream($oWebV2M, $b_TBinary_FBase64)
+; Parameters ....: $oWebV2M             - an object.
+;                  $b_TBinary_FBase64   - a boolean value.
+; Return values .: Success      - binary or string with Base64 encoded binary content of the PDF
 ;                  Failure      - string with error description "ERROR: ........." and set @error to 1
 ; Author ........: mLipok
 ; Modified ......:
@@ -502,14 +503,19 @@ EndFunc   ;==>_NetWebView2_ExportPageData
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_PrintToPdfStream($oWebV2M)
-	Local Const $s_Prefix = "[_NetWebView2_PrintToPdfStream]:"
+Func _NetWebView2_PrintToPdfStream($oWebV2M, $b_TBinary_FBase64)
+	Local Const $s_Prefix = "[_NetWebView2_PrintToPdfStream]: TBinary_FBase64:" & $b_TBinary_FBase64
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
 	Local $s_Result = $oWebV2M.PrintToPdfStream()
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	If StringInStr($s_Result, 'ERROR:') Then SetError(1)
+
+	If $b_TBinary_FBase64 Then
+		; decode Base64 encoded data do Binary
+		$s_Result = _NetWebView2_DecodeB64ToBinary($oWebV2M, $s_Result)
+	EndIf
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " RESULT:" & ((@error) ? ($s_Result) : ("SUCCESS")), 1)
 	Return SetError(@error, @extended, $s_Result)
