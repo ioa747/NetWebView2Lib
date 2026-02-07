@@ -32,17 +32,15 @@
 
 #include "..\NetWebView2Lib.au3"
 
-Main()
+#TODO MainGui CloseButton support ==> ;
 
-Func Main()
-	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
-	#forceref $oMyError
+_Example()
 
+Func _Example()
 	; Create the UI
 	Local $iHeight = 800
-	Local $hGUI = GUICreate("WebView2 .NET Manager - Demo: " & @ScriptName, 1100, $iHeight, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
+	Local $hMainGUIWindow = GUICreate("WebView2 .NET Manager - Demo: " & @ScriptName, 1100, $iHeight, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	Local $idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 880, 20)
-	#forceref $idLabelStatus
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 
 	; Initialize WebView2 Manager and register events
@@ -54,23 +52,32 @@ Func Main()
 ;~ 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	Local $sProfileDirectory = @TempDir & "\..\UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
+	_NetWebView2_Initialize($oWebV2M, $hMainGUIWindow, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
 	Local $i_ProcessID = @extended
 	#forceref $i_ProcessID
 
-	GUISetState(@SW_SHOW, $hGUI)
+	GUISetState(@SW_SHOW, $hMainGUIWindow)
 	ConsoleWrite("! ===" & @ScriptLineNumber & @CRLF)
 ;~ 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 0)
 	Local $s_PDF_FileFullPath
 
 	Local $s_PDF_Directory = FileSelectFolder('Choose folder with PDF', '')
 
+	WinSetOnTop($hMainGUIWindow, "", $WINDOWS_ONTOP)
+
+	Local $bSleep_UserReaction = ($IDYES = MsgBox($MB_YESNO + $MB_TOPMOST + $MB_ICONQUESTION + $MB_DEFBUTTON1, "Question", "Simulates user reaction on PDF (2 sec sleep) ?"))
+
 	Local $a_Files = _FileListToArrayRec($s_PDF_Directory, '*.pdf', $FLTAR_FILES, $FLTAR_RECUR, $FLTAR_NOSORT, $FLTAR_FULLPATH)
-	Local Static $hWebView2_Window = _WinAPI_GetWindow($hGUI, $GW_CHILD)
+	Local $sProgress = ''
 	For $IDX_File = 1 To $a_Files[0]
+		$sProgress = '[ ' & $IDX_File & '/' & $a_Files[0] & ' - ' & Round($IDX_File / $a_Files[0], 5) * 100 & ' % ]'
+
 		$s_PDF_FileFullPath = $a_Files[$IDX_File]
-		_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, $hWebView2_Window, '#view=FitH', 1000)
+		GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation started: ' & $s_PDF_FileFullPath)
+		_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000)
+		GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation completed: ' & $s_PDF_FileFullPath)
 		ConsoleWrite("! === @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
+		If $bSleep_UserReaction Then Sleep(2000) ; simulates user reaction on PDF
 	Next
 
 	; Main Loop
@@ -83,8 +90,8 @@ Func Main()
 
 	Local $oJSBridge
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
-	GUIDelete($hGUI)
-EndFunc   ;==>Main
+	GUIDelete($hMainGUIWindow)
+EndFunc   ;==>_Example
 
 Func _EnumWindow($hWnd)
 	Local $aData = _WinAPI_EnumChildWindows($hWnd)
@@ -96,12 +103,14 @@ Func _EnumWindow($hWnd)
 	Return SetError(1, @extended, False)
 EndFunc   ;==>_EnumWindow
 
-Func __NetWebView2_freezer($hWebView2_Window, $idPic = 0)
+Func __NetWebView2_freezer($oWebV2M, ByRef $idPic)
+	Local $hWebView2_Window = HWnd("0x" & Hex($oWebV2M.BrowserWindowHandle, 16))
 	#Region ; if $idPic is given then it means you already have it and want to delete it - unfreeze - show WebView2 content
 	If $idPic Then
 		_SendMessage($hWebView2_Window, $WM_SETREDRAW, True, 0) ; Enables
 		_WinAPI_RedrawWindow($hWebView2_Window, 0, 0, BitOR($RDW_FRAME, $RDW_INVALIDATE, $RDW_ALLCHILDREN))  ; Repaints
 		GUICtrlDelete($idPic)
+		$idPic = 0
 		Return
 	EndIf
 	#EndRegion ; if $idPic is given then it means you already have it and want to delete it - unfreeze - show WebView2 content
@@ -147,15 +156,10 @@ Func __NetWebView2_freezer($hWebView2_Window, $idPic = 0)
 	#EndRegion ; freeze $hWebView2_Window
 EndFunc   ;==>__NetWebView2_freezer
 
-Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, $hWebView2_Window = 0, $s_Parameters = '', $iSleep_ms = 1000)
-	Local $idPic = 0
+Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, Const $s_Parameters = '', Const $iSleep_ms = 1000, Const $bFreeze = True)
 	If FileExists($s_URL_or_FileFullPath) Then
 		$s_URL_or_FileFullPath = StringReplace($s_URL_or_FileFullPath, ' ', '%20')
 		$s_URL_or_FileFullPath = "file:///" & $s_URL_or_FileFullPath
-		If $iSleep_ms Then
-			$iSleep_ms -= 400
-			If $iSleep_ms < 600 Then $iSleep_ms = 600
-		EndIf
 	EndIf
 
 	If $s_Parameters Then
@@ -164,11 +168,10 @@ Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, $hWebView2_Win
 		#TIP: Open desired PAGE: https://stackoverflow.com/questions/68500164/cycle-pdf-pages-in-wpf-webview2#comment135402565_68566860
 	EndIf
 
-	If $hWebView2_Window Then $idPic = __NetWebView2_freezer($hWebView2_Window)
-
+	Local $idPic = 0
+	If $bFreeze Then __NetWebView2_freezer($oWebV2M, $idPic)
 	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FileFullPath)
 	Sleep($iSleep_ms)
-	If $hWebView2_Window And $idPic Then
-		__NetWebView2_freezer($hWebView2_Window, $idPic)
-	EndIf
+	If $bFreeze And $idPic Then __NetWebView2_freezer($oWebV2M, $idPic)
+
 EndFunc   ;==>_NetWebView2_NavigateToPDF
