@@ -53,7 +53,7 @@ Func Main()
 ;~ 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M)
 ;~ 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	Local $sProfileDirectory = @TempDir & "\..\UserDataFolder"
+	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
 
 	GUISetState(@SW_SHOW, $hGUI)
