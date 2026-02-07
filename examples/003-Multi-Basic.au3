@@ -47,25 +47,11 @@ EndFunc   ;==>_Main
 ; UPDATED HELPERS
 ; ==============================================================================
 
-Func UpdateWebUI($oManager, $sElementId, $sNewText)
+Func _UpdateWebUI($oManager, $sElementId, $sNewText)
 	If Not IsObj($oManager) Then Return
 	Local $sJS = StringFormat("document.getElementById('%s').innerText = '%s';", $sElementId, $sNewText)
 	_NetWebView2_ExecuteScript($oManager, $sJS, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-EndFunc   ;==>UpdateWebUI
-
-Func _NetWebView2_BrowserSetupWrapper($hOuterParentWindow, ByRef $oOuterWeb, $sEventPrefix, $sProfile, ByRef $oOuterBridge, ByRef $hInnerWebViewWindow, $iX, $iY, $iW, $iH, $s_AddBrowserArgs)
-	$hInnerWebViewWindow = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hOuterParentWindow)
-	GUISetState(@SW_SHOW, $hInnerWebViewWindow)
-
-	$oOuterWeb = _NetWebView2_CreateManager("", $sEventPrefix & '_Manager__', $s_AddBrowserArgs)
-	If @error Then Return SetError(@error, @extended, $oOuterWeb)
-
-	Local $Result = _NetWebView2_Initialize($oOuterWeb, $hInnerWebViewWindow, $sProfile, 0, 0, $iW, $iH)
-	If @error Then Return SetError(@error, @extended, $Result)
-
-	$oOuterBridge = _NetWebView2_GetBridge($oOuterWeb, $sEventPrefix & "_Bridge__")
-	If @error Then Return SetError(@error, @extended, $oOuterBridge)
-EndFunc   ;==>_NetWebView2_BrowserSetupWrapper
+EndFunc   ;==>_UpdateWebUI
 
 Func _GetDemoHTML($sTitle)
 	Return '<html><title>Simple GUI</title><head><style>' & _
@@ -107,8 +93,8 @@ Func __UserEventHandler_Web1__Bridge__OnMessageReceived($oWebView, $hWindow, $sM
 		EndIf
 	Else
 		$iMsgCnt += 1
-		UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
-		UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
+		_UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
+		_UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
 		If $sMsg = "PING" Then
 			GUISetState(@SW_HIDE, $hWindow)
 			Sleep(200)
@@ -139,8 +125,8 @@ Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView, $hWindow, $sM
 		EndIf
 	Else
 		$iMsgCnt += 1
-		UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
-		UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
+		_UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
+		_UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
 		If $sMsg = "PING" Then
 			GUISetState(@SW_HIDE, $hWindow)
 			Sleep(200)
