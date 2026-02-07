@@ -81,7 +81,8 @@ Func Main()
 		EndSwitch
 	WEnd
 
-	_NetWebView2_CleanUp($oWebV2M)
+	Local $oJSBridge
+	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 	GUIDelete($hGUI)
 EndFunc   ;==>Main
 
@@ -147,7 +148,7 @@ Func __NetWebView2_freezer($hWebView2_Window, $idPic = 0)
 EndFunc   ;==>__NetWebView2_freezer
 
 Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, $hWebView2_Window = 0, $s_Parameters = '', $iSleep_ms = 1000)
-	Local $idPic
+	Local $idPic = 0
 	If FileExists($s_URL_or_FileFullPath) Then
 		$s_URL_or_FileFullPath = StringReplace($s_URL_or_FileFullPath, ' ', '%20')
 		$s_URL_or_FileFullPath = "file:///" & $s_URL_or_FileFullPath
@@ -167,7 +168,7 @@ Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, $hWebView2_Win
 
 	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FileFullPath)
 	Sleep($iSleep_ms)
-	If $hWebView2_Window Then
+	If $hWebView2_Window And $idPic Then
 		__NetWebView2_freezer($hWebView2_Window, $idPic)
 	EndIf
 EndFunc   ;==>_NetWebView2_NavigateToPDF
