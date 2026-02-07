@@ -9,9 +9,9 @@
 #include <GUIConstantsEx.au3>
 #include "..\NetWebView2Lib.au3"
 
-Main()
+_Main()
 
-Func Main()
+Func _Main()
 	; --- Main GUI Setup ---
 	Local $hMainGUI = GUICreate("Multi-WebView2 v2.0.0 Standard", 1000, 600, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetState(@SW_SHOW, $hMainGUI)
@@ -41,7 +41,7 @@ Func Main()
 	; CleanUp
 	_NetWebView2_CleanUp($oWeb_1, $oBridge_1)
 ;~ 	_NetWebView2_CleanUp($oWeb_2, $oBridge_2)
-EndFunc   ;==>Main
+EndFunc   ;==>_Main
 
 ; ==============================================================================
 ; UPDATED HELPERS
@@ -88,7 +88,7 @@ EndFunc   ;==>_GetDemoHTML
 ; BROWSER 1 - Manager Events
 Func __UserEventHandler_Web1__Manager__OnMessageReceived($oWebView, $hGUI, $sMsg)
 	#forceref $hGUI
-	ConsoleWrite("- [Browser 1]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
+	ConsoleWrite(">> [Browser 1]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
 		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));', $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 	EndIf
@@ -115,7 +115,7 @@ EndFunc   ;==>__UserEventHandler_Web1__Bridge__OnMessageReceived
 ; BROWSER 2 - Manager Events
 Func __UserEventHandler_Web2__Manager__OnMessageReceived($oWebView, $hGUI, $sMsg)
 	#forceref $hGUI
-	ConsoleWrite("- [Browser 2]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
+	ConsoleWrite(">> [Browser 2]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
 		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));', $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 	EndIf
