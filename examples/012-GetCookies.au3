@@ -15,7 +15,7 @@ OnAutoItExitRegister("_CleanExit")
 ; Global objects handler for COM objects
 Global $oManager, $oBridge
 Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc")
-Global $sProfileDirectory = @ScriptDir & "\UserDataFolder"
+Global $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
 
 ; Global variables for data management
 Global $hGUI, $idURL, $idStatusLabel
