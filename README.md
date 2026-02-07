@@ -58,56 +58,46 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
 
----
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 🚀 What's New in v1.5.0 - Professional Snapshots & Downloads
+## 🚀 What's New in v2.0.0-beta.1 - Multi-Instance & Stability Focus
 
-This major update introduces professional-grade snapshot tools using the DevTools Protocol, enhanced download management, and native HTTP status tracking for precise automation.
+This major beta release re-engineers the core event architecture to support professional multi-instance applications and solves long-standing COM deadlock issues with pre-emptive key blocking.
 
 ### ⚡ Key Features & Enhancements
 
-#### **1. Proactive Snapshot Engine**
+#### **1. Sender-Aware Event Architecture**
 
-The new `CaptureSnapshot(cdpParameters)` method provides direct access to the `Page.captureSnapshot` CDP method. This allows you to capture MHTML snapshots or other CDP-supported formats directly as strings.
+The entire event system has been refactored for multi-instance reliability. Every event fired from the C# core now provides a "Sender" context.
 
-- **Unified Method:** `ExportPageData` has been consolidated into `CaptureSnapshot` for a cleaner API.
-- **PascalCase Compliance:** Promoted internal `captureSnapshot` to a public, standard-compliant `CaptureSnapshot` method.
-- **Event Consistency:** Correctly wired up `OnZoomChanged` to the browser engine's zoom events.
+- **Instance Isolation**: AutoIt scripts can now easily distinguish which WebView2 instance triggered an event using the `parentHandle` parameter.
+- **Sealed Contexts**: The communication bridge is now sealed to its parent manager, preventing message cross-talk in complex multi-window setups.
 
-#### **2. Custom Download Management**
+#### **2. Pre-emptive Key Blocking (Zero Deadlocks)**
 
-You now have full control over the browser's download lifecycle.
+We have abandoned the legacy synchronous polling for accelerator keys in favor of a proactive, list-based approach.
 
-- **Automated Routing:** Use `SetDownloadPath(path)` to force all downloads into a specific folder or file. If a path points to an existing directory, the library intelligently appends the suggested filename.
-- **UI Control:** Toggle the browser's download shelf visibility using the `IsDownloadUIEnabled` property.
-- **Clean Event Contract**: The `OnDownloadStarting` event has been simplified to provide core metadata (URI, DefaultPath). Programmatic overrides now use the new `SetDownloadPath` and `IsDownloadHandled` properties/methods, ensuring 100% reliable path redirection from AutoIt, bypassing legacy COM `ByRef` limitations.
-- **Manual Mode Bypass**: Setting `IsDownloadHandled = True` during the `OnDownloadStarting` event will now immediately cancel the Edge download engine (`e.Cancel = true`). This allows AutoIt to handle the download externally (e.g., via `InetGet`) using its own logic. Active downloads can be monitored via `ActiveDownloadsList` and cancelled via `CancelDownloads()`
-- **IsZoomControlEnabled**: New property to enable/disable the built-in zoom mechanism (Ctrl+Wheel, etc.).
-- **UnLockWebView Method**: Added `UnLockWebView()` to re-enable restricted features previously disabled by `LockWebView()`.
+- **`BlockedVirtualKeys`**: Define a list of VK codes (like F5, F12) to be blocked directly by the C# engine.
+- **Performance**: Eliminates the 600ms sync-wait loops, resulting in instant response times and 0% risk of COM re-entrancy deadlocks.
+- **OnAcceleratorKeyPressed**: Still available for monitoring, but the "Handled" logic is now pre-emptively managed by the property list.
 
-#### **3. Native HTTP Status Tracking & Deadlock Prevention**
+#### **3. Native Win32 Integration**
 
-Track server responses with precision using the new `OnWebResourceResponseReceived` event. This is essential for detecting link rot (404s), server errors (500s), or validating API response responses directly from AutoIt. It provides the status code, reason phrase, and the original request URL.
+- **`BrowserWindowHandle`**: A new property that exposes the internal `HWND` of the browser control. This allows for advanced parent-child window relationship management and direct Win32 message interception via DLL calls.
 
-- **Deadlock Shield:** By default, this event now only triggers for the main document (`HttpStatusCodeDocumentOnly = True`). This prevents the event flood (e.g., hundreds of 404s for missing icons or scripts) that previously caused AutoIt's GUI to deadlock.
-- **Granular Control:** Use `HttpStatusCodeEventsEnabled` to toggle the event entirely or disable the filter for deep resource auditing.
+#### **4. Internal Messaging Overlay**
 
-#### **4. Memory-Based Binary Support**
+- **Improved Stability**: A new internal messaging system ensures that background state updates never interfere with the primary UI event loop, ensuring a smoother user experience during heavy navigation sequences.
 
-The new `DecodeB64ToBinary(base64Text)` method decodes Base64 data directly into a raw byte array. This is perfect for high-speed processing of images or PDFs entirely in memory.
 
-and a `CapturePreviewAsBase64(format)`  method to  Captures a screenshot of the current page  content and returns it as a Base64-encoded data URL
-
----
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
-## 📖 NetWebView2Lib Version 1.5.0 - (Quick Reference)
 
+## 📖 NetWebView2Lib Version 2.0.0-beta.1 (Quick Reference)
 
 ### NetWebView2Lib (ProgId: NetWebView2.Manager)
 
@@ -115,75 +105,75 @@ and a `CapturePreviewAsBase64(format)`  method to  Captures a screenshot of the 
 
 ##### AreDevToolsEnabled
 Determines whether the user is able to use the context menu or keyboard shortcuts to open the DevTools window.
-`object.AreDevToolsEnabled[ = Value]`
+`object.AreDevToolsEnabled = Value`
 
 ##### AreDefaultContextMenusEnabled
 Activates or Deactivates the contextual menus of the WebView2 browser.
-`object.AreDefaultContextMenusEnabled[ = Value]`
+`object.AreDefaultContextMenusEnabled = Value`
 
 ##### AreDefaultScriptDialogsEnabled
 Determines whether the standard JavaScript dialogs (alert, confirm, prompt) are enabled.
-`object.AreDefaultScriptDialogsEnabled[ = Value]`
+`object.AreDefaultScriptDialogsEnabled = Value`
 
 ##### AreBrowserAcceleratorKeysEnabled
 Determines whether browser-specific accelerator keys are enabled (e.g., Ctrl+P, F5, etc.).
-`object.AreBrowserAcceleratorKeysEnabled[ = Value]`
+`object.AreBrowserAcceleratorKeysEnabled = Value`
 
 ##### IsStatusBarEnabled
 Determines whether the status bar is visible.
-`object.IsStatusBarEnabled[ = Value]`
+`object.IsStatusBarEnabled = Value`
 
 ##### ZoomFactor
 Gets or sets the current zoom factor (e.g., 1.0 for 100%).
-`object.ZoomFactor[ = Value]`
+`object.ZoomFactor = Value`
 
 ##### BackColor
 Sets the background color of the WebView using a Hex string (e.g., "#FFFFFF" or "0xFFFFFF").
-`object.BackColor[ = Value]`
+`object.BackColor = Value`
 
 ##### AreHostObjectsAllowed
 Determines whether host objects (like the 'autoit' bridge) are accessible from JavaScript.
-`object.AreHostObjectsAllowed[ = Value]`
+`object.AreHostObjectsAllowed = Value`
 
 ##### Anchor
 Determines how the control is anchored when the parent window is resized.
-`object.Anchor[ = Value]`
+`object.Anchor = Value`
 
 ##### BorderStyle
 Note: Not supported natively by WebView2, provided for compatibility.
-`object.BorderStyle[ = Value]`
+`object.BorderStyle = Value`
   
 ##### AreBrowserPopupsAllowed
 Determines whether new window requests are allowed or redirected to the same window.
-`object.AreBrowserPopupsAllowed[ = Value]`
+`object.AreBrowserPopupsAllowed = Value`
 
 ##### CustomMenuEnabled
 Enables or disables custom context menu handling.
-`object.CustomMenuEnabled[ = Value]`
+`object.CustomMenuEnabled = Value`
 
 ##### AdditionalBrowserArguments
 Sets additional command-line arguments to be passed to the Chromium engine during initialization. Must be set BEFORE calling Initialize().
-`object.AdditionalBrowserArguments[ = Value]`
+`object.AdditionalBrowserArguments = Value`
 
 ##### HiddenPdfToolbarItems
 Controls the visibility of buttons in the PDF viewer toolbar using a bitwise combination of CoreWebView2PdfToolbarItems (e.g., 1=Save, 2=Print, 4=Search).
-`object.HiddenPdfToolbarItems[ = Value]`
+`object.HiddenPdfToolbarItems = Value`
 
 ##### IsDownloadUIEnabled
 Determines whether the browser's default download UI (shelf/bubble) is shown.
-`object.IsDownloadUIEnabled[ = Value]`
+`object.IsDownloadUIEnabled = Value`
 
 ##### HttpStatusCodeEventsEnabled
 Enables or disables the `OnWebResourceResponseReceived` event entirely.
-`object.HttpStatusCodeEventsEnabled[ = Value]`
+`object.HttpStatusCodeEventsEnabled = Value`
 
 ##### HttpStatusCodeDocumentOnly
 Determines whether `OnWebResourceResponseReceived` triggers for all resources (False) or only for the main document (True). Essential for preventing GUI deadlocks in AutoIt.
-`object.HttpStatusCodeDocumentOnly[ = Value]`
+`object.HttpStatusCodeDocumentOnly = Value`
 
 ##### IsDownloadHandled
 Determines whether the download is handled by the application. If set to **True** during `OnDownloadStarting`, the internal Edge download is cancelled.
-`object.IsDownloadHandled[ = Value]`
+`object.IsDownloadHandled = Value`
 
 ##### ActiveDownloadsList
 Returns a pipe-separated string of all active download URIs.
@@ -191,9 +181,21 @@ Returns a pipe-separated string of all active download URIs.
 
 ##### IsZoomControlEnabled
 Determines whether user can zoom the page (Ctrl+MouseWheel, shortcuts).
-`object.IsZoomControlEnabled[ = Value]`
+`object.IsZoomControlEnabled = Value`
 
-#### === Methods === 
+##### IsBuiltInErrorPageEnabled
+Control visibility of the browser's default error pages (e.g., connection lost).
+`object.IsBuiltInErrorPageEnabled = Value`
+
+##### BrowserWindowHandle
+Returns the internal window handle (HWND) of the WebView2 control. This is the child window attached to the parent GUI.
+`object.BrowserWindowHandle`
+
+##### BlockedVirtualKeys
+A comma-separated list of Virtual Key codes to be blocked synchronously (e.g., "116,123").
+`object.BlockedVirtualKeys = "116,123"`
+
+#### === Method ===
 
 ##### Initialize
 Initializes the WebView2 control within a parent window.
@@ -208,7 +210,9 @@ Loads the provided HTML content directly into the browser.
 `object.NavigateToString(HtmlContent As String)`
 
 ##### ExecuteScript
-Executes the specified JavaScript code in the current document.
+**Type**: void (Fire-and-Forget)
+**Description**: Sends the command to the UI thread. No return value.
+**Use Case**: UI Actions (click, scroll, focus).
 `object.ExecuteScript(Script As String)`
 
 ##### Resize
@@ -236,15 +240,15 @@ Toggles between Native (true) and Custom (false) context menu modes.
 `object.SetContextMenuEnabled(Enabled As Boolean)`
 
 ##### LockWebView
-Locks down the WebView by disabling context menus, dev tools, zoom control, and default error pages.
+Locks down the WebView by disabling context menus, dev tools, zoom control, default error pages, script dialogs, accelerator keys, and popups.
 `object.LockWebView()`
 
 ##### UnLockWebView
-Re-enables the features previously restricted by `LockWebView()`.
+Re-enables the features previously restricted by `LockWebView()` (ContextMenus, DevTools, Zoom, ErrorPages, Dialogs, Keys, Popups).
 `object.UnLockWebView()`
 
 ##### DisableBrowserFeatures
-Disables major browser features for a controlled environment.
+Disables major browser features for a controlled environment (Unified with `LockWebView`).
 `object.DisableBrowserFeatures()`
 
 ##### GoBack
@@ -419,6 +423,10 @@ Decodes a Base64 string back to **plain text** (UTF-8).
 Decodes a Base64 string directly into a **raw byte array**. Optimized for memory-based binary processing (e.g., images, PDFs).
 `object.DecodeB64ToBinary(Base64Text As String)`
 
+##### CapturePreviewAsBase64
+Captures a screenshot of the current page  content and returns it as a Base64-encoded data URL.
+`object.CapturePreviewAsBase64(format)`
+
 ##### SetZoomFactor
 Sets the zoom factor for the control.
 `object.SetZoomFactor(Factor As Double)`
@@ -436,8 +444,16 @@ Enables or disables robust "Smart Anchor" resizing. Uses Win32 subclassing to pe
 `object.SetAutoResize(Enabled As Boolean)`
 
 ##### AddInitializationScript
-Registers a script that will run automatically every time a new page loads.
-`object.AddInitializationScript(Script As String)`
+Registers a script that will run automatically every time a new page loads. Returns the unique **ScriptId** (string).
+`ResultString = object.AddInitializationScript(Script As String)`
+
+##### RemoveInitializationScript
+Removes a script previously added via AddInitializationScript using its ScriptId.
+`object.RemoveInitializationScript(ScriptId As String)`
+
+##### SetVirtualHostNameToFolderMapping
+Maps a virtual host name (e.g., `app.local`) to a local folder path for local resource loading.
+`object.SetVirtualHostNameToFolderMapping(hostName As String, folderPath As String, accessKind As Integer)`
 
 ##### BindJsonToBrowser
 Binds the internal JSON data to a browser variable.
@@ -448,11 +464,16 @@ Syncs JSON data to internal parser and optionally binds it to a browser variable
 `object.SyncInternalData(Json As String, BindToVariableName As String)`
 
 ##### ExecuteScriptOnPage
-Executes JavaScript on the current page immediately.
+**Type**: void (Async-Fire)
+**Description**: Starts asynchronously but does not wait. No return value.
+**Use Case**: Quick background actions.
 `object.ExecuteScriptOnPage(Script As String)`
 
 ##### ExecuteScriptWithResult
-Executes JavaScript and returns the result synchronously (Blocking wait).
+**Type**: string (Synchronous/Blocking)
+**Description**: Uses Message Pump (DoEvents) to wait for the response (timeout 5s).
+**Special**: Performs automatic JSON Unescaping (removes extra quotes and fixes escape characters).
+**Use Case**: Scraping, retrieving variables from JS, checking DOM state.
 `object.ExecuteScriptWithResult(Script As String)`
 
 ##### ClearCache
@@ -483,59 +504,67 @@ Cancels active downloads. If `uri` is empty or omitted, cancels all active downl
 Captures the current page as a PDF and returns the content as a Base64-encoded string.
 `object.PrintToPdfStream()`
 
-#### === Events === 
+#### === Events ===
 
 ##### OnMessageReceived
 Fired when a message or notification is sent from the library to AutoIt.
-`object_OnMessageReceived(Message As String)`
+`object_OnMessageReceived(Sender As Object, ParentHandle As HWND, Message As String)`
 
 ##### OnWebResourceResponseReceived
 Fired when a web resource response is received (useful for tracking HTTP Status Codes).
-`object_OnWebResourceResponseReceived(StatusCode As Integer, ReasonPhrase As String, RequestUrl As String)`
+`object_OnWebResourceResponseReceived(Sender As Object, ParentHandle As HWND, StatusCode As Integer, ReasonPhrase As String, RequestUrl As String)`
 
 ##### OnNavigationStarting
 Fired when the browser starts navigating to a new URL.
-`object_OnNavigationStarting(Url As String)`
+`object_OnNavigationStarting(Sender As Object, ParentHandle As HWND, Url As String)`
 
 ##### OnNavigationCompleted
 Fired when navigation has finished.
-`object_OnNavigationCompleted(IsSuccess As Boolean, WebErrorStatus As Integer)`
+`object_OnNavigationCompleted(Sender As Object, ParentHandle As HWND, IsSuccess As Boolean, WebErrorStatus As Integer)`
 
 ##### OnTitleChanged
 Fired when the document title changes.
-`object_OnTitleChanged(NewTitle As String)`
+`object_OnTitleChanged(Sender As Object, ParentHandle As HWND, NewTitle As String)`
   
 ##### OnURLChanged
 Fired when the current URL changes.
-`object_OnURLChanged(NewUrl As String)`
+`object_OnURLChanged(Sender As Object, ParentHandle As HWND, NewUrl As String)`
 
 ##### OnContextMenu
 Fired when a custom context menu is requested (if SetContextMenuEnabled is false).
-`object_OnContextMenu(MenuData As String)`
+`object_OnContextMenu(Sender As Object, ParentHandle As HWND, MenuData As String)`
 
 ##### OnZoomChanged
 Fired when the zoom factor is changed.
-`object_OnZoomChanged(Factor As Double)`
+`object_OnZoomChanged(Sender As Object, ParentHandle As HWND, Factor As Double)`
 
 ##### OnBrowserGotFocus
 Fired when the browser receives focus.
-`object_OnBrowserGotFocus(Reason As Integer)`
+`object_OnBrowserGotFocus(Sender As Object, ParentHandle As HWND, Reason As Integer)`
 
 ##### OnBrowserLostFocus
 Fired when the browser loses focus.
-`object_OnBrowserLostFocus(Reason As Integer)`
+`object_OnBrowserLostFocus(Sender As Object, ParentHandle As HWND, Reason As Integer)`
 
 ##### OnContextMenuRequested
 Fired when a context menu is requested (Simplified for AutoIt).
-`object_OnContextMenuRequested(LinkUrl As String, X As Integer, Y As Integer, SelectionText As String)`
+`object_OnContextMenuRequested(Sender As Object, ParentHandle As HWND, LinkUrl As String, X As Integer, Y As Integer, SelectionText As String)`
 
 ##### OnDownloadStarting
 Fired when a download is starting. Provides core metadata to allow decision making. Path overrides and UI suppression should be handled via the `DownloadResultPath` and `IsDownloadHandled` properties.
-`object_OnDownloadStarting(Uri As String, DefaultPath As String)`
+`object_OnDownloadStarting(Sender As Object, ParentHandle As HWND, Uri As String, DefaultPath As String)`
 
 ##### OnDownloadStateChanged
 Fired when a download state changes (e.g., Progress, Completed, Failed).
-`object_OnDownloadStateChanged(State As String, Uri As String, TotalBytes As Long, ReceivedBytes As Long)`
+`object_OnDownloadStateChanged(Sender As Object, ParentHandle As HWND, State As String, Uri As String, TotalBytes As Long, ReceivedBytes As Long)`
+
+##### OnAcceleratorKeyPressed
+Fired when an accelerator key is pressed. Allows blocking browser shortcuts.
+`object_OnAcceleratorKeyPressed(Sender As Object, ParentHandle As HWND, Args As Object)`
+	*Args properties: 
+		VirtualKey (uint): The VK code of the key.
+		KeyEventKind (int): Type of key event (Down, Up, etc.).
+		Handled (bool): Set to `True` to stop the browser from processing the key.*
   
 
 ---
@@ -640,6 +669,14 @@ Flattens the JSON structure into a table-like string with specified delimiters.
 Encodes a string to Base64 (UTF-8).
 `string EncodeB64(PlainText As String)`
 
+##### DecodeB64ToBinary
+Converts a Base64-encoded string back into raw binary data (byte array).
+`Variant DecodeB64ToBinary(Base64Text As String)`
+
+##### EncodeBinaryToB64
+Converts raw binary data (byte array) to a Base64-encoded string.
+`string EncodeBinaryToB64(BinaryData As Variant)`
+
 ##### DecodeB64
 Decodes a Base64 string back to **plain text** (UTF-8).
 `string DecodeB64(Base64Text As String)`
@@ -647,10 +684,6 @@ Decodes a Base64 string back to **plain text** (UTF-8).
 ##### DecodeB64ToFile
 Decodes a Base64 string and saves the binary content directly to a file.
 `bool DecodeB64ToFile(Base64Text As String, FilePath As String)`
-
-##### DecodeB64ToBinary
-Decodes a Base64 string directly into a **raw byte array**. Optimized for memory-based binary processing (e.g., images, PDFs).
-`object.DecodeB64ToBinary(Base64Text As String)`
 
 ##### SortArray
 Sorts a JSON array by a specific key.

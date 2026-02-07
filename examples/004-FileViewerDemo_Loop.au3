@@ -1,4 +1,10 @@
 #AutoIt3Wrapper_UseX64=y
+#AutoIt3Wrapper_Run_AU3Check=Y
+#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
+#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+
+; 004-FileViewerDemo_Loop.au3
+
 #include <File.au3>
 #include <GUIConstantsEx.au3>
 #include <SendMessage.au3>
@@ -41,15 +47,14 @@ Func Main()
 
 	; Initialize WebView2 Manager and register events
 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--mute-audio")
-	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; Initialize JavaScript Bridge
-	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
-	If @error Then Return SetError(@error, @extended, $oWebV2M)
+;~ 	; Initialize JavaScript Bridge
+;~ 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
+;~ 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	Local $sProfileDirectory = @TempDir & "\..\UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
 	Local $i_ProcessID = @extended
 	#forceref $i_ProcessID
 
@@ -58,7 +63,7 @@ Func Main()
 ;~ 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 0)
 	Local $s_PDF_FileFullPath
 
-	Local $s_PDF_Directory = FileSelectFolder('Choose folder with PDF','')
+	Local $s_PDF_Directory = FileSelectFolder('Choose folder with PDF', '')
 
 	Local $a_Files = _FileListToArrayRec($s_PDF_Directory, '*.pdf', $FLTAR_FILES, $FLTAR_RECUR, $FLTAR_NOSORT, $FLTAR_FULLPATH)
 	Local Static $hWebView2_Window = _WinAPI_GetWindow($hGUI, $GW_CHILD)
@@ -76,9 +81,8 @@ Func Main()
 		EndSwitch
 	WEnd
 
+	_NetWebView2_CleanUp($oWebV2M)
 	GUIDelete($hGUI)
-
-	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 EndFunc   ;==>Main
 
 Func _EnumWindow($hWnd)
@@ -89,7 +93,7 @@ Func _EnumWindow($hWnd)
 	If Not @error And UBound($aData) Then Return $aData[1][0]
 
 	Return SetError(1, @extended, False)
-EndFunc   ;==>Example
+EndFunc   ;==>_EnumWindow
 
 Func __NetWebView2_freezer($hWebView2_Window, $idPic = 0)
 	#Region ; if $idPic is given then it means you already have it and want to delete it - unfreeze - show WebView2 content
@@ -142,7 +146,7 @@ Func __NetWebView2_freezer($hWebView2_Window, $idPic = 0)
 	#EndRegion ; freeze $hWebView2_Window
 EndFunc   ;==>__NetWebView2_freezer
 
-Func _NetWebView2_NavigateToPDF(ByRef $oWebV2M, $s_URL_or_FileFullPath, $hWebView2_Window = 0, $s_Parameters = '', $iSleep_ms = 1000)
+Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, $hWebView2_Window = 0, $s_Parameters = '', $iSleep_ms = 1000)
 	Local $idPic
 	If FileExists($s_URL_or_FileFullPath) Then
 		$s_URL_or_FileFullPath = StringReplace($s_URL_or_FileFullPath, ' ', '%20')

@@ -6,75 +6,198 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-// --- Version 1.5.0 ---
+// --- Version 2.0.0-beta.1 ---
+// Breaking Change: Sender-Aware Events (Issue #52)
 
 namespace NetWebView2Lib
 {
+    /// <summary>
+    /// Resource access kind for Virtual Host Mapping.
+    /// </summary>
+    [ComVisible(true)]
+    public enum HostResourceAccessKind
+    {
+        Allow = 0,
+        Deny = 1,
+        DenyCors = 2
+    }
+
     // --- 1. EVENTS INTERFACE (What C# sends to AutoIt) ---
     /// <summary>
     /// Events sent from C# to AutoIt.
+    /// v2.0.0: All events now include sender and parentHandle for multi-instance support.
     /// </summary>
     [Guid("B2C3D4E5-F6A7-4B6C-9D0E-1F2A3B4C5D6E")]
     [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
     [ComVisible(true)]
     public interface IWebViewEvents
     {
-        /// <summary>
-        /// Triggered when a message is sent from the WebView.
-        /// </summary>
+        /// <summary>Triggered when a message is sent from the WebView.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
         /// <param name="message">The message content.</param>
-        [DispId(1)] void OnMessageReceived(string message);
-        /// <summary>
-        /// Triggered when navigation starts.
-        /// </summary>
-        /// <param name="url">The URL being navigated to.</param> 
-        [DispId(2)] void OnNavigationStarting(string url);
-        /// <summary>
-        /// Triggered when navigation is completed.
-        /// </summary>
-        /// <param name="isSuccess">Indicates if navigation was successful.</param>  
-        /// <param name="webErrorStatus">The web error status code.</param> 
-        [DispId(3)] void OnNavigationCompleted(bool isSuccess, int webErrorStatus);
-        /// <summary>
-        /// Triggered when the document title changes.
-        /// </summary>
-        /// <param name="newTitle">The new document title.</param> 
-        [DispId(4)] void OnTitleChanged(string newTitle);
+        [DispId(1)] void OnMessageReceived(object sender, object parentHandle, string message);
 
-        /// <summary>Triggered when a custom context menu is requested.</summary>
-        /// <param name="menuData">JSON string containing context info (kind, link, selection).</param>
-        [DispId(6)] void OnContextMenu(string menuData);
+        /// <summary>Triggered when navigation starts.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="url">The URL being navigated to.</param>
+        [DispId(2)] void OnNavigationStarting(object sender, object parentHandle, string url);
 
-        /// <summary>Triggered when the zoom factor changes.</summary>
-        [DispId(10)] void OnZoomChanged(double factor);
-        /// <summary>Triggered when the browser gets focus.</summary>
-        [DispId(11)] void OnBrowserGotFocus(int reason);
-        /// <summary>Triggered when the browser loses focus.</summary>
-        [DispId(12)] void OnBrowserLostFocus(int reason);
-        /// <summary>
-        /// Triggered when the URL changes.
-        /// </summary>
-        /// <param name="newUrl">The new URL.</param> 
-        [DispId(13)] void OnURLChanged(string newUrl);
+        /// <summary>Triggered when navigation is completed.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="isSuccess">Indicates if navigation was successful.</param>
+        /// <param name="webErrorStatus">The web error status code.</param>
+        [DispId(3)] void OnNavigationCompleted(object sender, object parentHandle, bool isSuccess, int webErrorStatus);
 
-        /// <summary>Triggered when a web resource response is received (e.g., for HttpStatusCode).</summary>
+        /// <summary>Triggered when the document title changes.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="newTitle">The new document title.</param>
+        [DispId(4)] void OnTitleChanged(object sender, object parentHandle, string newTitle);
+
+        /// <summary>Triggered when a web resource response is received.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
         /// <param name="statusCode">The HTTP status code.</param>
         /// <param name="reasonPhrase">The HTTP reason phrase.</param>
         /// <param name="requestUrl">The full URL of the request.</param>
-        [DispId(5)] void OnWebResourceResponseReceived(int statusCode, string reasonPhrase, string requestUrl);
+        [DispId(5)] void OnWebResourceResponseReceived(object sender, object parentHandle, int statusCode, string reasonPhrase, string requestUrl);
 
-        /// <param name="selectionText">The selected text under the cursor, if any.</param>
-        [DispId(190)] void OnContextMenuRequested(string linkUrl, int x, int y, string selectionText);
+        /// <summary>Triggered when a custom context menu is requested (JSON format).</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="menuData">JSON string containing context info.</param>
+        [DispId(6)] void OnContextMenu(object sender, object parentHandle, string menuData);
+
+        /// <summary>Triggered when the zoom factor changes.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="factor">The new zoom factor.</param>
+        [DispId(10)] void OnZoomChanged(object sender, object parentHandle, double factor);
+
+        /// <summary>Triggered when the browser gets focus.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="reason">The focus reason code.</param>
+        [DispId(11)] void OnBrowserGotFocus(object sender, object parentHandle, int reason);
+
+        /// <summary>Triggered when the browser loses focus.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="reason">The focus reason code.</param>
+        [DispId(12)] void OnBrowserLostFocus(object sender, object parentHandle, int reason);
+
+        /// <summary>Triggered when the URL changes.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="newUrl">The new URL.</param>
+        [DispId(13)] void OnURLChanged(object sender, object parentHandle, string newUrl);
+
+        /// <summary>Triggered when a simplified context menu is requested.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="linkUrl">The link URL if any.</param>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="selectionText">The selected text if any.</param>
+        [DispId(190)] void OnContextMenuRequested(object sender, object parentHandle, string linkUrl, int x, int y, string selectionText);
 
         /// <summary>Triggered when a download is starting.</summary>
-        [DispId(208)] void OnDownloadStarting(string uri, string defaultPath);
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="uri">The download URI.</param>
+        /// <param name="defaultPath">The default save path.</param>
+        [DispId(208)] void OnDownloadStarting(object sender, object parentHandle, string uri, string defaultPath);
 
         /// <summary>Triggered when a download state changed.</summary>
-        [DispId(209)] void OnDownloadStateChanged(string state, string uri, long totalBytes, long receivedBytes);
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="state">The download state.</param>
+        /// <param name="uri">The download URI.</param>
+        /// <param name="totalBytes">Total bytes to download.</param>
+        /// <param name="receivedBytes">Bytes received so far.</param>
+        [DispId(209)] void OnDownloadStateChanged(object sender, object parentHandle, string state, string uri, long totalBytes, long receivedBytes);
+
+        /// <summary>Triggered when an accelerator key is pressed.</summary>
+        /// <param name="sender">The WebViewManager instance.</param>
+        /// <param name="parentHandle">The parent window handle.</param>
+        /// <param name="args">The accelerator key event args (IWebView2AcceleratorKeyPressedEventArgs).</param>
+        [DispId(221)] void OnAcceleratorKeyPressed(object sender, object parentHandle, object args);
+    }
+
+    /// <summary>
+    /// Event arguments for AcceleratorKeyPressed event.
+    /// </summary>
+    [Guid("9A8B7C6D-5E4F-3A2B-1C0D-9E8F7A6B5C4D")]
+    [InterfaceType(ComInterfaceType.InterfaceIsDual)]
+    [ComVisible(true)]
+    public interface IWebView2AcceleratorKeyPressedEventArgs
+    {
+        [DispId(1)] uint VirtualKey { get; }
+        [DispId(2)] int KeyEventLParam { get; }
+        [DispId(3)] int KeyEventKind { get; }
+        [DispId(4)] object Handled { get; set; }
+        [DispId(5)] void Block();
+    }
+
+    /// <summary>
+    /// Wrapper for CoreWebView2AcceleratorKeyPressedEventArgs.
+    /// </summary>
+    [Guid("E1F2A3B4-C5D6-4E7F-8A9B-0C1D2E3F4A5B")]
+    [ClassInterface(ClassInterfaceType.None)]
+    [ComVisible(true)]
+    public class WebView2AcceleratorKeyPressedEventArgs : IWebView2AcceleratorKeyPressedEventArgs
+    {
+        private readonly CoreWebView2AcceleratorKeyPressedEventArgs _args;
+        private readonly WebViewManager _manager;
+
+        public uint VirtualKey { get; }
+        public int KeyEventLParam { get; }
+        public int KeyEventKind { get; }
+        
+        private volatile bool _handled = false;
+        public object Handled 
+        { 
+            get => _handled;
+            set 
+            {
+                try {
+                    _handled = Convert.ToBoolean(value);
+                    if (_handled) _args.Handled = true; 
+                } catch {
+                    _handled = false;
+                }
+            }
+        }
+
+        public void Block()
+        {
+            _handled = true;
+            try { _args.Handled = true; } catch { }
+            
+            // Critical Trace: See if this method is actually reached from COM
+            _manager?.InternalPushMessage($"DEBUG|BlockMethod_Reached_For_{VirtualKey}");
+        }
+
+        public WebView2AcceleratorKeyPressedEventArgs(CoreWebView2AcceleratorKeyPressedEventArgs args, WebViewManager manager)
+        {
+            _args = args;
+            _manager = manager;
+            VirtualKey = args.VirtualKey;
+            KeyEventLParam = args.KeyEventLParam;
+            KeyEventKind = (int)args.KeyEventKind;
+            _handled = args.Handled;
+        }
+
+        // Internal helper for the wait loop
+        internal bool IsCurrentlyHandled => _handled;
     }
 
     /// <summary>
@@ -129,7 +252,11 @@ namespace NetWebView2Lib
         [DispId(119)] void AddBlockRule(string domain);
         /// <summary>Clear all block rules.</summary>
         [DispId(120)] void ClearBlockRules();
+        /// <summary>Set the lockdown state of the WebView.</summary>
+        [DispId(220)] void SetLockState(bool lockState);
+
         /// <summary>Go Forward.</summary>
+
         [DispId(121)] void GoForward();
         /// <summary>Get HTML Source.</summary>
         [DispId(122)] void GetHtmlSource();
@@ -231,8 +358,10 @@ namespace NetWebView2Lib
         [DispId(182)] void WebViewSetFocus();
         /// <summary>Check if browser popups are allowed or redirected to the same window.</summary>
         [DispId(183)] bool AreBrowserPopupsAllowed { get; set; }
-        /// <summary>Add a script that executes on every page load (Permanent Injection).</summary>
-        [DispId(184)] void AddInitializationScript(string script);
+        /// <summary>Add a script that executes on every page load (Permanent Injection). Returns the ScriptId.</summary>
+        [DispId(184)] string AddInitializationScript(string script);
+        /// <summary>Removes a script previously added via AddInitializationScript.</summary>
+        [DispId(217)] void RemoveInitializationScript(string scriptId);
         /// <summary>Binds the internal JSON data to a browser variable.</summary>
         [DispId(185)] bool BindJsonToBrowser(string variableName);
         /// <summary>Syncs JSON data to internal parser and optionally binds it to a browser variable.</summary>
@@ -285,6 +414,17 @@ namespace NetWebView2Lib
         [DispId(211)] bool IsDownloadHandled { get; set; }
         /// <summary>Enable/Disable Zoom control (Ctrl+Wheel, shortcuts).</summary>
         [DispId(212)] bool IsZoomControlEnabled { get; set; }
+        /// <summary>Enable/Disable the built-in browser error page.</summary>
+        [DispId(213)] bool IsBuiltInErrorPageEnabled { get; set; }
+        /// <summary>Encodes raw binary data (byte array) to a Base64 string.</summary>
+        [DispId(219)] string EncodeBinaryToB64(object binaryData);
+        /// <summary>Maps a virtual host name to a local folder path.</summary>
+        [DispId(218)] void SetVirtualHostNameToFolderMapping(string hostName, string folderPath, int accessKind);
+
+        /// <summary>Gets the internal window handle of the WebView2 control.</summary>
+        [DispId(222)] object BrowserWindowHandle { get; }
+        /// <summary>A comma-separated list of Virtual Key codes to block (e.g., "116,123").</summary>
+        [DispId(223)] string BlockedVirtualKeys { get; set; }
     }
 
     // --- 3. THE MANAGER CLASS ---
@@ -326,6 +466,7 @@ namespace NetWebView2Lib
         private ParentWindowSubclass _parentSubclass;
 
         private string _lastCssRegistrationId = "";
+        private System.Threading.SynchronizationContext _uiContext;
 
         // Keeps active downloads keyed by their URI
         private readonly Dictionary<string, CoreWebView2DownloadOperation> _activeDownloads = new Dictionary<string, CoreWebView2DownloadOperation>();
@@ -333,107 +474,79 @@ namespace NetWebView2Lib
         #endregion
 
         #region 2. DELEGATES & EVENTS
-        /// <summary>
-        /// Delegate for detecting when messages are received.
-        /// </summary>
-        /// <param name="message">The message content.</param>
-        public delegate void OnMessageReceivedDelegate(string message);
+        // v2.0.0: All delegates now include sender and parentHandle parameters
 
-        /// <summary>
-        /// Delegate for navigation starting event.
-        /// </summary>
-        /// <param name="url">The URL being navigated to.</param> 
-        public delegate void OnNavigationStartingDelegate(string url);
+        /// <summary>Delegate for message received event.</summary>
+        public delegate void OnMessageReceivedDelegate(object sender, object parentHandle, string message);
 
-        /// <summary>
-        /// Delegate for navigation completed event.
-        /// </summary> 
-        /// <param name="isSuccess">Indicates if navigation was successful.</param>
-        /// <param name="webErrorStatus">The web error status code.</param> 
-        public delegate void OnNavigationCompletedDelegate(bool isSuccess, int webErrorStatus);
+        /// <summary>Delegate for navigation starting event.</summary>
+        public delegate void OnNavigationStartingDelegate(object sender, object parentHandle, string url);
 
-        /// <summary>
-        /// Delegate for title changed event.
-        /// </summary>
-        /// <param name="newTitle">The new document title.</param> 
-        public delegate void OnTitleChangedDelegate(string newTitle);
+        /// <summary>Delegate for navigation completed event.</summary>
+        public delegate void OnNavigationCompletedDelegate(object sender, object parentHandle, bool isSuccess, int webErrorStatus);
 
-        /// <summary>
-        /// Delegate for URL changed event.
-        /// </summary>
-        /// <param name="newUrl">The new URL.</param> 
-        public delegate void OnURLChangedDelegate(string newUrl);
+        /// <summary>Delegate for title changed event.</summary>
+        public delegate void OnTitleChangedDelegate(object sender, object parentHandle, string newTitle);
 
-        /// <summary>Delegate for custom context menu event.</summary>
-        /// <param name="message">JSON string with context info.</param>
-        public delegate void OnContextMenuDelegate(string message);
+        /// <summary>Delegate for URL changed event.</summary>
+        public delegate void OnURLChangedDelegate(object sender, object parentHandle, string newUrl);
+
+        /// <summary>Delegate for custom context menu event (JSON).</summary>
+        public delegate void OnContextMenuDelegate(object sender, object parentHandle, string message);
 
         /// <summary>Delegate for simplified context menu event.</summary>
-        public delegate void OnContextMenuRequestedDelegate(string linkUrl, int x, int y, string selectionText);
+        public delegate void OnContextMenuRequestedDelegate(object sender, object parentHandle, string linkUrl, int x, int y, string selectionText);
 
-        /// <summary>Delegate for Zoom Changed.</summary>
-        public delegate void OnZoomChangedDelegate(double factor);
-        /// <summary>Delegate for Got Focus.</summary>
-        public delegate void OnBrowserGotFocusDelegate(int reason);
-        /// <summary>Delegate for Lost Focus.</summary>
-        public delegate void OnBrowserLostFocusDelegate(int reason);
+        /// <summary>Delegate for zoom changed event.</summary>
+        public delegate void OnZoomChangedDelegate(object sender, object parentHandle, double factor);
 
-        /// <summary>Delegate for Web Resource Response Received (HttpStatusCode).</summary>
-        /// <param name="statusCode">The HTTP status code.</param>
-        /// <param name="reasonPhrase">The HTTP reason phrase.</param>
-        /// <param name="requestUrl">The full URL of the request.</param>
-        public delegate void OnWebResourceResponseReceivedDelegate(int statusCode, string reasonPhrase, string requestUrl);
+        /// <summary>Delegate for browser got focus event.</summary>
+        public delegate void OnBrowserGotFocusDelegate(object sender, object parentHandle, int reason);
 
-        /// <summary>Delegate for Download Starting.</summary>
-        public delegate void OnDownloadStartingDelegate(string uri, string defaultPath);
-        /// <summary>Delegate for Download State Changed.</summary>
-        public delegate void OnDownloadStateChangedDelegate(string state, string uri, long totalBytes, long receivedBytes);
+        /// <summary>Delegate for browser lost focus event.</summary>
+        public delegate void OnBrowserLostFocusDelegate(object sender, object parentHandle, int reason);
 
-        /// <summary>
-        /// Event fired when a message is received.
-        /// </summary>
+        /// <summary>Delegate for web resource response received event.</summary>
+        public delegate void OnWebResourceResponseReceivedDelegate(object sender, object parentHandle, int statusCode, string reasonPhrase, string requestUrl);
+
+        /// <summary>Delegate for download starting event.</summary>
+        public delegate void OnDownloadStartingDelegate(object sender, object parentHandle, string uri, string defaultPath);
+
+        /// <summary>Delegate for download state changed event.</summary>
+        public delegate void OnDownloadStateChangedDelegate(object sender, object parentHandle, string state, string uri, long totalBytes, long receivedBytes);
+
+        /// <summary>Delegate for accelerator key pressed event.</summary>
+        public delegate void OnAcceleratorKeyPressedDelegate(object sender, object parentHandle, object args);
+
+        // Event declarations
+        /// <summary>Event fired when a message is received.</summary>
         public event OnMessageReceivedDelegate OnMessageReceived;
-
-        /// <summary>
-        /// Event fired when navigation starts.
-        /// </summary> 
+        /// <summary>Event fired when navigation starts.</summary>
         public event OnNavigationStartingDelegate OnNavigationStarting;
-
-        /// <summary>
-        /// Event fired when navigation is completed.
-        /// </summary>
+        /// <summary>Event fired when navigation is completed.</summary>
         public event OnNavigationCompletedDelegate OnNavigationCompleted;
-
-        /// <summary>
-        /// Event fired when the document title changes.
-        /// </summary> 
+        /// <summary>Event fired when the document title changes.</summary>
         public event OnTitleChangedDelegate OnTitleChanged;
-
-        /// <summary>
-        /// Event fired when the URL changes.
-        /// </summary> 
+        /// <summary>Event fired when the URL changes.</summary>
         public event OnURLChangedDelegate OnURLChanged;
-
         /// <summary>Event fired when a web resource response is received.</summary>
         public event OnWebResourceResponseReceivedDelegate OnWebResourceResponseReceived;
-
         /// <summary>Event fired when a download is starting.</summary>
         public event OnDownloadStartingDelegate OnDownloadStarting;
         /// <summary>Event fired when a download state changed.</summary>
         public event OnDownloadStateChangedDelegate OnDownloadStateChanged;
-
         /// <summary>Event fired when a custom context menu is requested.</summary>
         public event OnContextMenuDelegate OnContextMenu;
-
         /// <summary>Event fired when a simplified context menu is requested.</summary>
         public event OnContextMenuRequestedDelegate OnContextMenuRequested;
-
         /// <summary>Event fired when zoom factor changes.</summary>
         public event OnZoomChangedDelegate OnZoomChanged;
         /// <summary>Event fired when browser gets focus.</summary>
         public event OnBrowserGotFocusDelegate OnBrowserGotFocus;
         /// <summary>Event fired when browser loses focus.</summary>
         public event OnBrowserLostFocusDelegate OnBrowserLostFocus;
+        /// <summary>Event fired when an accelerator key is pressed.</summary>
+        public event OnAcceleratorKeyPressedDelegate OnAcceleratorKeyPressed;
         #endregion
 
         #region 3. NATIVE METHODS & HELPERS
@@ -489,6 +602,38 @@ namespace NetWebView2Lib
         /// Check if WebView2 is initialized and ready.
         /// </summary>
         public bool IsReady() => _webView?.CoreWebView2 != null;
+
+        /// <summary>Allows internal classes to push debug/info messages to AutoIt.</summary>
+        internal void InternalPushMessage(string message)
+        {
+            OnMessageReceived?.Invoke(this, _parentHandle, message);
+        }
+
+        /// <summary>
+        /// Gets the internal window handle of the WebView2 control.
+        /// Exposed as object for COM compatibility (AutoIt).
+        /// </summary>
+        [ComVisible(true)]
+        public object BrowserWindowHandle
+        {
+            get
+            {
+                // Returns the internal handle of the WebView2 WinForms control
+                // This is the child window of the Parent provided during Initialize.
+                return _webView?.Handle ?? IntPtr.Zero;
+            }
+        }
+
+        private string _blockedVirtualKeys = "";
+        /// <summary>
+        /// A comma-separated list of Virtual Key codes to be blocked synchronously (e.g., "116,123").
+        /// This ensures blocking (Handled = true) works without COM timing issues.
+        /// </summary>
+        public string BlockedVirtualKeys
+        {
+            get => _blockedVirtualKeys;
+            set => _blockedVirtualKeys = value ?? "";
+        }
         #endregion
 
         #region 6. CORE INITIALIZATION
@@ -500,9 +645,16 @@ namespace NetWebView2Lib
         {
             try
             {
+                // Capture the UI thread context for Law #1 compliance
+                _uiContext = System.Threading.SynchronizationContext.Current;
+                if (_uiContext != null) _bridge.SetSyncContext(_uiContext);
+
                 // Convert the incoming handle from AutoIt (passed as object/pointer)
                 long rawHandleValue = Convert.ToInt64(parentHandle);
                 _parentHandle = new IntPtr(rawHandleValue);
+
+                // v2.0.0: "Seal" the bridge context immediately after handle conversion
+                _bridge.SetParentContext(this, _parentHandle);
 
                 // Store offsets for Smart Resize
                 _offsetX = x;
@@ -593,12 +745,12 @@ namespace NetWebView2Lib
                 InvokeOnUiThread(() => _webView.Visible = true);
 
                 // Notify AutoIt that the browser is ready (Standard style without ID)
-                OnMessageReceived?.Invoke("INIT_READY");
+                OnMessageReceived?.Invoke(this, _parentHandle, "INIT_READY");
             }
             catch (Exception ex)
             {
                 // Send error details back to AutoIt if initialization fails
-                OnMessageReceived?.Invoke("ERROR|INIT_FAILED|" + ex.Message);
+                OnMessageReceived?.Invoke(this, _parentHandle, "ERROR|INIT_FAILED|" + ex.Message);
             }
         }
 
@@ -614,14 +766,14 @@ namespace NetWebView2Lib
                 // Ensure the WebView and Profile are ready
                 if (_webView?.CoreWebView2?.Profile == null)
                 {
-                    OnMessageReceived?.Invoke("ERROR|EXTENSION|WebView2 Profile not ready.");
+                    OnMessageReceived?.Invoke(this, _parentHandle, "ERROR|EXTENSION|WebView2 Profile not ready.");
                     return;
                 }
 
                 // Validate the extension path
                 if (!System.IO.Directory.Exists(extensionPath))
                 {
-                    OnMessageReceived?.Invoke("ERROR|EXTENSION|Path not found: " + extensionPath);
+                    OnMessageReceived?.Invoke(this, _parentHandle, "ERROR|EXTENSION|Path not found: " + extensionPath);
                     return;
                 }
 
@@ -631,11 +783,11 @@ namespace NetWebView2Lib
                     var ext = await _webView.CoreWebView2.Profile.AddBrowserExtensionAsync(extensionPath);
 
                     // Notify AutoIt that the extension has been loaded successfully
-                    OnMessageReceived?.Invoke("EXTENSION_LOADED|" + ext.Id);
+                    OnMessageReceived?.Invoke(this, _parentHandle, "EXTENSION_LOADED|" + ext.Id);
                 }
                 catch (Exception ex)
                 {
-                    OnMessageReceived?.Invoke("ERROR|EXTENSION_FAILED|" + ex.Message);
+                    OnMessageReceived?.Invoke(this, _parentHandle, "ERROR|EXTENSION_FAILED|" + ex.Message);
                 }
             });
         }
@@ -660,15 +812,15 @@ namespace NetWebView2Lib
                         if (ext.Id == extensionId)
                         {
                             await ext.RemoveAsync();
-                            OnMessageReceived?.Invoke("EXTENSION_REMOVED|" + extensionId);
+                            OnMessageReceived?.Invoke(this, _parentHandle, "EXTENSION_REMOVED|" + extensionId);
                             return;
                         }
                     }
-                    OnMessageReceived?.Invoke("ERROR|EXTENSION_NOT_FOUND|" + extensionId);
+                    OnMessageReceived?.Invoke(this, _parentHandle, "ERROR|EXTENSION_NOT_FOUND|" + extensionId);
                 }
                 catch (Exception ex)
                 {
-                    OnMessageReceived?.Invoke("ERROR|REMOVE_EXTENSION_FAILED|" + ex.Message);
+                    OnMessageReceived?.Invoke(this, _parentHandle, "ERROR|REMOVE_EXTENSION_FAILED|" + ex.Message);
                 }
             });
         }
@@ -693,15 +845,7 @@ namespace NetWebView2Lib
         /// </summary>
         public void DisableBrowserFeatures()
         {
-            InvokeOnUiThread(() => {
-                if (_webView?.CoreWebView2 != null)
-                {
-                    var settings = _webView.CoreWebView2.Settings;
-                    settings.AreDevToolsEnabled = false;   // Disable DevTools
-                    settings.IsStatusBarEnabled = false;   // Disable Status Bar
-                    settings.IsZoomControlEnabled = false; // Disable Zoom Control
-                }
-            });
+            LockWebView();
         }
         #endregion
 
@@ -740,7 +884,7 @@ namespace NetWebView2Lib
                     // --- CASE A: Parameter-based Event (v1.4.2 Priority) ---
                     // This is DispId 190 for AutoIt compatibility
                     _webView.BeginInvoke(new Action(() => {
-                        OnContextMenuRequested?.Invoke(lnk, args.Location.X, args.Location.Y, sel);
+                        OnContextMenuRequested?.Invoke(this, _parentHandle, lnk, args.Location.X, args.Location.Y, sel);
                     }));
 
                     // --- CASE B: Legacy JSON-based Event (v1.4.1 compatibility) ---
@@ -760,7 +904,7 @@ namespace NetWebView2Lib
                         "}";
 
                     _webView.BeginInvoke(new Action(() => {
-                        OnContextMenu?.Invoke("JSON:" + json);
+                        OnContextMenu?.Invoke(this, _parentHandle, "JSON:" + json);
                     }));
                 }
                 catch (Exception ex) 
@@ -786,7 +930,7 @@ namespace NetWebView2Lib
                     if (uri.Contains(domain))
                     {
                         e.Response = _webView.CoreWebView2.Environment.CreateWebResourceResponse(null, 403, "Forbidden", "");
-                        OnMessageReceived?.Invoke($"BLOCKED_AD|{uri}");
+                        OnMessageReceived?.Invoke(this, _parentHandle, $"BLOCKED_AD|{uri}");
                         return;
                     }
                 }
@@ -813,44 +957,44 @@ namespace NetWebView2Lib
 
             // Navigation & Content Events
             _webView.CoreWebView2.NavigationStarting += (s, e) => { 
-                OnNavigationStarting?.Invoke(e.Uri); 
+                OnNavigationStarting?.Invoke(this, _parentHandle, e.Uri); 
 				
 				string url = e.Uri;
 				
 				// Notify AutoIt about navigation start
-                OnMessageReceived?.Invoke("NAV_STARTING|" + url);
+                OnMessageReceived?.Invoke(this, _parentHandle, "NAV_STARTING|" + url);
             };
 
             _webView.CoreWebView2.NavigationCompleted += (s, e) => { 
-                OnNavigationCompleted?.Invoke(e.IsSuccess, (int)e.WebErrorStatus); 
+                OnNavigationCompleted?.Invoke(this, _parentHandle, e.IsSuccess, (int)e.WebErrorStatus); 
 				
 				// Keep the old OnMessageReceived for compatibility (optional)
                 if (e.IsSuccess)
                 {
-                    OnMessageReceived?.Invoke("NAV_COMPLETED");
-                    OnMessageReceived?.Invoke("TITLE_CHANGED|" + _webView.CoreWebView2.DocumentTitle);
+                    OnMessageReceived?.Invoke(this, _parentHandle, "NAV_COMPLETED");
+                    OnMessageReceived?.Invoke(this, _parentHandle, "TITLE_CHANGED|" + _webView.CoreWebView2.DocumentTitle);
                 }
                 else
                 {
-                    OnMessageReceived?.Invoke("NAV_ERROR|" + e.WebErrorStatus);
+                    OnMessageReceived?.Invoke(this, _parentHandle, "NAV_ERROR|" + e.WebErrorStatus);
                 }
             };
 
             _webView.CoreWebView2.SourceChanged += (s, e) => { 
-                OnURLChanged?.Invoke(_webView.CoreWebView2.Source); 
+                OnURLChanged?.Invoke(this, _parentHandle, _webView.CoreWebView2.Source); 
             };
 			
 			// Source Changed Event
-            _webView.CoreWebView2.SourceChanged += (s, e) => OnMessageReceived?.Invoke("URL_CHANGED|" + _webView.Source);
+            _webView.CoreWebView2.SourceChanged += (s, e) => OnMessageReceived?.Invoke(this, _parentHandle, "URL_CHANGED|" + _webView.Source);
 
             _webView.CoreWebView2.DocumentTitleChanged += (s, e) => { 
-                OnTitleChanged?.Invoke(_webView.CoreWebView2.DocumentTitle); 
+                OnTitleChanged?.Invoke(this, _parentHandle, _webView.CoreWebView2.DocumentTitle); 
             };
 
             // Zoom Factor Changed Event
             _webView.ZoomFactorChanged += (s, e) => {
-                OnZoomChanged?.Invoke(_webView.ZoomFactor);
-                OnMessageReceived?.Invoke("ZOOM_CHANGED|" + _webView.ZoomFactor);
+                OnZoomChanged?.Invoke(this, _parentHandle, _webView.ZoomFactor);
+                OnMessageReceived?.Invoke(this, _parentHandle, "ZOOM_CHANGED|" + _webView.ZoomFactor);
             };
 
             // Communication Event <---> AutoIt <---> JavaScript
@@ -877,7 +1021,7 @@ namespace NetWebView2Lib
                         string sel = parts[4];
                         
                         _webView.BeginInvoke(new Action(() => {
-                            OnContextMenuRequested?.Invoke(lnk, x, y, sel);
+                            OnContextMenuRequested?.Invoke(this, _parentHandle, lnk, x, y, sel);
                         }));
                         return; // Handled
                     }
@@ -887,7 +1031,7 @@ namespace NetWebView2Lib
             };
 
             // Focus Events (Native Bridge) 
-            _webView.GotFocus += (s, e) => { OnBrowserGotFocus?.Invoke(0); };
+            _webView.GotFocus += (s, e) => { OnBrowserGotFocus?.Invoke(this, _parentHandle, 0); };
             
             _webView.LostFocus += (s, e) => {
                 _webView.BeginInvoke(new Action(() => {
@@ -897,7 +1041,7 @@ namespace NetWebView2Lib
                     // If focusedHandle is NOT _webView.Handle 
                     // AND is NOT a child (IsChild) of _webView.Handle, then we truly lost focus.
                     if (focusedHandle != _webView.Handle && !IsChild(_webView.Handle, focusedHandle)) {
-                        OnBrowserLostFocus?.Invoke(0);
+                        OnBrowserLostFocus?.Invoke(this, _parentHandle, 0);
                     }
                 }));
             };
@@ -922,13 +1066,15 @@ namespace NetWebView2Lib
                     string reasonPhrase = GetReasonPhrase(statusCode, e.Response.ReasonPhrase);
                     string requestUrl = e.Request.Uri;
                     _webView.BeginInvoke(new Action(() => {
-                        OnWebResourceResponseReceived?.Invoke(statusCode, reasonPhrase, requestUrl);
+                        OnWebResourceResponseReceived?.Invoke(this, _parentHandle, statusCode, reasonPhrase, requestUrl);
                     }));
                 }
             };
 
-            _webView.CoreWebView2.DownloadStarting += (s, e) =>
+            _webView.CoreWebView2.DownloadStarting += async (s, e) =>
             {
+                // Law #2: Use deferral for non-blocking wait
+                var deferral = e.GetDeferral();
                 string currentUri = e.DownloadOperation.Uri;
 				
 				// 1. Apply Custom Download Path if it exists
@@ -946,20 +1092,21 @@ namespace NetWebView2Lib
                 _isDownloadHandledOverride = false; // Default to FALSE (Let Edge handle it)
 
                 // Fire the event to AutoIt
-                OnDownloadStarting?.Invoke(e.DownloadOperation.Uri, e.ResultFilePath); // Using the updated path
+                OnDownloadStarting?.Invoke(this, _parentHandle, e.DownloadOperation.Uri, e.ResultFilePath); // Using the updated path
 
-                // --- ROBUST WAIT FOR AUTOIT ---
+                // --- ROBUST ASYNC WAIT FOR AUTOIT (Law #2) ---
                 var sw = Stopwatch.StartNew();
                 while (sw.ElapsedMilliseconds < 600 && !_isDownloadHandledOverride)
                 {
-                    System.Windows.Forms.Application.DoEvents();
-                    System.Threading.Thread.Sleep(5);
+                    // Non-blocking wait that allows UI to stay responsive without DoEvents()
+                    await Task.Delay(10);
                 }
 
                 if (_isDownloadHandledOverride)
                 {
                     e.Cancel = true;
-                    OnMessageReceived?.Invoke($"DOWNLOAD_CANCELLED|{e.DownloadOperation.Uri}");
+                    OnMessageReceived?.Invoke(this, _parentHandle, $"DOWNLOAD_CANCELLED|{e.DownloadOperation.Uri}");
+                    deferral.Complete();
                     return;
                 }
 
@@ -967,7 +1114,7 @@ namespace NetWebView2Lib
                 e.Handled = !_isDownloadUIEnabled;
 
                 // Using e.ResultFilePath which now contains the correct path
-                OnMessageReceived?.Invoke($"DOWNLOAD_STARTING|{e.DownloadOperation.Uri}|{e.ResultFilePath}");
+                OnMessageReceived?.Invoke(this, _parentHandle, $"DOWNLOAD_STARTING|{e.DownloadOperation.Uri}|{e.ResultFilePath}");
 
                 e.DownloadOperation.StateChanged += (sender, args) =>
                 {
@@ -975,14 +1122,14 @@ namespace NetWebView2Lib
                     long receivedBytes = (long)e.DownloadOperation.BytesReceived;
 					
 					// Update status (InProgress, Completed, etc.)
-                    OnDownloadStateChanged?.Invoke(e.DownloadOperation.State.ToString(), e.DownloadOperation.Uri, totalBytes, receivedBytes);
+                    OnDownloadStateChanged?.Invoke(this, _parentHandle, e.DownloadOperation.State.ToString(), e.DownloadOperation.Uri, totalBytes, receivedBytes);
 					
 					// DOWNLOAD_CANCELLED
 					if (e.DownloadOperation.State == Microsoft.Web.WebView2.Core.CoreWebView2DownloadState.Interrupted)
 					{
 						// Send DOWNLOAD_CANCELLED|URL|Reason (e.g. UserCanceled, NetworkFailed, etc.)
 						var reason = e.DownloadOperation.InterruptReason;
-						OnMessageReceived?.Invoke($"DOWNLOAD_CANCELLED|{currentUri}|{reason}");
+						OnMessageReceived?.Invoke(this, _parentHandle, $"DOWNLOAD_CANCELLED|{currentUri}|{reason}");
 					}
 
 					// Clear list when finished (for any reason)
@@ -1008,11 +1155,52 @@ namespace NetWebView2Lib
                         if (currentPercent > lastPercent)
                         {
                             lastPercent = currentPercent;
-                            OnDownloadStateChanged?.Invoke("InProgress", e.DownloadOperation.Uri, total, received);
+                            OnDownloadStateChanged?.Invoke(this, _parentHandle, "InProgress", e.DownloadOperation.Uri, total, received);
                         }
                     }
                 };
+                
+                deferral.Complete();
             };
+
+            // Accelerator Key Pressed Event
+            // Restoration: Using reflection to access internal CoreWebView2Controller (WinForms SDK limitation)
+            try
+            {
+                var controllerField = typeof(WebView2).GetField("_coreWebView2Controller", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (controllerField != null)
+                {
+                    if (controllerField.GetValue(_webView) is CoreWebView2Controller controller)
+                    {
+                        controller.AcceleratorKeyPressed += (s, e) =>
+                        {
+                            var eventArgs = new WebView2AcceleratorKeyPressedEventArgs(e, this);
+                            
+                            // --- PRE-EMPTIVE BLOCKING (Law #2: Performance) ---
+                            // Check if the key is in the blocked list
+                            if (!string.IsNullOrEmpty(_blockedVirtualKeys))
+                            {
+                                string vKeyStr = e.VirtualKey.ToString();
+                                if (_blockedVirtualKeys.Split(',').Any(k => k.Trim() == vKeyStr))
+                                {
+                                    e.Handled = true;
+                                    eventArgs.Block(); // Sync internal state
+                                }
+                            }
+
+                            // Dispatch to AutoIt (informative)
+                            OnAcceleratorKeyPressed?.Invoke(this, _parentHandle, eventArgs);
+                            
+                            // Ensure any manual Block() called in AutoIt is still applied (if COM allows)
+                            if (eventArgs.IsCurrentlyHandled) e.Handled = true;
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("AcceleratorKey Reflection Error: " + ex.Message);
+            }
         }
         #endregion
 
@@ -1048,14 +1236,39 @@ namespace NetWebView2Lib
         /// <summary>Check if it's possible to navigate forward.</summary>
         public bool GetCanGoForward() => _webView?.CoreWebView2?.CanGoForward ?? false;
 
-        /// <summary>Adds a script that executes on every page load (Permanent Injection).</summary>
-        public async void AddInitializationScript(string script)
+        /// <summary>Adds a script that executes on every page load (Permanent Injection). Returns the ScriptId.</summary>
+        public string AddInitializationScript(string script)
         {
-            if (_webView?.CoreWebView2 == null) return;
-            try {
-                await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(script);
-                await _webView.CoreWebView2.ExecuteScriptAsync(script);
-            } catch (Exception ex) { Debug.WriteLine("Error adding initialization script: " + ex.Message); }
+            if (_webView?.CoreWebView2 == null) return "ERROR: WebView not initialized";
+            return RunOnUiThread(() =>
+            {
+                try
+                {
+                    var task = _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(script);
+                    string scriptId = WaitAndGetResult(task);
+
+                    // Execute immediately on current page for full lifecycle effect
+                    _webView.CoreWebView2.ExecuteScriptAsync(script);
+
+                    return scriptId;
+                }
+                catch (Exception ex)
+                {
+                    return "ERROR: " + ex.Message;
+                }
+            });
+        }
+
+        /// <summary>Removes a script previously added via AddInitializationScript.</summary>
+        public void RemoveInitializationScript(string scriptId)
+        {
+            InvokeOnUiThread(() =>
+            {
+                if (_webView?.CoreWebView2 != null && !string.IsNullOrEmpty(scriptId))
+                {
+                    _webView.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(scriptId);
+                }
+            });
         }
 
         /// <summary>Controls the context menu behavior.</summary>
@@ -1074,7 +1287,7 @@ namespace NetWebView2Lib
         {
             if (_webView?.CoreWebView2 == null) return;
             string html = await _webView.CoreWebView2.ExecuteScriptAsync("document.documentElement.outerHTML");
-            OnMessageReceived?.Invoke("HTML_SOURCE|" + CleanJsString(html));
+            OnMessageReceived?.Invoke(this, _parentHandle, "HTML_SOURCE|" + CleanJsString(html));
         }
 
         /// <summary>
@@ -1084,7 +1297,7 @@ namespace NetWebView2Lib
         {
             if (_webView?.CoreWebView2 == null) return;
             string selectedText = await _webView.CoreWebView2.ExecuteScriptAsync("window.getSelection().toString()");
-            OnMessageReceived?.Invoke("SELECTED_TEXT|" + CleanJsString(selectedText));
+            OnMessageReceived?.Invoke(this, _parentHandle, "SELECTED_TEXT|" + CleanJsString(selectedText));
         }
 
 
@@ -1161,8 +1374,8 @@ namespace NetWebView2Lib
             if (_webView?.CoreWebView2 == null) return;
             try {
                 string html = await _webView.CoreWebView2.ExecuteScriptAsync("document.documentElement.innerText");
-                OnMessageReceived?.Invoke("INNER_TEXT|" + CleanJsString(html));
-            } catch (Exception ex) { OnMessageReceived?.Invoke("ERROR|INNER_TEXT_FAILED: " + ex.Message); }
+                OnMessageReceived?.Invoke(this, _parentHandle, "INNER_TEXT|" + CleanJsString(html));
+            } catch (Exception ex) { OnMessageReceived?.Invoke(this, _parentHandle, "ERROR|INNER_TEXT_FAILED: " + ex.Message); }
         }
         #endregion
 
@@ -1257,9 +1470,9 @@ namespace NetWebView2Lib
             try
             {
                 using (var fileStream = File.Create(filePath)) await _webView.CoreWebView2.CapturePreviewAsync(imageFormat, fileStream);
-                OnMessageReceived?.Invoke("CAPTURE_SUCCESS|" + filePath);
+                OnMessageReceived?.Invoke(this, _parentHandle, "CAPTURE_SUCCESS|" + filePath);
             }
-            catch (Exception ex) { OnMessageReceived?.Invoke("CAPTURE_ERROR|" + ex.Message); }
+            catch (Exception ex) { OnMessageReceived?.Invoke(this, _parentHandle, "CAPTURE_ERROR|" + ex.Message); }
         }
 
         /// <summary>
@@ -1276,44 +1489,44 @@ namespace NetWebView2Lib
                 if (_webView?.CoreWebView2 != null)
                 {
                      try { await _webView.CoreWebView2.ExecuteScriptAsync("window.print();"); } 
-                     catch(Exception ex) { OnMessageReceived?.Invoke("PRINT_ERROR|" + ex.Message); }
+                     catch(Exception ex) { OnMessageReceived?.Invoke(this, _parentHandle, "PRINT_ERROR|" + ex.Message); }
                 }
              });
         }
 
         /// <summary>
-        /// Lock down the WebView by disabling certain features.
+        /// Unified master switch to lock or unlock the WebView features.
         /// </summary>
-        public void LockWebView()
+        /// <param name="lockState">True to lock down, False to unlock.</param>
+        public void SetLockState(bool lockState)
         {
             InvokeOnUiThread(() => {
                 if (_webView?.CoreWebView2 != null)
                 {
                     var s = _webView.CoreWebView2.Settings;
-                    s.AreDefaultContextMenusEnabled = false;
-                    s.AreDevToolsEnabled = false;
-                    s.IsZoomControlEnabled = false;
-                    s.IsBuiltInErrorPageEnabled = false;
+                    s.AreDefaultContextMenusEnabled = !lockState;
+                    s.AreDevToolsEnabled = !lockState;
+                    s.IsZoomControlEnabled = !lockState;
+                    s.IsBuiltInErrorPageEnabled = !lockState;
+                    s.AreDefaultScriptDialogsEnabled = !lockState;
+                    s.AreBrowserAcceleratorKeysEnabled = !lockState;
+                    s.IsStatusBarEnabled = !lockState;
                 }
+                _areBrowserPopupsAllowed = !lockState;
+                _contextMenuEnabled = !lockState; // Sync internal field
             });
         }
 
         /// <summary>
-        /// Unlock the WebView by re-enabling restricted features.
+        /// Lock down the WebView by disabling certain features (Legacy).
         /// </summary>
-        public void UnLockWebView()
-        {
-            InvokeOnUiThread(() => {
-                if (_webView?.CoreWebView2 != null)
-                {
-                    var s = _webView.CoreWebView2.Settings;
-                    s.AreDefaultContextMenusEnabled = true;
-                    s.AreDevToolsEnabled = true;
-                    s.IsZoomControlEnabled = true;
-                    s.IsBuiltInErrorPageEnabled = true;
-                }
-            });
-        }
+        public void LockWebView() => SetLockState(true);
+
+        /// <summary>
+        /// Unlock the WebView by re-enabling restricted features (Legacy).
+        /// </summary>
+        public void UnLockWebView() => SetLockState(false);
+
 
         /// <summary>
         /// Saves the current page as a PDF file.
@@ -1324,9 +1537,9 @@ namespace NetWebView2Lib
             try
             {
                 await _webView.CoreWebView2.PrintToPdfAsync(filePath);
-                OnMessageReceived?.Invoke("PDF_EXPORT_SUCCESS|" + filePath);
+                OnMessageReceived?.Invoke(this, _parentHandle, "PDF_EXPORT_SUCCESS|" + filePath);
             }
-            catch (Exception ex) { OnMessageReceived?.Invoke("PDF_EXPORT_ERROR|" + ex.Message); }
+            catch (Exception ex) { OnMessageReceived?.Invoke(this, _parentHandle, "PDF_EXPORT_ERROR|" + ex.Message); }
         }
 
         /// <summary>
@@ -1445,9 +1658,9 @@ namespace NetWebView2Lib
             try
             {
                 string result = await _webView.CoreWebView2.CallDevToolsProtocolMethodAsync(methodName, parametersJson);
-                OnMessageReceived?.Invoke($"CDP_RESULT|{methodName}|{result}");
+                OnMessageReceived?.Invoke(this, _parentHandle, $"CDP_RESULT|{methodName}|{result}");
             }
-            catch (Exception ex) { OnMessageReceived?.Invoke($"CDP_ERROR|{methodName}|{ex.Message}"); }
+            catch (Exception ex) { OnMessageReceived?.Invoke(this, _parentHandle, $"CDP_ERROR|{methodName}|{ex.Message}"); }
         }
 
         /// <summary>
@@ -1490,7 +1703,7 @@ namespace NetWebView2Lib
         {
             await _webView.EnsureCoreWebView2Async();
             await _webView.CoreWebView2.Profile.ClearBrowsingDataAsync();
-            OnMessageReceived?.Invoke("DATA_CLEARED");
+            OnMessageReceived?.Invoke(this, _parentHandle, "DATA_CLEARED");
         }
 
         /// <summary>
@@ -1520,9 +1733,9 @@ namespace NetWebView2Lib
                 }
                 sb.Append("]");
                 byte[] bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-                OnMessageReceived?.Invoke($"COOKIES_B64|{channelId}|{Convert.ToBase64String(bytes)}");
+                OnMessageReceived?.Invoke(this, _parentHandle, $"COOKIES_B64|{channelId}|{Convert.ToBase64String(bytes)}");
             }
-            catch (Exception ex) { OnMessageReceived?.Invoke($"COOKIES_ERROR|{channelId}|{ex.Message}"); }
+            catch (Exception ex) { OnMessageReceived?.Invoke(this, _parentHandle, $"COOKIES_ERROR|{channelId}|{ex.Message}"); }
         }
 
         /// <summary>
@@ -1536,7 +1749,7 @@ namespace NetWebView2Lib
                 var cookie = _webView.CoreWebView2.CookieManager.CreateCookie(name, value, domain, path);
                 _webView.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
             }
-            catch (Exception ex) { OnMessageReceived?.Invoke($"COOKIE_ADD_ERROR|{ex.Message}"); }
+            catch (Exception ex) { OnMessageReceived?.Invoke(this, _parentHandle, $"COOKIE_ADD_ERROR|{ex.Message}"); }
         }
 
         /// <summary>
@@ -1594,7 +1807,7 @@ namespace NetWebView2Lib
                 int newHeight = (rect.Bottom - rect.Top) - _offsetY - _marginBottom;
                 _webView.Left = _offsetX; _webView.Top = _offsetY;
                 _webView.Width = Math.Max(10, newWidth); _webView.Height = Math.Max(10, newHeight);
-                OnMessageReceived?.Invoke("WINDOW_RESIZED|" + _webView.Width + "|" + _webView.Height);
+                OnMessageReceived?.Invoke(this, _parentHandle, "WINDOW_RESIZED|" + _webView.Width + "|" + _webView.Height);
             }
         }
 
@@ -1816,6 +2029,16 @@ namespace NetWebView2Lib
             catch { return new byte[0]; }
         }
 
+        /// <summary>Encodes raw binary data (byte array) to a Base64 string.</summary>
+        public string EncodeBinaryToB64(object binaryData)
+        {
+            if (binaryData is byte[] bytes)
+            {
+                return Convert.ToBase64String(bytes);
+            }
+            return "";
+        }
+
         /// <summary>Enable/Disable OnWebResourceResponseReceived event.</summary>
         public bool HttpStatusCodeEventsEnabled
         {
@@ -1848,6 +2071,25 @@ namespace NetWebView2Lib
                         _webView.CoreWebView2.Settings.IsZoomControlEnabled = value;
                 });
             }
+        }
+
+        public bool IsBuiltInErrorPageEnabled
+        {
+            get => RunOnUiThread(() => _webView?.CoreWebView2?.Settings?.IsBuiltInErrorPageEnabled ?? true);
+            set => InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = value; });
+        }
+
+        /// <summary>
+        /// Maps a virtual host name to a local folder path.
+        /// </summary>
+        public void SetVirtualHostNameToFolderMapping(string hostName, string folderPath, int accessKind)
+        {
+            InvokeOnUiThread(() => {
+                if (_webView?.CoreWebView2 != null)
+                {
+                    _webView.CoreWebView2.SetVirtualHostNameToFolderMapping(hostName, folderPath, (Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind)accessKind);
+                }
+            });
         }
 
         /// <summary>

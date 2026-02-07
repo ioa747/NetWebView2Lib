@@ -1,4 +1,10 @@
 #AutoIt3Wrapper_UseX64=y
+#AutoIt3Wrapper_Run_AU3Check=Y
+#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
+#AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
+
+; 004-FileViewerDemo.au3
+
 #include <GUIConstantsEx.au3>
 #include <SendMessage.au3>
 #include <StaticConstants.au3>
@@ -47,17 +53,15 @@ Func Main()
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 
 	; Initialize WebView2 Manager and register events
-;~ 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--mute-audio")
 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--mute-audio")
-	$_g_oWeb = $oWebV2M
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; Initialize JavaScript Bridge
-	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M)
-	If @error Then Return SetError(@error, @extended, $oWebV2M)
+;~ 	; Initialize JavaScript Bridge
+;~ 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M)
+;~ 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	Local $sProfileDirectory = @TempDir & "\..\UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, ($hGUI), $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
 
 	GUISetState(@SW_SHOW, $hGUI)
 	WinSetOnTop($hGUI, '', True)
@@ -91,7 +95,7 @@ Func Main()
 
 	GUIDelete($hGUI)
 
-	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
+	_NetWebView2_CleanUp($oWebV2M)
 EndFunc   ;==>Main
 
 Func _GetFirstChildWindowHWND($hWnd)
