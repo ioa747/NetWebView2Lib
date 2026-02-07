@@ -84,10 +84,10 @@ Func _Example()
 		EndSwitch
 	WEnd
 
-	_NetWebView2_CleanUp($oWebV2M)
+	Local $oJSBridge
+	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 	GUIDelete($hGUI)
 	#EndRegion ; GUI Loop
-
 
 EndFunc   ;==>_Example
 
