@@ -86,10 +86,9 @@ Func Main()
 		EndSwitch
 	WEnd
 
-	GUIDelete($hGUI)
-
 	Local $oJSBridge
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
+	GUIDelete($hGUI)
 EndFunc   ;==>Main
 
 Func _GetFirstChildWindowHWND($hWnd)
