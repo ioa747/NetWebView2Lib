@@ -64,7 +64,7 @@ Func _Create_Form(ByRef $oWebV2M, ByRef $oBridge)
 	If @error Then Return SetError(@error, @extended, '')
 
 	; initialize browser - put it on the GUI
-	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
+	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 30, 450, 430, True, False, False, 1.1)
 	If @error Then Return SetError(@error, @extended, '')
 
