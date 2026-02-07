@@ -17,14 +17,14 @@ OnAutoItExitRegister("_ExitApp")
 
 ; Global objects
 Global $oWeb, $oJS
-Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc") ; COM Error Handler
+Global $oMyError = ObjEvent("AutoIt.Error", _ErrFunc) ; COM Error Handler
 Global $g_DebugInfo = True
 Global $sProfileDirectory = @ScriptDir & "\UserDataFolder"
 Global $hGUI
 
-Main()
+_Example()
 
-Func Main()
+Func _Example()
 	; Create GUI with resizing support
 	$hGUI = GUICreate("WebView2AutoIt CSV_editor", 1500, 650, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x2B2B2B, $hGUI)
@@ -88,7 +88,7 @@ Func Main()
 
 		EndSwitch
 	WEnd
-EndFunc   ;==>Main
+EndFunc   ;==>_Example
 
 #Region ; === EVENT HANDLERS ===
 
