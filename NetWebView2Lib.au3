@@ -193,6 +193,44 @@ Func _NetWebView2_GetBridge($oWebV2M, $s_fnEventPrefix = "")
 EndFunc   ;==>_NetWebView2_GetBridge
 
 ; #FUNCTION# ====================================================================================================================
+; Name ..........: _NetWebView2_BrowserSetupWrapper
+; Description ...:
+; Syntax ........: _NetWebView2_BrowserSetupWrapper($hOuterParentWindow, ByRef $oOuterWeb, $sEventPrefix, $sProfile,
+;                  ByRef $oOuterBridge, ByRef $hInnerWebViewWindow, $iX, $iY, $iW, $iH, $s_AddBrowserArgs)
+; Parameters ....: $hOuterParentWindow  - a handle value.
+;                  $oOuterWeb           - [in/out] an object.
+;                  $sEventPrefix        - a string value.
+;                  $sProfile            - a string value.
+;                  $oOuterBridge        - [in/out] an object.
+;                  $hInnerWebViewWindow - [in/out] a handle value.
+;                  $iX                  - an integer value.
+;                  $iY                  - an integer value.
+;                  $iW                  - an integer value.
+;                  $iH                  - an integer value.
+;                  $s_AddBrowserArgs    - a string value.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......: mLipok
+; Remarks .......:
+; Related .......:
+; Link ..........:
+; Example .......: No
+; ===============================================================================================================================
+Func _NetWebView2_BrowserSetupWrapper($hOuterParentWindow, ByRef $oOuterWeb, $sEventPrefix, $sProfile, ByRef $oOuterBridge, ByRef $hInnerWebViewWindow, $iX, $iY, $iW, $iH, $s_AddBrowserArgs)
+	$hInnerWebViewWindow = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hOuterParentWindow)
+	GUISetState(@SW_SHOW, $hInnerWebViewWindow)
+
+	$oOuterWeb = _NetWebView2_CreateManager("", $sEventPrefix & '_Manager__', $s_AddBrowserArgs)
+	If @error Then Return SetError(@error, @extended, $oOuterWeb)
+
+	Local $Result = _NetWebView2_Initialize($oOuterWeb, $hInnerWebViewWindow, $sProfile, 0, 0, $iW, $iH)
+	If @error Then Return SetError(@error, @extended, $Result)
+
+	$oOuterBridge = _NetWebView2_GetBridge($oOuterWeb, $sEventPrefix & "_Bridge__")
+	If @error Then Return SetError(@error, @extended, $oOuterBridge)
+EndFunc   ;==>_NetWebView2_BrowserSetupWrapper
+
+; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_ExecuteScript
 ; Description ...:
 ; Syntax ........: _NetWebView2_ExecuteScript($oWebV2M, $sJavaScript[, $iMode = 0])
@@ -490,15 +528,15 @@ EndFunc   ;==>_NetWebView2_PrintToPdfStream
 ; Author ........: ioa747
 ; Modified ......:
 ; Remarks .......:
-; Related .......:
+; Related .......: _NetWebView2_RemoveInitializationScript
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_AddInitializationScript($oWebV2M, $sScript)
 	If Not IsObj($oWebV2M) Then Return SetError(1, 0, "ERROR: Invalid Object")
-	Local $sResult = $oWebV2M.AddInitializationScript($sScript)
-	If StringInStr($sResult, "ERROR:") Then Return SetError(2, 0, $sResult)
-	Return SetError(0, 0, $sResult)
+	Local $sScriptId = $oWebV2M.AddInitializationScript($sScript)
+	If StringInStr($sScriptId, "ERROR:") Then Return SetError(2, 0, $sScriptId)
+	Return SetError(0, 0, $sScriptId)
 EndFunc   ;==>_NetWebView2_AddInitializationScript
 
 ; #FUNCTION# ====================================================================================================================
@@ -1289,4 +1327,3 @@ Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 EndFunc   ;==>__NetWebView2_Events__OnAcceleratorKeyPressed
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
-
