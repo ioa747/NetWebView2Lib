@@ -64,55 +64,55 @@ Func _Example()
 	WEnd
 
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
-EndFunc   ;==>Main
+EndFunc   ;==>_Example
 
 #Region ; === UTILS ===
 Func _Web_CSVViewer(ByRef $oWeb, $sFileData = "")
-    ; 1. CSS - Dark Theme
-    Local $sCSS = "body { background-color: #2b2b2b; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }" & _
-        ".container { width: 100%; padding: 20px; box-sizing: border-box; }" & _
-        "h1 { font-size: 1.5rem; margin-bottom: 20px; color: #00CCFF; text-align: center; }" & _
-        "table { border-collapse: collapse; width: 100%; background: #333; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }" & _
-        "th, td { border: 1px solid #444; padding: 12px 8px; text-align: left; }" & _
-        "th { background-color: #444; color: #00CCFF; position: sticky; top: 0; }" & _
-        "tr:nth-child(even) { background-color: #383838; }" & _
-        "tr:hover { background-color: #4a4a4a; }"
+	; 1. CSS - Dark Theme
+	Local $sCSS = "body { background-color: #2b2b2b; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }" & _
+			".container { width: 100%; padding: 20px; box-sizing: border-box; }" & _
+			"h1 { font-size: 1.5rem; margin-bottom: 20px; color: #00CCFF; text-align: center; }" & _
+			"table { border-collapse: collapse; width: 100%; background: #333; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }" & _
+			"th, td { border: 1px solid #444; padding: 12px 8px; text-align: left; }" & _
+			"th { background-color: #444; color: #00CCFF; position: sticky; top: 0; }" & _
+			"tr:nth-child(even) { background-color: #383838; }" & _
+			"tr:hover { background-color: #4a4a4a; }"
 
-    ; 2. JavaScript - Preparing data for safe insertion into JS
-    Local $sSafeData = StringReplace($sFileData, "\", "\\")
-    $sSafeData = StringReplace($sSafeData, "'", "\'")
-    $sSafeData = StringReplace($sSafeData, @CRLF, "\n")
-    $sSafeData = StringReplace($sSafeData, @LF, "\n")
+	; 2. JavaScript - Preparing data for safe insertion into JS
+	Local $sSafeData = StringReplace($sFileData, "\", "\\")
+	$sSafeData = StringReplace($sSafeData, "'", "\'")
+	$sSafeData = StringReplace($sSafeData, @CRLF, "\n")
+	$sSafeData = StringReplace($sSafeData, @LF, "\n")
 
-    Local $sJS = "const table = document.getElementById('table');" & @CRLF & _
-        "function renderCSV(csvData) {" & @CRLF & _
-        "    if (!csvData) return;" & @CRLF & _
-        "    const rows = csvData.split(/\n/);" & @CRLF & _
-        "    let html = '';" & @CRLF & _
-        "    rows.forEach((row, index) => {" & @CRLF & _
-        "        if (row.trim() === '') return;" & @CRLF & _
-        "        const cells = row.split(',');" & @CRLF & _
-        "        html += '<tr>';" & @CRLF & _
-        "        cells.forEach(cell => {" & @CRLF & _
-        "            const tag = index === 0 ? 'th' : 'td';" & @CRLF & _
-        "            html += `<${tag}>${cell.trim()}</${tag}>`;" & @CRLF & _
-        "        });" & @CRLF & _
-        "        html += '</tr>';" & @CRLF & _
-        "    });" & @CRLF & _
-        "    table.innerHTML = html;" & @CRLF & _
-        "}" & @CRLF & _
-        "if ('" & $sSafeData & "' !== '') { renderCSV('" & $sSafeData & "'); }"
+	Local $sJS = "const table = document.getElementById('table');" & @CRLF & _
+			"function renderCSV(csvData) {" & @CRLF & _
+			"    if (!csvData) return;" & @CRLF & _
+			"    const rows = csvData.split(/\n/);" & @CRLF & _
+			"    let html = '';" & @CRLF & _
+			"    rows.forEach((row, index) => {" & @CRLF & _
+			"        if (row.trim() === '') return;" & @CRLF & _
+			"        const cells = row.split(',');" & @CRLF & _
+			"        html += '<tr>';" & @CRLF & _
+			"        cells.forEach(cell => {" & @CRLF & _
+			"            const tag = index === 0 ? 'th' : 'td';" & @CRLF & _
+			"            html += `<${tag}>${cell.trim()}</${tag}>`;" & @CRLF & _
+			"        });" & @CRLF & _
+			"        html += '</tr>';" & @CRLF & _
+			"    });" & @CRLF & _
+			"    table.innerHTML = html;" & @CRLF & _
+			"}" & @CRLF & _
+			"if ('" & $sSafeData & "' !== '') { renderCSV('" & $sSafeData & "'); }"
 
-    ; 3. HTML Structure
-    Local $sHTML = "<html><head><meta charset='UTF-8'><style>" & $sCSS & "</style></head><body>" & _
-        "<div class='container'>" & _
-        "  <table id='table'></table>" & _
-        "</div>" & _
-        "<script>" & $sJS & "</script>" & _
-        "</body></html>"
+	; 3. HTML Structure
+	Local $sHTML = "<html><head><meta charset='UTF-8'><style>" & $sCSS & "</style></head><body>" & _
+			"<div class='container'>" & _
+			"  <table id='table'></table>" & _
+			"</div>" & _
+			"<script>" & $sJS & "</script>" & _
+			"</body></html>"
 
-    ; 4. Loading - using NavigateToString to refresh all the content
-    $oWeb.NavigateToString($sHTML)
-EndFunc
+	; 4. Loading - using NavigateToString to refresh all the content
+	$oWeb.NavigateToString($sHTML)
+EndFunc   ;==>_Web_CSVViewer
 #EndRegion ; === UTILS ===
 #EndRegion ; UDF TESTING EXAMPLE
