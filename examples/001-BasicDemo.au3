@@ -9,10 +9,6 @@
 #include <WindowsConstants.au3>
 #include "..\NetWebView2Lib.au3"
 
-; ==============================================================================
-; WebView2 Multi-Channel Presentation Script
-; ==============================================================================
-
 Main()
 
 Func Main()
@@ -35,7 +31,7 @@ Func Main()
 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	Local $sProfileDirectory = @TempDir & "\UserDataFolder"
+	Local $sProfileDirectory = @TempDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
 	__Example_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()")
 
