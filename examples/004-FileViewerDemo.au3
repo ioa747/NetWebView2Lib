@@ -57,7 +57,7 @@ Func _Example()
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
 
 	GUISetState(@SW_SHOW, $hGUI)
-	WinSetOnTop($hGUI, '', True)
+	WinSetOnTop($hGUI, '', $WINDOWS_ONTOP)
 
 	Local $s_PDF_FileFullPath
 
