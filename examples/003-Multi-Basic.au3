@@ -86,56 +86,56 @@ EndFunc   ;==>_GetDemoHTML
 
 #Region ; USER DEFINED EVENTS HANDLER FUNCTION
 ; BROWSER 1 - Manager Events
-Func __UserEventHandler_Web1__Manager__OnMessageReceived($oWebView2, $hGUI, $sMsg)
+Func __UserEventHandler_Web1__Manager__OnMessageReceived($oWebView, $hGUI, $sMsg)
 	#forceref $hGUI
 	ConsoleWrite("- [Browser 1]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
-		_NetWebView2_ExecuteScript($oWebView2, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
+		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
 	EndIf
 EndFunc   ;==>__UserEventHandler_Web1__OnMessageReceived
 
 ; BROWSER 1 - JavaScript Bridge Events
-Func __UserEventHandler_Web1__Bridge__OnMessageReceived($oWebView2, $hGUI, $sMsg)
+Func __UserEventHandler_Web1__Bridge__OnMessageReceived($oWebView, $hGUI, $sMsg)
 	Local Static $iMsgCnt = -1
 	ConsoleWrite(">> [JS 1]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 
 	If $sMsg = "CLOSE_APP" Then
 		If MsgBox(36, "Confirm", "Close this Browser Instance?", 0, $hGUI) = 6 Then
-			$oWebView2.Cleanup()
+			$oWebView.Cleanup()
 			GUIDelete($hGUI)
 			ConsoleWrite("!> Browser 1 has been shut down." & @CRLF)
 		EndIf
 	Else
 		$iMsgCnt += 1
-		UpdateWebUI($oWebView2, "mainTitle", "Counter: " & $iMsgCnt)
-		UpdateWebUI($oWebView2, "statusMsg", "Last Message: " & $sMsg)
+		UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
+		UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
 	EndIf
 EndFunc   ;==>__UserEventHandler_Web1__Bridge_OnMessageReceived
 
 ; BROWSER 2 - Manager Events
-Func __UserEventHandler_Web2__Manager__OnMessageReceived($oWebView2, $hGUI, $sMsg)
+Func __UserEventHandler_Web2__Manager__OnMessageReceived($oWebView, $hGUI, $sMsg)
 	#forceref $hGUI
 	ConsoleWrite("- [Browser 2]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
-		_NetWebView2_ExecuteScript($oWebView2, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
+		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
 	EndIf
 EndFunc   ;==>__UserEventHandler_Web2__OnMessageReceived
 
 ; BROWSER 2 - JavaScript Bridge Events
-Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView2, $hWindow, $sMsg)
+Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView, $hWindow, $sMsg)
 	Local Static $iMsgCnt = -1
 	ConsoleWrite(">> [JS 2]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 
 	If $sMsg = "CLOSE_APP" Then
 		If MsgBox(36, "Confirm", "Close this Browser Instance?", 0, $hWindow) = 6 Then
-			$oWebView2.Cleanup()
+			$oWebView.Cleanup()
 			GUIDelete($hWindow)
 			ConsoleWrite("!> Browser 2 has been shut down." & @CRLF)
 		EndIf
 	Else
 		$iMsgCnt += 1
-		UpdateWebUI($oWebView2, "mainTitle", "Counter: " & $iMsgCnt)
-		UpdateWebUI($oWebView2, "statusMsg", "Last Message: " & $sMsg)
+		UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
+		UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
 	EndIf
 EndFunc   ;==>__UserEventHandler_Bridge_OnMessageReceived
 #EndRegion ; USER DEFINED EVENTS HANDLER FUNCTION
