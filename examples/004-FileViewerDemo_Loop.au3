@@ -67,17 +67,19 @@ Func _Example()
 	Local $bSleep_UserReaction = ($IDYES = MsgBox($MB_YESNO + $MB_TOPMOST + $MB_ICONQUESTION + $MB_DEFBUTTON1, "Question", "Simulates user reaction on PDF (2 sec sleep) ?"))
 
 	Local $a_Files = _FileListToArrayRec($s_PDF_Directory, '*.pdf', $FLTAR_FILES, $FLTAR_RECUR, $FLTAR_NOSORT, $FLTAR_FULLPATH)
-	Local $sProgress = ''
-	For $IDX_File = 1 To $a_Files[0]
-		$sProgress = '[ ' & $IDX_File & '/' & $a_Files[0] & ' - ' & Round($IDX_File / $a_Files[0], 5) * 100 & ' % ]'
+	If Not @error Then
+		Local $sProgress = ''
+		For $IDX_File = 1 To $a_Files[0]
+			$sProgress = '[ ' & $IDX_File & '/' & $a_Files[0] & ' - ' & Round($IDX_File / $a_Files[0], 5) * 100 & ' % ]'
 
-		$s_PDF_FileFullPath = $a_Files[$IDX_File]
-		GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation started: ' & $s_PDF_FileFullPath)
-		_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000)
-		GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation completed: ' & $s_PDF_FileFullPath)
-		ConsoleWrite("! === @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
-		If $bSleep_UserReaction Then Sleep(2000) ; simulates user reaction on PDF
-	Next
+			$s_PDF_FileFullPath = $a_Files[$IDX_File]
+			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation started: ' & $s_PDF_FileFullPath)
+			_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000)
+			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation completed: ' & $s_PDF_FileFullPath)
+			ConsoleWrite("! === @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
+			If $bSleep_UserReaction Then Sleep(2000) ; simulates user reaction on PDF
+		Next
+	EndIf
 
 	; Main Loop
 	While 1
