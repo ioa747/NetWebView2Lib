@@ -188,7 +188,7 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 
 	; Fix slashes in Path for URL
 	Local $s_PDF_URL = StringReplace($s_PDF_Path, "\", "/")
-	$s_PDF_URL = StringReplace($s_PDF_URL, ' ', '%20')
+	$s_PDF_URL = $oWeb.EncodeURI($s_PDF_URL)
 	Local $s_PDF_JS_URL = StringReplace(@ScriptDir & "\JS_Lib\pdfjs\web\viewer.html" & "?file=", "\", "/")
 	Local $s_Viewer_URL = "file:///" & $s_PDF_JS_URL & $s_PDF_URL
 	ConsoleWrite("- $s_Viewer_URL= " & $s_Viewer_URL & @CRLF)
