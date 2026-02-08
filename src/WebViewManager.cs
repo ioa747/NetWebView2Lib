@@ -2127,7 +2127,7 @@ namespace NetWebView2Lib
         {
             if (!string.IsNullOrEmpty(originalReason)) return originalReason;
 
-            // Status code Meaning
+            /// StatusCode meaning
 			switch (statusCode)
             {
                 case 100: return "Continue";
@@ -2306,4 +2306,5 @@ namespace NetWebView2Lib
     }
 
 }
+
 
