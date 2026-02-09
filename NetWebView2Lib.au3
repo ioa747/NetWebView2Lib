@@ -1,8 +1,9 @@
+#include-once
 #Region ; *** Dynamically added Include files ***
 #include <Date.au3>                                          ; added:02/08/26 14:35:58
 #EndRegion ; *** Dynamically added Include files ***
 ;~ #AutoIt3Wrapper_UseX64=y
-#AutoIt3Wrapper_UseX64=n
+;~ #AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
@@ -259,6 +260,9 @@ Func _NetWebView2_CleanUp(ByRef $oWebV2M, ByRef $oJSBridge)
 
 	If Not IsObj($oWebV2M) Then Return SetError(1, 0, __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! Object not found", 1))
 
+	; Update Static Map to delete Handle
+	__NetWebView2_LastMessageReceived($oWebV2M, -1)
+
 	Local $iRet = $oWebV2M.Cleanup()
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! Error during internal cleanup", 1)
 	$oWebV2M = 0
@@ -345,75 +349,72 @@ Func _NetWebView2_GetBridge($oWebV2M, $s_fnEventPrefix = "")
 EndFunc   ;==>_NetWebView2_GetBridge
 
 ; #FUNCTION# ====================================================================================================================
-; Name ..........: _NetWebView2_LoadWait
-; Description ...:
-; Syntax ........: _NetWebView2_LoadWait($oWebV2M[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__INIT_READY[, $iTimeOut_ms = 5000]])
-; Parameters ....: $oWebV2M             - an object.
-;                  $iWaitMessage        - [optional] an integer value. Default is $NETWEBVIEW2_MESSAGE__INIT_READY.
-;                  $iTimeOut_ms         - [optional] an integer value. Default is 5000.
-; Return values .: Success      - True
-;                  Failure      - False and set @error
+; Name...........: _NetWebView2_LoadWait
+; Description....: Waits for a specific WebView2 status or event with a timeout.
+; Syntax.........: _NetWebView2_LoadWait($oWebV2M[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__INIT_READY[, $iTimeOut_ms = 5000]])
+; Parameters.....: $oWebV2M      - The NetWebView2 Manager object.
+;                  $iWaitMessage - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__INIT_READY).
+;                  $iTimeOut_ms  - Timeout in milliseconds (Default is 5000ms). Set to 0 for infinite.
+; Return values..: Success      - True
+;                  Failure      - False and sets @error:
+;                                     3 - Navigation Error ($NETWEBVIEW2_MESSAGE__NAV_ERROR)
+;                                     4 - Timeout reached
 ; Author ........: mLipok, ioa747
 ; Modified ......:
-; Remarks .......:
+; Remarks .......: This function uses a centralized state machine to track asynchronous events.
 ; Related .......:
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__INIT_READY, $iTimeOut_ms = 5000)
-	Local Const $s_Prefix = "[_NetWebView2_LoadWait]: iStatus:" & $iWaitMessage & " TimeOut_ms=" & $iTimeOut_ms
-	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
-	#forceref $oMyError
+	Local $hTimer = TimerInit()
 
-	Local $iError = 0, $iEndStatus = -1, $RETURN_VALUE = False, $iStatus_check = $NETWEBVIEW2_MESSAGE__NONE
+	; RESET: Clear the status of this instance before starting the wait loop
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NONE)
 
-	If $iWaitMessage < $NETWEBVIEW2_MESSAGE__INIT_READY Then
-		$RETURN_VALUE = False
-		$iError = 1
-	ElseIf $iWaitMessage > $NETWEBVIEW2_MESSAGE__NAV_ERROR Then ; higher messsages are not for NAVIGATION thus not checking in _NetWebView2_LoadWait()
-		$RETURN_VALUE = False
-		$iError = 2
-	Else
-		Local $hTimer = TimerInit() ; Begin the timer and store the handle in a variable.
+	While 1
+		; Allow AutoIt to "breathe" and process the GUI messages
+		Sleep(10)
 
-		; Wait for WebView2 to be ready
-		While Sleep(10)
-			If $oWebV2M.IsReady Then
-				$iStatus_check = __NetWebView2_LastMessageReceived()
-				If $iStatus_check >= $iWaitMessage And $iStatus_check < $NETWEBVIEW2_MESSAGE__NAV_ERROR Then
-					$iError = 0
-					$RETURN_VALUE = True
-					ExitLoop
-				EndIf
-			ElseIf $iStatus_check = $NETWEBVIEW2_MESSAGE__NAV_ERROR Then
-				$iError = 3
-				$RETURN_VALUE = False
-				ExitLoop
-			ElseIf $iTimeOut_ms And TimerDiff($hTimer) > $iTimeOut_ms Then
-				$iError = 4
-				$RETURN_VALUE = False
-				ExitLoop
+		Local $iCurrentStatus = __NetWebView2_LastMessageReceived($oWebV2M)
+
+		; RULE 1: If Navigation Error occurs, EXIT
+		If $iCurrentStatus = $NETWEBVIEW2_MESSAGE__NAV_ERROR Then
+			Return SetError(3, $iCurrentStatus, False)
+		EndIf
+
+		; RULE 2: If we reached the target status or higher
+		If $iCurrentStatus >= $iWaitMessage And $iCurrentStatus < $NETWEBVIEW2_MESSAGE__NAV_ERROR Then
+			; For navigation events, ensure the browser reports IsReady
+			If $iWaitMessage <= $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then
+				If $oWebV2M.IsReady Then Return True
+			Else
+				; For UI/Direct events (Zoom, Resize), return immediately
+				Return True
 			EndIf
-		WEnd
-	EndIf
+		EndIf
 
-	$iEndStatus = $iStatus_check
-	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " : END STATUS=" & $iEndStatus & ' RETURN_VALUE=' & $RETURN_VALUE, 1)
-	If $iEndStatus < $NETWEBVIEW2_MESSAGE__NAV_ERROR Then __NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__INIT_READY) ; reset if navigation ends fine
-
-	Return SetError($iError, $iEndStatus, $RETURN_VALUE)
+		; RULE 3: Timeout check
+		If $iTimeOut_ms And TimerDiff($hTimer) > $iTimeOut_ms Then
+			Return SetError(4, $iCurrentStatus, False)
+		EndIf
+	WEnd
 EndFunc   ;==>_NetWebView2_LoadWait
 
 ; #FUNCTION# ====================================================================================================================
-; Name ..........: _NetWebView2_Navigate
-; Description ...:
-; Syntax ........: _NetWebView2_Navigate($oWebV2M, $sURL[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[,
-;                  $iTimeOut_ms = 5000]])
-; Parameters ....: $oWebV2M             - an object.
-;                  $sURL                - a string value.
-;                  $iWaitMessage        - [optional] an integer value. Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED.
-;                  $iTimeOut_ms         - [optional] an integer value. Default is 5000.
-; Return values .: None
+; Name...........: _NetWebView2_Navigate
+; Description....: Navigates to a URL and waits for a specific completion status.
+; Syntax.........: _NetWebView2_Navigate($oWebV2M, $s_URL[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[, $iTimeOut_ms = 5000]])
+; Parameters.....: $oWebV2M      - The NetWebView2 Manager object.
+;                  $s_URL        - The URL to navigate to.
+;                  $iWaitMessage - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
+;                  $iTimeOut_ms  - Timeout in milliseconds (Default is 5000ms).
+; Return values..: Success       - True
+;                  Failure       - False and sets @error:
+;                                      1 - Invalid parameters
+;                                      2 - Navigation call failed (COM error)
+;                                      3 - Navigation Error status received
+;                                      4 - Timeout reached
 ; Author ........: mLipok, ioa747
 ; Modified ......:
 ; Remarks .......:
@@ -421,19 +422,31 @@ EndFunc   ;==>_NetWebView2_LoadWait
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_Navigate($oWebV2M, $sURL, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $iTimeOut_ms = 5000)
-	Local Const $s_Prefix = "[_NetWebView2_LoadWait]: URL:" & $sURL & " WAIT:" & $iWaitMessage & " TimeOut_ms=" & $iTimeOut_ms
+Func _NetWebView2_Navigate($oWebV2M, $s_URL, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $iTimeOut_ms = 5000)
+	Local Const $s_Prefix = "[_NetWebView2_Navigate]: URL:" & $s_URL & " WAIT:" & $iWaitMessage & " TimeOut_ms=" & $iTimeOut_ms
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	Local $iNavigation = $oWebV2M.Navigate($sURL)
-	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
-	If @error Then Return SetError(@error, @extended, $iNavigation)
+	; 1. Parameter Validation
+	If $iWaitMessage < $NETWEBVIEW2_MESSAGE__INIT_READY Or $iWaitMessage > $NETWEBVIEW2_MESSAGE__NAV_ERROR Then
+		Return SetError(1, 0, False)
+	EndIf
 
-	If $iWaitMessage = Default Then $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED
-	If $iWaitMessage Then _NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $iTimeOut_ms)
-	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
-	Return SetError(@error, @extended, '')
+	; 2. Execute Navigation
+	; The Local Error Handler catches potential "Disposed Object" crashes here
+	$oWebV2M.Navigate($s_URL)
+	If @error Then Return SetError(2, @error, False)
+
+	; 3. Wait for status using the Bulletproof LoadWait logic
+	Local $bResult = _NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $iTimeOut_ms)
+	Local $iErr = @error, $iExt = @extended
+
+	; If an error occurred (3: Nav Error, 4: Timeout), log the failure
+	If @error Then
+		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " -> FAILED (Err:" & $iErr & " Status:" & $iExt & ")", 1)
+	EndIf
+
+	Return SetError($iErr, $iExt, $bResult)
 EndFunc   ;==>_NetWebView2_Navigate
 
 ; #FUNCTION# ====================================================================================================================
@@ -453,7 +466,7 @@ EndFunc   ;==>_NetWebView2_Navigate
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $iTimeOut_ms = 5000)
+Func _NetWebView2_NavigateToString00($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $iTimeOut_ms = 5000)
 	Local Const $s_Prefix = "[_NetWebView2_NavigateToString]:" & " HTML Size:" & StringLen($s_HTML) & " WaitMessage:" & $iWaitMessage & " TimeOut_ms=" & $iTimeOut_ms
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -598,7 +611,7 @@ Func _NetWebView2_PrintToPdfStream($oWebV2M, $b_TBinary_FBase64)
 EndFunc   ;==>_NetWebView2_PrintToPdfStream
 #EndRegion
 
-#Region ; New Core Method Wrappers  ; 👈
+#Region ; New Core Method Wrappers
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _NetWebView2_AddInitializationScript
 ; Description ...: Adds a JavaScript to be executed before any other script when a new page is loaded.
@@ -750,7 +763,23 @@ Func _NetWebView2_SetBuiltInErrorPageEnabled($oWebV2M, $bEnabled)
 	$oWebV2M.IsBuiltInErrorPageEnabled = $bEnabled
 	Return SetError(@error, 0, (@error ? False : True))
 EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
-#EndRegion ; New Core Method Wrappers  ; 👈
+
+
+; #FUNCTION# ====================================================================================================================
+; Name...........: _NetWebView2_SilentErrorHandler
+; Description....: A generic COM Error Handler that silences errors.
+; Syntax.........: _NetWebView2_SilentErrorHandler()
+; Remarks........: Used to prevent script crashes when a WebView2 object is disposed or closed
+;                  while an event or a method call is still in progress.
+; Author ........: ioa747
+; ===============================================================================================================================
+Func _NetWebView2_SilentErrorHandler($oError)
+    ; We do nothing, effectively "swallowing" the COM error.
+    ; This prevents the "Object Disposed" fatal crash.
+    #forceref $oError
+EndFunc   ;==>_NetWebView2_SilentErrorHandler
+
+#EndRegion ; New Core Method Wrappers
 
 #Region ; NetWebView2Lib UDF - _NetJson_* functions
 ; #FUNCTION# ====================================================================================================================
@@ -842,10 +871,48 @@ EndFunc   ;==>_NetJson_EncodeB64
 #EndRegion ; NetWebView2Lib UDF - _NetJson_* functions
 
 #Region ; NetWebView2Lib UDF - #INTERNAL_USE_ONLY#
-Func __NetWebView2_LastMessageReceived($iStatus = Default, $iError = @error, $iExtended = @extended)
-	Local Static $i_static = $NETWEBVIEW2_MESSAGE__NONE
-	If $iStatus <> Default Then $i_static = $iStatus
-	Return SetError($iError, $iExtended, $i_static)
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name...........: __NetWebView2_LastMessageReceived
+; Description....: Centralized state manager for WebView2 instances using a static map.
+; Syntax.........: __NetWebView2_LastMessageReceived($oWebV2M[, $iStatus = Default[, $iError = @error[, $iExtended = @extended]]])
+; Parameters.....: $oWebV2M - The NetWebView2 Manager object.
+;                  $iStatus - [Optional] Status to SET. If Default, function acts as GET. If -1, performs cleanup.
+; Author.........: mLipok, ioa747
+; Remarks........: Uses a Local COM Error Handler to silently handle "Disposed Object" errors during shutdown.
+; ===============================================================================================================================
+Func __NetWebView2_LastMessageReceived($oWebV2M, $iStatus = Default, $iError = @error, $iExtended = @extended)
+	; Static Map - The central database of status indexed by Window Handle
+	Local Static $mStatus[]
+
+	; Local COM Error Handler to trap 0x80020009 (Disposed Object) during closure
+	Local $oMyError = ObjEvent("AutoIt.Error", _NetWebView2_SilentErrorHandler)
+	#forceref $oMyError
+
+	Local $sKey = "" & String($oWebV2M.BrowserWindowHandle)
+
+	; If an error occurred while retrieving the Handle (e.g. Object already closed)
+	If @error Then Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
+
+	; If the handle is invalid
+	If $sKey = "0" Or $sKey = "" Then Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
+
+	; --- SET MODE (Called from Events or Cleanup) ---
+	If $iStatus <> Default Then
+		; Special case: -1 for memory cleanup when the instance is closed
+		If $iStatus = -1 Then
+			If MapExists($mStatus, $sKey) Then MapRemove($mStatus, $sKey)
+			Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
+		EndIf
+
+		; Update the status for this specific Handle
+		$mStatus[$sKey] = $iStatus
+		Return SetError($iError, $iExtended, $iStatus)
+	EndIf
+
+	; --- GET MODE (Called from LoadWait) ---
+	If Not MapExists($mStatus, $sKey) Then Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
+
+	Return SetError($iError, $iExtended, $mStatus[$sKey])
 EndFunc   ;==>__NetWebView2_LastMessageReceived
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -1078,137 +1145,137 @@ Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 					; Filter minor resize glitches
 					If $iW > 50 And $iH > 50 Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand & ':' & $iW & "x" & $iH, 1)
 				EndIf
-				__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__WINDOW_RESIZED)
+				__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__WINDOW_RESIZED)
 			EndIf
 
 		Case "NAV_STARTING"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__NAV_STARTING)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
 
 		Case "INIT_FAILED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__INIT_FAILED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__INIT_FAILED)
 
 		Case "WebView2 Profile not ready."
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY)
 
 		Case "INIT_READY"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__INIT_READY)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__INIT_READY)
 
 		Case "URL_CHANGED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__URL_CHANGED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__URL_CHANGED)
 
 		Case "NAV_COMPLETED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
 
 		Case "TITLE_CHANGED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 
 		Case "NAV_ERROR"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__NAV_ERROR)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_ERROR)
 			$oWebV2M.Stop()
 
 		Case "EXTENSION"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__EXTENSION)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__EXTENSION)
 
 		Case "EXTENSION_LOADED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__EXTENSION_LOADED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__EXTENSION_LOADED)
 
 		Case "EXTENSION_FAILED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__EXTENSION_FAILED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__EXTENSION_FAILED)
 
 		Case "EXTENSION_REMOVED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__EXTENSION_REMOVED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__EXTENSION_REMOVED)
 
 		Case "EXTENSION_NOT_FOUND"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__EXTENSION_NOT_FOUND)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__EXTENSION_NOT_FOUND)
 
 		Case "REMOVE_EXTENSION_FAILED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__REMOVE_EXTENSION_FAILED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__REMOVE_EXTENSION_FAILED)
 
 		Case "SELECTED_TEXT"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__SELECTED_TEXT)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__SELECTED_TEXT)
 
 		Case "INNER_TEXT"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__INNER_TEXT)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__INNER_TEXT)
 
 		Case "INNER_TEXT_FAILED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__INNER_TEXT_FAILED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__INNER_TEXT_FAILED)
 
 		Case "HTML_SOURCE"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__HTML_SOURCE)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__HTML_SOURCE)
 
 		Case "CAPTURE_SUCCESS"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__CAPTURE_SUCCESS)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__CAPTURE_SUCCESS)
 
 		Case "CAPTURE_ERROR"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__CAPTURE_ERROR)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__CAPTURE_ERROR)
 
 		Case "PRINT_ERROR"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__PRINT_ERROR)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__PRINT_ERROR)
 
 		Case "PDF_EXPORT_SUCCESS"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__PDF_EXPORT_SUCCESS)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__PDF_EXPORT_SUCCESS)
 
 		Case "PDF_EXPORT_ERROR"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__PDF_EXPORT_ERROR)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__PDF_EXPORT_ERROR)
 
 		Case "CDP_RESULT"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__CDP_RESULT)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__CDP_RESULT)
 
 		Case "CDP_ERROR"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__CDP_ERROR)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__CDP_ERROR)
 
 		Case "DATA_CLEARED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DATA_CLEARED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DATA_CLEARED)
 
 		Case "COOKIES_B64"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__COOKIES_B64)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__COOKIES_B64)
 
 		Case "COOKIES_ERROR"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__COOKIES_ERROR)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__COOKIES_ERROR)
 
 		Case "COOKIE_ADD_ERROR"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__COOKIE_ADD_ERROR)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__COOKIE_ADD_ERROR)
 
 		Case "BLOCKED_AD"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__BLOCKED_AD)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__BLOCKED_AD)
 
 		Case "DOWNLOAD_STARTING"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 
 ;~ 		Case "*"
 ;~ 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-;~ 			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__*)
+;~ 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__*)
 
 		Case Else
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 1)
@@ -1288,7 +1355,7 @@ Func __NetWebView2_Events__OnBrowserGotFocus($oWebV2M, $hGUI, $iReason)
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnBrowserGotFocus]: GUI:" & $hGUI & " REASON: " & $iReason
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__BROWSER_GOT_FOCUS)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_GOT_FOCUS)
 EndFunc   ;==>__NetWebView2_Events__OnBrowserGotFocus
 
 Func __NetWebView2_Events__OnBrowserLostFocus($oWebV2M, $hGUI, $iReason)
@@ -1297,7 +1364,7 @@ Func __NetWebView2_Events__OnBrowserLostFocus($oWebV2M, $hGUI, $iReason)
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnBrowserLostFocus]: GUI:" & $hGUI & " REASON: " & $iReason
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__BROWSER_LOST_FOCUS)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_LOST_FOCUS)
 EndFunc   ;==>__NetWebView2_Events__OnBrowserLostFocus
 
 Func __NetWebView2_Events__OnZoomChanged($oWebV2M, $hGUI, $iFactor)
@@ -1306,7 +1373,7 @@ Func __NetWebView2_Events__OnZoomChanged($oWebV2M, $hGUI, $iFactor)
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnZoomChanged]: GUI:" & $hGUI & " FACTOR: " & $iFactor
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__ZOOM_CHANGED)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__ZOOM_CHANGED)
 EndFunc   ;==>__NetWebView2_Events__OnZoomChanged
 
 Func __NetWebView2_Events__OnURLChanged($oWebV2M, $hGUI, $sURL)
@@ -1315,7 +1382,7 @@ Func __NetWebView2_Events__OnURLChanged($oWebV2M, $hGUI, $sURL)
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnURLChanged]: GUI:" & $hGUI & " URL: " & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__URL_CHANGED)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__URL_CHANGED)
 EndFunc   ;==>__NetWebView2_Events__OnURLChanged
 
 Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
@@ -1324,7 +1391,7 @@ Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnTitleChanged]: GUI:" & $hGUI & " TITLE: " & $sTITLE
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 
 Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
@@ -1333,7 +1400,7 @@ Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnNavigationStarting]: GUI:" & $hGUI & " URL: " & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__NAV_STARTING)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
 EndFunc   ;==>__NetWebView2_Events__OnNavigationStarting
 
 Func __NetWebView2_Events__OnNavigationCompleted($oWebV2M, $hGUI, $bIsSuccess, $iWebErrorStatus)
@@ -1342,7 +1409,7 @@ Func __NetWebView2_Events__OnNavigationCompleted($oWebV2M, $hGUI, $bIsSuccess, $
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnNavigationCompleted]: GUI:" & $hGUI & " " & ($bIsSuccess ? "SUCCESS" : "ERROR ( WebErrorStatus:" & $iWebErrorStatus & ")")
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
 EndFunc   ;==>__NetWebView2_Events__OnNavigationCompleted
 
 Func __NetWebView2_Events__OnContextMenuRequested($oWebV2M, $hGUI, $sLink, $iX, $iY, $sSelection)
@@ -1385,7 +1452,7 @@ Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStat
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnWebResourceResponseReceived]: GUI:" & $hGUI & " HTTPStatusCode: " & $iStatusCode & " (" & $sReasonPhrase & ")  URL: " & $sRequestUrl
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED)
 EndFunc   ;==>__NetWebView2_Events__OnWebResourceResponseReceived
 
 Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $sURL, $sDefaultPath)
@@ -1394,7 +1461,7 @@ Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $sURL, $sDefaultP
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnDownloadStarting]: GUI:" & $hGUI & " URL: " & $sURL & " DEFAULT_PATH: " & $sDefaultPath
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-	__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 EndFunc   ;==>__NetWebView2_Events__OnDownloadStarting
 
 Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
@@ -1413,13 +1480,13 @@ Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sUR
 	Switch $sState
 		Case "InProgress"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $s_Message, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_IN_PROGRESS)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_IN_PROGRESS)
 		Case "Interrupted"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $s_Message, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_INTERRUPTED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_INTERRUPTED)
 		Case "Completed"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $s_Message, 1)
-			__NetWebView2_LastMessageReceived($NETWEBVIEW2_MESSAGE__DOWNLOAD_COMPLETED)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_COMPLETED)
 	EndSwitch
 EndFunc   ;==>__NetWebView2_Events__OnDownloadStateChanged
 

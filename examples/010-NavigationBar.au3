@@ -4,7 +4,7 @@
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 
 ; 010-NavigationBar.au3
-
+;~ #AutoIt3Wrapper_Run_Debug_Mode=Y
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
 #include <EditConstants.au3>
@@ -57,8 +57,8 @@ Func _Example()
 
 
 	; navigate to the page
-	_NetWebView2_Navigate($oWebV2M, "https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population", 4) ; 4 = NAV_COMPLETED 👈
-
+	_NetWebView2_Navigate($oWebV2M, "https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population", $NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
+	ConsoleWrite("navigate to the page" & @CRLF)
 
 	; Main Loop
 	Local $iMsg
@@ -66,7 +66,7 @@ Func _Example()
 		$iMsg = GUIGetMsg()
 		Switch $iMsg
 			Case $GUI_EVENT_CLOSE
-				Exit
+				ExitLoop
 			Case $_mBAR.Navigation
 				_Web_NavButton()
 			Case $_mBAR.Address
@@ -94,6 +94,8 @@ Func _Example()
 		EndIf
 
 	WEnd
+
+	__NetWebView2_LastMessageReceived($oWebV2M, -1000)
 
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 	GUIDelete($hGUI)

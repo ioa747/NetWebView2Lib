@@ -7,11 +7,11 @@
 #include <WindowsNotifsConstants.au3>
 #include <File.au3>
 #include <StaticConstants.au3>
+#include "..\NetWebView2Lib.au3"
 
 ; Global objects
-Global $oManager, $oBridge
-Global $oEvtManager, $oEvtBridge
-Global $oMyError = ObjEvent("AutoIt.Error", "ErrFunc")
+Global $oWebV2M, $oJSBridge
+Global $oMyError = ObjEvent("AutoIt.Error", _ErrFunc) ; COM Error Handler
 Global $g_bHighlight = 0
 Global $g_bHideAllPopups = 0
 Global $g_bAdBlock = 0
@@ -132,43 +132,36 @@ GUICtrlSetColor(-1, 0xFFFFFF)
 GUICtrlSetResizing(-1, $GUI_DOCKSIZE + $GUI_DOCKBOTTOM)
 
 ; WebView2 Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-$oManager = ObjCreate("NetWebView2.Manager")
-$oEvtManager = ObjEvent($oManager, "WebView_", "IWebViewEvents")
 
-; Get the bridge object and register events
-$oBridge = $oManager.GetBridge()
-$oEvtBridge = ObjEvent($oBridge, "Bridge_", "IBridgeEvents")
+; Initialize WebView2 Manager and register events
+$oWebV2M = _NetWebView2_CreateManager("", "WebView_", "")
+If @error Then Exit ConsoleWrite("@@(" & @ScriptLineNumber & ") :: @error:" & @error & ", @extended:" & @extended & @CRLF)
 
-; ⚠️ Important: Enclose ($hGUI) in parentheses to force "Pass-by-Value".
-; This prevents the COM layer from changing the AutoIt variable type from Ptr to Int64.
-$oManager.Initialize(($hGUI), $sProfileDirectory, 420, 45, 670, 795)
+; create JavaScript Bridge object
+$oJSBridge = _NetWebView2_GetBridge($oWebV2M, "Bridge_")
+If @error Then Exit ConsoleWrite("@@(" & @ScriptLineNumber & ") :: @error:" & @error & ", @extended:" & @extended & @CRLF)
 
-; Register Resize Event
-GUIRegisterMsg($WM_SIZE, "WM_SIZE")
+; initialize browser - put it on the GUI
+_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 420, 45, 670, 795, True, True, True, 1.2, "0x1E1E1E")
+
+_NetWebView2_Navigate($oWebV2M, $sURL, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
 
 GUISetState(@SW_SHOW)
 
 #EndRegion ; === GUI ===
-
-Do
-	Sleep(50)
-Until $oManager.IsReady
-
-$oManager.Navigate($sURL)
 
 Local $idMsg = 0
 While 1
 	$idMsg = GUIGetMsg()
 	Switch $idMsg
 		Case $GUI_EVENT_CLOSE
-			$oManager.Cleanup()
 			ExitLoop
 
 		Case $idBtnDarkMode
 			$g_bDarkMode = Not $g_bDarkMode ; Status reversal (True/False)
 			ShowWebNotification("DarkMode " & $g_bDarkMode, ($g_bDarkMode ? "#FF6A00" : "#2196F3"))
 			GUICtrlSetFont($idBtnDarkMode, 10, ($g_bDarkMode ? 700 : 400), 0, "Segoe Fluent Icons")
-			Local $choose = $g_bDarkMode ? ActivateDarkMode() : $oManager.ClearInjectedCss()
+			Local $choose = $g_bDarkMode ? ActivateDarkMode() : $oWebV2M.ClearInjectedCss()
 
 
 		Case $idBtnAdBlock
@@ -176,7 +169,7 @@ While 1
 			ShowWebNotification("AdBlock " & $g_bAdBlock, ($g_bAdBlock ? "#FF6A00" : "#2196F3"))
 			GUICtrlSetFont($idBtnAdBlock, 10, ($g_bAdBlock ? 700 : 400), 0, "Segoe Fluent Icons")
 			SetAdBlock($g_bAdBlock)
-			$oManager.Reload()
+			$oWebV2M.Reload()
 
 		Case $idBtnHideAllPopups
 			$g_bHideAllPopups = Not $g_bHideAllPopups ; Status reversal (True/False)
@@ -185,30 +178,30 @@ While 1
 
 		Case $idBtnHighlight
 			$g_bHighlight = Not $g_bHighlight ; Status reversal (True/False)
-			$oManager.ToggleAuditHighlights($g_bHighlight)
+			$oWebV2M.ToggleAuditHighlights($g_bHighlight)
 			ShowWebNotification("Highlights " & $g_bHighlight, ($g_bHighlight ? "#FF6A00" : "#2196F3"))
 			GUICtrlSetFont($idBtnHighlight, 10, ($g_bHighlight ? 700 : 400), 0, "Segoe Fluent Icons")
 
 		Case $idBtnSetZoom
-			$oManager.SetZoom(1.5) ; Zoom to 150%
+			$oWebV2M.SetZoom(1.5) ; Zoom to 150%
 			ShowWebNotification("Zoom: 150%", "#2196F3")
 
 		Case $idBtnResetZoom
-			$oManager.ResetZoom() ; Reset to 100%
+			$oWebV2M.ResetZoom() ; Reset to 100%
 			ShowWebNotification("Zoom: 100%", "#4CAF50")
 
 		Case $idBtnGoBack
-			$oManager.GoBack()
+			$oWebV2M.GoBack()
 
 		Case $idBtnGoForward
-			$oManager.GoForward()
+			$oWebV2M.GoForward()
 
 		Case $idBtnStop
-			$oManager.Stop()
+			$oWebV2M.Stop()
 
 		Case $idBtnClearBrowserData
 			If MsgBox(36, "Confirm", "Do you want to clear your browsing data?") = 6 Then
-				$oManager.ClearBrowserData()
+				$oWebV2M.ClearBrowserData()
 				ShowWebNotification("Browser history & cookies cleared!", "#f44336")
 			EndIf
 
@@ -216,23 +209,26 @@ While 1
 			RunHealthCheck()
 
 		Case $idReload
-			$oManager.Reload()
+			$oWebV2M.Reload()
 
 		Case $idURL
-			$oManager.Navigate(GUICtrlRead($idURL))
+			$oWebV2M.Navigate(GUICtrlRead($idURL))
 			ConsoleWrite("GUICtrlRead($idURL)=" & GUICtrlRead($idURL) & @CRLF)
 
 		Case $idBtnPdf
 			CreateAndSavePDF()
 
 		Case $idBtnExecJS
-			$oManager.ExecuteScript(GUICtrlRead($idJSEdit))
+			_NetWebView2_ExecuteScript($oWebV2M, GUICtrlRead($idJSEdit), $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 
 		Case Else
 			If $idMsg > 0 Then ConsoleWrite("> Else Msg=" & $idMsg & @CRLF)
 
 	EndSwitch
 WEnd
+
+_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
+Exit
 
 Func RunHealthCheck()
 	; Build the JS as a proper JSON object string
@@ -247,13 +243,13 @@ Func RunHealthCheck()
 			"};" & _
 			"window.chrome.webview.postMessage(JSON.stringify(audit));" ; Send as JSON string
 
-	If IsObj($oManager) Then $oManager.ExecuteScript($sJS)
+	If IsObj($oWebV2M) Then _NetWebView2_ExecuteScript($oWebV2M, $sJS, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 EndFunc   ;==>RunHealthCheck
 
 ; ==============================================================================
 ; EVENT HANDLER: WebView Manager (Core System Events from C#)
 ; ==============================================================================
-Func WebView_OnMessageReceived($sMessage)
+Func WebView_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
 	; Uncomment for debugging core events
 	ConsoleWrite("+> [SYSTEM]: " & $sMessage & @CRLF)
 
@@ -266,7 +262,7 @@ Func WebView_OnMessageReceived($sMessage)
 		Case "INIT_READY"
 			GUICtrlSetData($idStatusLabel, "Engine Ready.")
 			; Optional: Initial navigation if not set in Initialize
-			; $oManager.Navigate($sURL)
+			; $oWebV2M.Navigate($sURL)
 
 		Case "NAV_STARTING"
 			GUICtrlSetState($idAuditBtn, $GUI_DISABLE)
@@ -278,7 +274,7 @@ Func WebView_OnMessageReceived($sMessage)
 
 			; Auto-apply active features on new page load
 			If $g_bDarkMode Then ActivateDarkMode()
-			If $g_bHighlight Then $oManager.ToggleAuditHighlights(True)
+			If $g_bHighlight Then $oWebV2M.ToggleAuditHighlights(True)
 			If $g_bHideAllPopups Then HideAllPopups()
 
 		Case "TITLE_CHANGED"
@@ -290,7 +286,7 @@ Func WebView_OnMessageReceived($sMessage)
 			If $aSplit[0] > 1 Then
 				GUICtrlSetData($idURL, $aSplit[2])
 				GUICtrlSendMsg($idURL, $EM_SETSEL, 0, 0)
-				$oManager.WebViewSetFocus() ; We give focus to the browser
+				$oWebV2M.WebViewSetFocus() ; We give focus to the browser
 				$iAdCount = 0 ; Reset ad counter for the new domain
 			EndIf
 
@@ -322,17 +318,17 @@ EndFunc   ;==>WebView_OnMessageReceived
 ; ==============================================================================
 ; EVENT HANDLER: Bridge (JavaScript Messages via postMessage)
 ; ==============================================================================
-Func Bridge_OnMessageReceived($sMessage)
+Func Bridge_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
+	#forceref $oWebV2M, $hGUI
 	ConsoleWrite("+> [BRIDGE]: " & $sMessage & @CRLF)
 
 	Local $sFirstChar = StringLeft($sMessage, 1)
-
 
 	If $sFirstChar = "{" Or $sFirstChar = "[" Then
 
 		ConsoleWrite("> JSON MESSAGE PROCESSING " & @CRLF)
 
-		Local $oJson = ObjCreate("NetJson.Parser")
+		Local $oJson = _NetJson_CreateParser()
 		If $oJson.Parse($sMessage) Then
 			Local $sJobType = $oJson.GetTokenValue("type")
 
@@ -427,7 +423,8 @@ Func CreateAndSavePDF()
 			"</body></html>"
 
 	; Show it in Browser
-	$oManager.NavigateToString($sHTML)
+;~ 	$oWebV2M.NavigateToString($sHTML)
+	_NetWebView2_NavigateToString00($oWebV2M, $sHTML, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 0)
 
 	; Give the browser 1 second to "view" the file and then print.
 	AdlibRegister("_TriggerPDF", 1000)
@@ -436,28 +433,8 @@ EndFunc   ;==>CreateAndSavePDF
 Func _TriggerPDF()
 	AdlibUnRegister("_TriggerPDF") ; Stop the repetition.
 	Local $sFinalPDF = @ScriptDir & "\" & @HOUR & @MIN & @SEC & "_" & @MSEC & "_Health_Report.pdf"
-	$oManager.ExportToPdf($sFinalPDF)
+	$oWebV2M.ExportToPdf($sFinalPDF)
 EndFunc   ;==>_TriggerPDF
-
-; Handles Window Resizing
-Func WM_SIZE($hWnd, $iMsg, $wParam, $lParam)
-	#forceref $hWnd, $iMsg, $wParam
-	If $hWnd <> $hGUI Then Return $GUI_RUNDEFMSG ; critical, to respond only to the $hGUI
-	If $wParam = 1 Then Return $GUI_RUNDEFMSG ; 1 = SIZE_MINIMIZED
-
-	Local $iNewWidth = BitAND($lParam, 0xFFFF)
-	Local $iNewHeight = BitShift($lParam, 16)
-
-	If IsObj($oManager) Then
-		; Make sure the dimensions are positive
-		Local $iW = $iNewWidth - 420
-		Local $iH = $iNewHeight - 60
-		If $iW < 10 Then $iW = 10
-		If $iH < 10 Then $iH = 10
-		$oManager.Resize($iW, $iH)
-	EndIf
-	Return $GUI_RUNDEFMSG
-EndFunc   ;==>WM_SIZE
 
 ; MessageTip
 Func ShowWebNotification($sMessage, $sBgColor = "#4CAF50", $iDuration = 3000)
@@ -476,19 +453,19 @@ Func ShowWebNotification($sMessage, $sBgColor = "#4CAF50", $iDuration = 3000)
 			"   if(target) { target.style.opacity = '0'; setTimeout(() => target.remove(), 500); }" & _
 			"}, " & $iDuration & ");"
 
-	$oManager.ExecuteScript($sJS)
+	$oWebV2M.ExecuteScript($sJS)
 EndFunc   ;==>ShowWebNotification
 
 Func ActivateSeoAudit()
 	Local $sCSS = "img:not([alt]) { border: 10px solid red !important; outline: 5px solid yellow !important; } " & _
 			"a[href='#'] { background: #ffea00 !important; color: black !important; border: 2px dashed black !important; }"
-	$oManager.InjectCss($sCSS)
+	$oWebV2M.InjectCss($sCSS)
 EndFunc   ;==>ActivateSeoAudit
 
 Func ActivateDarkMode()
 	Local $sCSS = "html, body { background: #121212 !important; color: #e0e0e0 !important; } " & _
 			"a { color: #bb86fc !important; }"
-	$oManager.InjectCss($sCSS)
+	$oWebV2M.InjectCss($sCSS)
 EndFunc   ;==>ActivateDarkMode
 
 Func HideAllPopups()
@@ -496,28 +473,28 @@ Func HideAllPopups()
 	Local $sSelectors = ".fc-consent-root, .cc-window, #onetrust-consent-sdk, .css-privacy-banner"
 
 	; We send it through InjectCss
-	$oManager.InjectCss($sSelectors & " { display: none !important; visibility: hidden !important; pointer-events: none !important; }")
+	$oWebV2M.InjectCss($sSelectors & " { display: none !important; visibility: hidden !important; pointer-events: none !important; }")
 EndFunc   ;==>HideAllPopups
 
 Func SetAdBlock($bEnable = True)
 	If $bEnable Then
 		; clean the old list so we don't have duplicates
-		$oManager.ClearBlockRules()
+		$oWebV2M.ClearBlockRules()
 
 		; activate the switch
-		$oManager.SetAdBlock(True)
+		$oWebV2M.SetAdBlock(True)
 
 		; Add rules
-		$oManager.AddBlockRule("doubleclick.net")
-		$oManager.AddBlockRule("google-analytics.com")
-		$oManager.AddBlockRule("facebook.net")
-		$oManager.AddBlockRule("adservice.google.com")
-		$oManager.AddBlockRule("googletagmanager.com")
+		$oWebV2M.AddBlockRule("doubleclick.net")
+		$oWebV2M.AddBlockRule("google-analytics.com")
+		$oWebV2M.AddBlockRule("facebook.net")
+		$oWebV2M.AddBlockRule("adservice.google.com")
+		$oWebV2M.AddBlockRule("googletagmanager.com")
 
 		ConsoleWrite("+> ️AdBlocker Enabled" & @CRLF)
 	Else
-		$oManager.SetAdBlock(False)
-		$oManager.ClearBlockRules() ; Optional: clear memory when closing
+		$oWebV2M.SetAdBlock(False)
+		$oWebV2M.ClearBlockRules() ; Optional: clear memory when closing
 		ConsoleWrite("+> ️AdBlocker Disabled." & @CRLF)
 	EndIf
 EndFunc   ;==>SetAdBlock
@@ -546,10 +523,7 @@ Func JS_Example()
 	Return $sJS
 EndFunc   ;==>JS_Example
 
-Func ErrFunc()
-	ConsoleWrite("! COM Error Detected !" & @CRLF & _
-			"Description: " & $oMyError.description & @CRLF & _
-			"Windescription: " & $oMyError.windescription & @CRLF & _
-			"Number: " & Hex($oMyError.number, 8) & @CRLF)
-EndFunc   ;==>ErrFunc
+Func _ErrFunc($oError) ; Global COM Error Handler
+	ConsoleWrite('@@ Line(' & $oError.scriptline & ') : COM Error Number: (0x' & Hex($oError.number, 8) & ') ' & $oError.windescription & @CRLF)
+EndFunc   ;==>_ErrFunc
 

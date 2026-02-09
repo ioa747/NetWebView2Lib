@@ -1,5 +1,5 @@
 #include-once
-#AutoIt3Wrapper_UseX64=y
+;~ #AutoIt3Wrapper_UseX64=y
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
@@ -11,6 +11,7 @@
 #include <WindowsStylesConstants.au3>
 #include <WinAPISysWin.au3>
 #include <GUIConstantsEx.au3>
+#include "..\NetWebView2Lib.au3"
 
 ; Global variables for Modal Instance management
 Global $__oWeb, $__oBridge, $__hPop, $__hWND, $__iOldEventMode, $__sGoBackLabel
@@ -26,6 +27,7 @@ Global $__sExtSourcePath, $__sActiveExtensionsBase
 ;                  $sUserDataPath  - Path to the current WebView2 User Data Folder
 ; ===============================================================================================================================
 Func _WV2_ShowExtensionPicker($iWidth = 500, $iHeight = 650, $hWND = 0, $sExtSourcePath = "", $sUserDataPath = "")
+	ConsoleWrite("$sUserDataPath=" & $sUserDataPath & @CRLF)
 
 	If Not FileExists($sExtSourcePath) Then Return MsgBox(48, "Extension Manager", "Extension Libpary is empty" & _
 			@CRLF & "or path not exist")
@@ -53,22 +55,12 @@ Func _WV2_ShowExtensionPicker($iWidth = 500, $iHeight = 650, $hWND = 0, $sExtSou
 	GUICtrlSetOnEvent(-1, "__ExtensionPickerEvents")
 
 	; Initialize WebView2 Manager Instance
-	$__oWeb = ObjCreate("NetWebView2.Manager")
-	If Not IsObj($__oWeb) Then Return MsgBox(16, "Error", "NetWebView2Lib DLL is not registered!")
+	$__oWeb = _NetWebView2_CreateManager("", "__PopWebView_")
 
-	; Register Events and Setup Bridge
-	ObjEvent($__oWeb, "__PopWebView_", "IWebViewEvents")
-	$__oBridge = $__oWeb.GetBridge()
-	ObjEvent($__oBridge, "__PopBridge_", "IBridgeEvents")
+	; Register Bridge
+	$__oBridge = _NetWebView2_GetBridge($__oWeb, "__PopBridge_")
 
-	; Use the UserDataPath folder for the picker's internal data
-	$__oWeb.Initialize($__hPop, $sUserDataPath, 0, 35, $iWidth, $iHeight - 35)
-	$__oWeb.SetAutoResize(True)
-
-	; Wait for the engine to be ready
-	Do
-		Sleep(10)
-	Until $__oWeb.IsReady
+	_NetWebView2_Initialize($__oWeb, $__hPop, $sUserDataPath, 0, 35, $iWidth, $iHeight - 35, True, True, True, 1, "0x1A1A1A")
 
 	Local $bAllowPopups = $__oWeb.AreBrowserPopupsAllowed
 	ConsoleWrite(">>>$bAllowPopups=" & $bAllowPopups & @CRLF)
@@ -79,13 +71,20 @@ Func _WV2_ShowExtensionPicker($iWidth = 500, $iHeight = 650, $hWND = 0, $sExtSou
 
 	; Initial Navigation
 	$__oWeb.NavigateToString(__ExtensionPickerLoad())
+
 	GUISetState(@SW_SHOW, $__hPop)
 	GUISetState(@SW_DISABLE, $hWND)
+
+	While WinExists($__hPop)
+        Sleep(20)
+    WEnd
+
 EndFunc   ;==>_WV2_ShowExtensionPicker
 
 ; #INTERNAL_CALLBACK# ===========================================================================================================
 Func __ExtensionPickerLoad()
 	; Generate Header and Styles
+	Local $hTimer = TimerInit()
 	Local $sHTML_Header = "<html><head><title>Extension Manager</title><style>" & _
 			"body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: #e0e0e0; padding: 20px; margin:0; }" & _
 			".top-bar { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #333; padding: 15px 20px; background: #222; position: sticky; top: 0; z-index: 100; }" & _
@@ -114,9 +113,11 @@ Func __ExtensionPickerLoad()
 			"<button id='btn-back' class='btn-back' onclick='window.chrome.webview.postMessage(""GO_BACK_TO_LIST"")'>&larr; Back</button>" & _
 			"</div><div class='container' id='content'>"
 
-	Local $oJson = ObjCreate("NetJson.Parser") ; Use the built-in JSON parser
+	Local $oJson = _NetJson_CreateParser() ; Use the built-in JSON parser
 	Local $sListBody = ""
 	Local $aFolders = _FileListToArray($__sExtSourcePath, "*", 2)
+	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
+	#forceref $oMyError
 
 	If Not @error Then
 		For $i = 1 To $aFolders[0]
@@ -168,6 +169,8 @@ Func __ExtensionPickerLoad()
 		$sListBody &= "<p>Library path empty or not found.</p>"
 	EndIf
 
+	ConsoleWrite("__ExtensionPickerLoad processed in: " & Round(TimerDiff($hTimer) / 1000, 3) & " seconds " & @LF)
+
 	Return $sHTML_Header & $sListBody & "</div></body></html>"
 
 EndFunc   ;==>__ExtensionPickerLoad
@@ -215,7 +218,7 @@ Func __PopBridge_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
 				Local $sPopupPath = $aParts[3]
 
 				ConsoleWrite("> Launching Extension: " & $sTargetID & " Path: " & $sPopupPath & @CRLF)
-				$oWebV2M.Navigate("extension://" & $sTargetID & "/" & $sPopupPath)
+				_NetWebView2_Navigate($oWebV2M, "extension://" & $sTargetID & "/" & $sPopupPath)
 			EndIf
 
 		Case "ADD_EXT"
@@ -234,10 +237,9 @@ EndFunc   ;==>__PopBridge_OnMessageReceived
 Func __ExtensionPickerEvents()
 	Switch @GUI_CtrlId
 		Case $GUI_EVENT_CLOSE
-			$__oWeb.Cleanup()
+			_NetWebView2_CleanUp($__oWeb, $__oBridge)
 			GUIDelete($__hPop)
-			$__oWeb = 0
-			$__oBridge = 0
+
 			Opt("GUIOnEventMode", $__iOldEventMode)
 			GUISetState(@SW_ENABLE, $__hWND)
 			Sleep(100)
@@ -248,4 +250,3 @@ Func __ExtensionPickerEvents()
 
 	EndSwitch
 EndFunc   ;==>__ExtensionPickerEvents
-

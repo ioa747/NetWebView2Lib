@@ -127,11 +127,11 @@ Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView, $hWindow, $sM
 		$iMsgCnt += 1
 		_UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
 		_UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
-		If $sMsg = "PING" Then
-			GUISetState(@SW_HIDE, $hWindow)
-			Sleep(200)
-			GUISetState(@SW_SHOW, $hWindow)
-		EndIf
+;~ 		If $sMsg = "PING" Then
+;~ 			GUISetState(@SW_HIDE, $hWindow)
+;~ 			Sleep(200)
+;~ 			GUISetState(@SW_SHOW, $hWindow)
+;~ 		EndIf
 	EndIf
 EndFunc   ;==>__UserEventHandler_Web2__Bridge__OnMessageReceived
 #EndRegion ; USER DEFINED EVENTS HANDLER FUNCTION
