@@ -111,7 +111,7 @@ Func WebEvents_OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sRe
 	Local $sLog = StringFormat("! [HTTP %d] | %s | URL: %s", $iStatusCode, $sReasonPhrase, $sRequestUrl)
 	ConsoleWrite($sLog & @CRLF)
 
-	Local $oGuard = ObjEvent("AutoIt.Error", "_NetWebView2_SilentErrorHandler")
+	Local $oGuard = ObjEvent("AutoIt.Error", "__NetWebView2_fake_COMErrFunc")
 	#forceref $oGuard
 
 	; Management example:
@@ -133,3 +133,4 @@ Func WebEvents_OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sRe
 EndFunc   ;==>WebEvents_OnWebResourceResponseReceived
 
 #EndRegion ; === EVENT HANDLERS ===
+
