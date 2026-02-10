@@ -22,18 +22,16 @@ Func _Example_HTTP_Tracking()
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
 
-	; Ρύθμιση του HTTP Tracking
+	; Setting up HTTP Tracking
 	$oWebV2M.HttpStatusCodeEventsEnabled = True
 
-	; Φιλτράρισμα μόνο για το Main Document
-	; Πολύ σημαντικό για να μην κολλάει το GUI από εκατοντάδες αιτήματα (εικόνες, scripts κλπ)
+	; Filtering only for the Main Document
+	; Very important to prevent the GUI from getting stuck by hundreds of requests (images, scripts, etc.)
 	$oWebV2M.HttpStatusCodeDocumentOnly = True
 
 
-	; Δοκιμή με μια σελίδα που δεν υπάρχει για να δούμε το 404
-;~     $oWebV2M.Navigate("https://google.com/this-page-does-not-exist")
+	; Testing with a non-existent page to see the 404
 	_NetWebView2_Navigate($oWebV2M, "https://google.com/this-page-does-not-exist")
-;~ 	$oWebV2M.Navigate("https://google.com")
 
 	GUISetState(@SW_SHOW)
 
@@ -135,4 +133,3 @@ Func WebEvents_OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sRe
 EndFunc   ;==>WebEvents_OnWebResourceResponseReceived
 
 #EndRegion ; === EVENT HANDLERS ===
-
