@@ -773,10 +773,11 @@ EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
 ;                  while an event or a method call is still in progress.
 ; Author ........: ioa747
 ; ===============================================================================================================================
-Func _NetWebView2_SilentErrorHandler($oError)
+Volatile Func _NetWebView2_SilentErrorHandler($oError)
+    #forceref $oError
     ; We do nothing, effectively "swallowing" the COM error.
     ; This prevents the "Object Disposed" fatal crash.
-    #forceref $oError
+	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>_NetWebView2_SilentErrorHandler
 
 #EndRegion ; New Core Method Wrappers
@@ -1095,7 +1096,7 @@ EndFunc   ;==>__Get_Core_Bridge_JS
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func __NetWebView2_COMErrFunc($oError) ; COM Error Function used by COM Error Handler
+Volatile Func __NetWebView2_COMErrFunc($oError) ; COM Error Function used by COM Error Handler
 	If @Compiled Then Return
 	Local $s_INFO = _
 			"COM Error intercepted !" & @CRLF & _
@@ -1109,15 +1110,17 @@ Func __NetWebView2_COMErrFunc($oError) ; COM Error Function used by COM Error Ha
 			@TAB & "err.scriptline is: " & @TAB & $oError.scriptline & @CRLF & _
 			@TAB & "err.retcode is: " & @TAB & "0x" & Hex($oError.retcode) & @CRLF & @CRLF
 	__NetWebView2_Log($oError.scriptline, $s_INFO, 1)
+	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_COMErrFunc
 
-Func __NetWebView2_fake_COMErrFunc($oError) ; COM Error Function used by COM Error Handler
+Volatile Func __NetWebView2_fake_COMErrFunc($oError) ; COM Error Function used by COM Error Handler
 	#forceref $oError
 	; this is only to silently handle _NetWebView2_IsRegisteredCOMObject()
+	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_fake_COMErrFunc
 
 ; Handles native WebView2 events
-Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnMessageReceived]: GUI:" & $hGUI
 
@@ -1284,7 +1287,7 @@ Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 EndFunc   ;==>__NetWebView2_Events__OnMessageReceived
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
-Func __NetWebView2_JSEvents__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+Volatile Func __NetWebView2_JSEvents__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1349,7 +1352,7 @@ Func __NetWebView2_JSEvents__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 
 EndFunc   ;==>__NetWebView2_JSEvents__OnMessageReceived
 
-Func __NetWebView2_Events__OnBrowserGotFocus($oWebV2M, $hGUI, $iReason)
+Volatile Func __NetWebView2_Events__OnBrowserGotFocus($oWebV2M, $hGUI, $iReason)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1358,7 +1361,7 @@ Func __NetWebView2_Events__OnBrowserGotFocus($oWebV2M, $hGUI, $iReason)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_GOT_FOCUS)
 EndFunc   ;==>__NetWebView2_Events__OnBrowserGotFocus
 
-Func __NetWebView2_Events__OnBrowserLostFocus($oWebV2M, $hGUI, $iReason)
+Volatile Func __NetWebView2_Events__OnBrowserLostFocus($oWebV2M, $hGUI, $iReason)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1367,7 +1370,7 @@ Func __NetWebView2_Events__OnBrowserLostFocus($oWebV2M, $hGUI, $iReason)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_LOST_FOCUS)
 EndFunc   ;==>__NetWebView2_Events__OnBrowserLostFocus
 
-Func __NetWebView2_Events__OnZoomChanged($oWebV2M, $hGUI, $iFactor)
+Volatile Func __NetWebView2_Events__OnZoomChanged($oWebV2M, $hGUI, $iFactor)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1376,7 +1379,7 @@ Func __NetWebView2_Events__OnZoomChanged($oWebV2M, $hGUI, $iFactor)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__ZOOM_CHANGED)
 EndFunc   ;==>__NetWebView2_Events__OnZoomChanged
 
-Func __NetWebView2_Events__OnURLChanged($oWebV2M, $hGUI, $sURL)
+Volatile Func __NetWebView2_Events__OnURLChanged($oWebV2M, $hGUI, $sURL)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1385,7 +1388,7 @@ Func __NetWebView2_Events__OnURLChanged($oWebV2M, $hGUI, $sURL)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__URL_CHANGED)
 EndFunc   ;==>__NetWebView2_Events__OnURLChanged
 
-Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
+Volatile Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1394,7 +1397,7 @@ Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 
-Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
+Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1403,7 +1406,7 @@ Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
 EndFunc   ;==>__NetWebView2_Events__OnNavigationStarting
 
-Func __NetWebView2_Events__OnNavigationCompleted($oWebV2M, $hGUI, $bIsSuccess, $iWebErrorStatus)
+Volatile Func __NetWebView2_Events__OnNavigationCompleted($oWebV2M, $hGUI, $bIsSuccess, $iWebErrorStatus)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1412,7 +1415,7 @@ Func __NetWebView2_Events__OnNavigationCompleted($oWebV2M, $hGUI, $bIsSuccess, $
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
 EndFunc   ;==>__NetWebView2_Events__OnNavigationCompleted
 
-Func __NetWebView2_Events__OnContextMenuRequested($oWebV2M, $hGUI, $sLink, $iX, $iY, $sSelection)
+Volatile Func __NetWebView2_Events__OnContextMenuRequested($oWebV2M, $hGUI, $sLink, $iX, $iY, $sSelection)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1420,7 +1423,7 @@ Func __NetWebView2_Events__OnContextMenuRequested($oWebV2M, $hGUI, $sLink, $iX, 
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 EndFunc   ;==>__NetWebView2_Events__OnContextMenuRequested
 
-Func __NetWebView2_Events__OnContextMenu($oWebV2M, $hGUI, $sMenuData)
+Volatile Func __NetWebView2_Events__OnContextMenu($oWebV2M, $hGUI, $sMenuData)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1446,7 +1449,7 @@ EndFunc   ;==>__NetWebView2_Events__OnContextMenu
 ; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.webresourceresponsereceived?view=webview2-dotnet-1.0.2849.39
 ; Example .......: No
 ; ===============================================================================================================================
-Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
+Volatile Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1455,7 +1458,7 @@ Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStat
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED)
 EndFunc   ;==>__NetWebView2_Events__OnWebResourceResponseReceived
 
-Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $sURL, $sDefaultPath)
+Volatile Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $sURL, $sDefaultPath)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1464,7 +1467,7 @@ Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $sURL, $sDefaultP
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 EndFunc   ;==>__NetWebView2_Events__OnDownloadStarting
 
-Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
+Volatile Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -1490,7 +1493,7 @@ Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sUR
 	EndSwitch
 EndFunc   ;==>__NetWebView2_Events__OnDownloadStateChanged
 
-Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
+Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $sArgsList = '[Handled=' & $oArgs.Handled & '; KeyEventKind=' & $oArgs.KeyEventKind & '; KeyEventLParam=' & $oArgs.KeyEventLParam & '; VirtualKey=' & $oArgs.VirtualKey & ']'
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERRROR'))
@@ -1507,6 +1510,7 @@ Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
 	EndIf
 
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
+	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_Events__OnAcceleratorKeyPressed
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
 
