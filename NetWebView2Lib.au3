@@ -26,6 +26,11 @@
 ; Global objects
 Global $_g_bNetWebView2_DebugInfo = True
 
+Global Enum _
+		$NETWEBVIEW2_ERR__INIT_FAILED, _
+		$NETWEBVIEW2_ERR__PROFILE_NOT_READY, _
+		$NETWEBVIEW2_ERR___FAKE_COUNTER
+
 Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_Events__OnMessageReceived()
 		$NETWEBVIEW2_MESSAGE__NONE, _ ; UDF setting - not related directly to API REFERENCES
 		$NETWEBVIEW2_MESSAGE__INIT_FAILED, _
@@ -155,8 +160,13 @@ Func _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory, $i_Left = 0, 
 	Local $iInit = $oWebV2M.Initialize(($hGUI), $s_ProfileDirectory, $i_Left, $i_Top, $i_Width, $i_Height)
 	If @error Then Return SetError(@error, @extended, $iInit)
 
+	Local $iMessage
 	Do ; Wait for the engine to be ready before navigating
 		Sleep(50)
+		$iMessage = __NetWebView2_LastMessageReceived()
+		If $iMessage = $NETWEBVIEW2_MESSAGE__INIT_FAILED Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY Then
+			Return SetError($NETWEBVIEW2_ERR__INIT_FAILED, @extended, '')
+		EndIf
 	Until $b_LoadWait And $oWebV2M.IsReady
 
 	; WebView2 Configuration
@@ -1513,4 +1523,5 @@ Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oA
 	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_Events__OnAcceleratorKeyPressed
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
 
