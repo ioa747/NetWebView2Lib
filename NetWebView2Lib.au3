@@ -163,7 +163,7 @@ Func _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory, $i_Left = 0, 
 	Local $iMessage
 	Do ; Wait for the engine to be ready before navigating
 		Sleep(50)
-		$iMessage = __NetWebView2_LastMessageReceived()
+		$iMessage = __NetWebView2_LastMessageReceived($oWebV2M)
 		If $iMessage = $NETWEBVIEW2_MESSAGE__INIT_FAILED Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY Then
 			Return SetError($NETWEBVIEW2_ERR__INIT_FAILED, @extended, '')
 		EndIf
@@ -1292,7 +1292,7 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 ;~ 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__*)
 
 		Case Else
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 1)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 1)
 	EndSwitch
 
 EndFunc   ;==>__NetWebView2_Events__OnMessageReceived
@@ -1524,6 +1524,7 @@ Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oA
 	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_Events__OnAcceleratorKeyPressed
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
 
 
 
