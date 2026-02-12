@@ -4,6 +4,8 @@
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #Au3Stripper_Ignore_Funcs=__NetWebView2_Events__*,__NetWebView2_JSEvents__*
 
+#Tidy_Parameters=/tcb=-1
+
 ; NetWebView2Lib.au3 - Script Version: 2026.2.12.5 🚩
 
 #include <Array.au3>
@@ -153,8 +155,8 @@ Func _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory, $i_Left = 0, 
 
 	If Not IsHWnd($hGUI) Then
 		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " !!! ERROR: $hGUI is not a valid HWND pointer.", 1)
-        Return SetError($NETWEBVIEW2_MESSAGE__CRITICAL_ERROR, 0, False)
-    EndIf
+		Return SetError($NETWEBVIEW2_MESSAGE__CRITICAL_ERROR, 0, False)
+	EndIf
 
 	; ⚠️ Important: Enclose ($hGUI) in parentheses to force "Pass-by-Value".
 	; This prevents the COM layer from changing the AutoIt variable type from Ptr to Int64.
@@ -166,8 +168,8 @@ Func _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory, $i_Left = 0, 
 		Sleep(50)
 		$iMessage = __NetWebView2_LastMessageReceived($oWebV2M)
 		If $iMessage = $NETWEBVIEW2_MESSAGE__INIT_FAILED _
-			Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY _
-			Or $iMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
+				Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY _
+				Or $iMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
 			Return SetError($iMessage, @extended, '')
 		EndIf
 	Until $b_LoadWait And $oWebV2M.IsReady
@@ -622,7 +624,7 @@ Func _NetWebView2_PrintToPdfStream($oWebV2M, $b_TBinary_FBase64)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " RESULT:" & ((@error) ? ($s_Result) : ("SUCCESS")), 1)
 	Return SetError(@error, @extended, $s_Result)
 EndFunc   ;==>_NetWebView2_PrintToPdfStream
-#EndRegion
+#EndRegion ; NetWebView2Lib UDF - _NetWebView2_* helper functions
 
 #Region ; New Core Method Wrappers
 ; #FUNCTION# ====================================================================================================================
@@ -787,9 +789,9 @@ EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
 ; Author ........: ioa747
 ; ===============================================================================================================================
 Volatile Func _NetWebView2_SilentErrorHandler($oError)
-    #forceref $oError
-    ; We do nothing, effectively "swallowing" the COM error.
-    ; This prevents the "Object Disposed" fatal crash.
+	#forceref $oError
+	; We do nothing, effectively "swallowing" the COM error.
+	; This prevents the "Object Disposed" fatal crash.
 	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>_NetWebView2_SilentErrorHandler
 
@@ -1294,7 +1296,7 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR)
 
 		Case Else
-            __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! UNKNOWN COMMAND:" & (StringLen($sMsg) > 200 ? StringLeft($sMsg, 200) & "..." : $sMsg), 1)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! UNKNOWN COMMAND:" & (StringLen($sMsg) > 200 ? StringLeft($sMsg, 200) & "..." : $sMsg), 1)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__UNKNOWN_COMMAND)
 	EndSwitch
 
@@ -1497,17 +1499,17 @@ EndFunc   ;==>__NetWebView2_Events__OnDownloadStateChanged
 Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
 	#forceref $oWebV2M
 	Local Const $sArgsList = '[VirtualKey=' & $oArgs.VirtualKey & _ ; The VK code of the key.
-            '; KeyEventKind=' & $oArgs.KeyEventKind & _             ; Type of key event (Down, Up, etc.).
-            '; Handled=' & $oArgs.Handled & _                       ; Set to `True` to stop the browser from processing the key.
-            '; RepeatCount=' & $oArgs.RepeatCount & _               ; The number of times the key has repeated.
-            '; ScanCode=' & $oArgs.ScanCode & _                     ; Hardware scan code.
-            '; IsExtendedKey=' & $oArgs.IsExtendedKey & _           ; True if it's an extended key (e.g., right Alt).
-            '; IsMenuKeyDown=' & $oArgs.IsMenuKeyDown & _           ; True if Alt is pressed.
-            '; WasKeyDown=' & $oArgs.WasKeyDown & _                 ; True if the key was already down.
-            '; IsKeyReleased=' & $oArgs.IsKeyReleased & _           ; True if the event is a key up.
-            '; KeyEventLParam=' & $oArgs.KeyEventLParam & ']'       ; Gets the LPARAM value that accompanied the window message.
+			'; KeyEventKind=' & $oArgs.KeyEventKind & _             ; Type of key event (Down, Up, etc.).
+			'; Handled=' & $oArgs.Handled & _                       ; Set to `True` to stop the browser from processing the key.
+			'; RepeatCount=' & $oArgs.RepeatCount & _               ; The number of times the key has repeated.
+			'; ScanCode=' & $oArgs.ScanCode & _                     ; Hardware scan code.
+			'; IsExtendedKey=' & $oArgs.IsExtendedKey & _           ; True if it's an extended key (e.g., right Alt).
+			'; IsMenuKeyDown=' & $oArgs.IsMenuKeyDown & _           ; True if Alt is pressed.
+			'; WasKeyDown=' & $oArgs.WasKeyDown & _                 ; True if the key was already down.
+			'; IsKeyReleased=' & $oArgs.IsKeyReleased & _           ; True if the event is a key up.
+			'; KeyEventLParam=' & $oArgs.KeyEventLParam & ']'       ; Gets the LPARAM value that accompanied the window message.
 
-    Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERROR'))
+	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERROR'))
 
 ;~ 	https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50
 ;~ 	ConsoleWrite($oArgs.Handled & @CRLF) ; Indicates whether the AcceleratorKeyPressed event is handled by host.
@@ -1524,10 +1526,3 @@ Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oA
 	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_Events__OnAcceleratorKeyPressed
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
-
-
-
-
-
-
-
