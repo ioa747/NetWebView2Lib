@@ -75,7 +75,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by mainly by __NetWebView2_Event
 		$NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED, _
 		$NETWEBVIEW2_MESSAGE__BROWSER_GOT_FOCUS, _
 		$NETWEBVIEW2_MESSAGE__BROWSER_LOST_FOCUS, _
-		$NETWEBVIEW2_MESSAGE__UNKNOWN_COMMAND, _
+		$NETWEBVIEW2_MESSAGE__UNKNOWN_MESSAGE, _
 		$NETWEBVIEW2_MESSAGE___FAKE_COUNTER
 
 Global Enum _
@@ -1367,8 +1367,8 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR)
 
 		Case Else
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! UNKNOWN COMMAND:" & (StringLen($sMsg) > 200 ? StringLeft($sMsg, 200) & "..." : $sMsg), 1)
-			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__UNKNOWN_COMMAND)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! UNKNOWN MESSAGE:" & (StringLen($sMsg) > 200 ? StringLeft($sMsg, 200) & "..." : $sMsg), 1)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__UNKNOWN_MESSAGE)
 	EndSwitch
 
 EndFunc   ;==>__NetWebView2_Events__OnMessageReceived
