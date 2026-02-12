@@ -1,15 +1,10 @@
 #include-once
-#Region ; *** Dynamically added Include files ***
-#include <Date.au3>                                          ; added:02/08/26 14:35:58
-#EndRegion ; *** Dynamically added Include files ***
-;~ #AutoIt3Wrapper_UseX64=y
-;~ #AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Run_AU3Check=Y
-#AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
+#AutoIt3Wrapper_AU3Check_Stop_OnWarning=Y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #Au3Stripper_Ignore_Funcs=__NetWebView2_Events__*,__NetWebView2_JSEvents__*
 
-; NetWebView2Lib.au3
+; NetWebView2Lib.au3 - Script Version: 2026.2.12.4 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -26,10 +21,10 @@
 ; Global objects
 Global $_g_bNetWebView2_DebugInfo = True
 
-Global Enum _
-		$NETWEBVIEW2_ERR__INIT_FAILED, _
-		$NETWEBVIEW2_ERR__PROFILE_NOT_READY, _
-		$NETWEBVIEW2_ERR___FAKE_COUNTER
+;~ Global Enum _
+;~ 		$NETWEBVIEW2_ERR__INIT_FAILED, _
+;~ 		$NETWEBVIEW2_ERR__PROFILE_NOT_READY, _
+;~ 		$NETWEBVIEW2_ERR___FAKE_COUNTER
 
 Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_Events__OnMessageReceived()
 		$NETWEBVIEW2_MESSAGE__NONE, _ ; UDF setting - not related directly to API REFERENCES
@@ -77,6 +72,8 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by __NetWebView2_Events__OnMessa
 		$NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED, _
 		$NETWEBVIEW2_MESSAGE__BROWSER_GOT_FOCUS, _
 		$NETWEBVIEW2_MESSAGE__BROWSER_LOST_FOCUS, _
+		$NETWEBVIEW2_MESSAGE__CRITICAL_ERROR, _
+		$NETWEBVIEW2_MESSAGE__UNKNOWN_COMMAND, _
 		$NETWEBVIEW2_MESSAGE___FAKE_COUNTER
 
 Global Enum _
@@ -149,11 +146,15 @@ EndFunc   ;==>_NetWebView2_CreateManager
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory, $i_Left = 0, $i_Top = 0, $i_Width = 0, $i_Height = 0, $b_LoadWait = True, $b_SetAutoResize = True, $b_DevToolsEnabled = True, $i_ZoomFactor = 1.0, $s_BackColor = "0x2B2B2B", $b_InitConsole = False)
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 
 	Local Const $s_Prefix = "[_NetWebView2_Initialize]: GUI:" & $hGUI & " ProfileDirectory:" & $s_ProfileDirectory & " LEFT:" & $i_Left & " TOP:" & $i_Top & " WIDTH" & $i_Width & " HEIGHT:" & $i_Height & " LOADWAIT:" & $b_LoadWait & " SETAUTORESIZE:" & $b_SetAutoResize & " SetAutoResize:" & $b_DevToolsEnabled & " ZoomFactor:" & $i_ZoomFactor & " BackColor:" & $s_BackColor
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
+
+	If Not IsHWnd($hGUI) Then
+		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " !!! ERROR: $hGUI is not a valid HWND pointer.", 1)
+        Return SetError($NETWEBVIEW2_MESSAGE__CRITICAL_ERROR, 0, False)
+    EndIf
 
 	; ⚠️ Important: Enclose ($hGUI) in parentheses to force "Pass-by-Value".
 	; This prevents the COM layer from changing the AutoIt variable type from Ptr to Int64.
@@ -164,8 +165,10 @@ Func _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory, $i_Left = 0, 
 	Do ; Wait for the engine to be ready before navigating
 		Sleep(50)
 		$iMessage = __NetWebView2_LastMessageReceived($oWebV2M)
-		If $iMessage = $NETWEBVIEW2_MESSAGE__INIT_FAILED Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY Then
-			Return SetError($NETWEBVIEW2_ERR__INIT_FAILED, @extended, '')
+		If $iMessage = $NETWEBVIEW2_MESSAGE__INIT_FAILED _
+			Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY _
+			Or $iMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
+			Return SetError($iMessage, @extended, '')
 		EndIf
 	Until $b_LoadWait And $oWebV2M.IsReady
 
@@ -179,7 +182,7 @@ Func _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory, $i_Left = 0, 
 		$oWebV2M.AddInitializationScript(__Get_Core_Bridge_JS())
 	EndIf
 
-	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Manager Creation ERROR", 1)
+	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " !!! Manager Creation ERROR", 1)
 	Return SetError(@error, $oWebV2M.GetBrowserProcessId(), '')
 EndFunc   ;==>_NetWebView2_Initialize
 
@@ -899,7 +902,7 @@ Func __NetWebView2_LastMessageReceived($oWebV2M, $iStatus = Default, $iError = @
 	Local $oMyError = ObjEvent("AutoIt.Error", _NetWebView2_SilentErrorHandler)
 	#forceref $oMyError
 
-	Local $sKey = "" & String($oWebV2M.BrowserWindowHandle)
+	Local $sKey = "" & $oWebV2M.BrowserWindowHandle
 
 	; If an error occurred while retrieving the Handle (e.g. Object already closed)
 	If @error Then Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
@@ -1131,18 +1134,18 @@ EndFunc   ;==>__NetWebView2_fake_COMErrFunc
 
 ; Handles native WebView2 events
 Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnMessageReceived]: GUI:" & $hGUI
 
 	#Region ; Message parsing
-	Local $iSplitPos = StringSplit($sMsg, "|")
+;~ 	Local $iSplitPos = StringSplit($sMsg, "|")
+	Local $iSplitPos = StringInStr($sMsg, "|")
 	Local $sCommand = $iSplitPos ? StringStripWS(StringLeft($sMsg, $iSplitPos - 1), 3) : $sMsg
 	Local $sData = $iSplitPos ? StringTrimLeft($sMsg, $iSplitPos) : ""
 	Local $aParts
 
 	Local Static $sCommand_static = ''
 	If Not @Compiled And $sCommand_static <> $sCommand Then ; show the log in non compiled - for DEV only
-		ConsoleWrite('TEST IFNC: ' & $s_Prefix & ' @SLN=' & @ScriptLineNumber & ' ' & $sCommand & ' Data=' & (StringLen($sData) > 120 ? StringLeft($sData, 120) & "..." : $sData) & @CRLF) ; FOR DEV TESTING ONLY
+;~ 		ConsoleWrite('TEST IFNC: ' & $s_Prefix & ' @SLN=' & @ScriptLineNumber & ' ' & $sCommand & ' Data=' & (StringLen($sData) > 120 ? StringLeft($sData, 120) & "..." : $sData) & @CRLF) ; FOR DEV TESTING ONLY
 		$sCommand_static = $sCommand
 	EndIf
 	#EndRegion ; Message parsing
@@ -1287,12 +1290,13 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 
-;~ 		Case "*"
-;~ 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
-;~ 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__*)
+		Case "ERROR"
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' ! CRITICAL ERROR:' & StringTrimLeft($sMsg, 6), 1) ; trim "ERROR|"
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR)
 
 		Case Else
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg), 1)
+            __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! UNKNOWN COMMAND:" & (StringLen($sMsg) > 200 ? StringLeft($sMsg, 200) & "..." : $sMsg), 1)
+			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__UNKNOWN_COMMAND)
 	EndSwitch
 
 EndFunc   ;==>__NetWebView2_Events__OnMessageReceived
@@ -1301,7 +1305,6 @@ EndFunc   ;==>__NetWebView2_Events__OnMessageReceived
 Volatile Func __NetWebView2_JSEvents__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[JSEvents__OnMessageReceived]: GUI:" & $hGUI
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -1366,7 +1369,6 @@ EndFunc   ;==>__NetWebView2_JSEvents__OnMessageReceived
 Volatile Func __NetWebView2_Events__OnBrowserGotFocus($oWebV2M, $hGUI, $iReason)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnBrowserGotFocus]: GUI:" & $hGUI & " REASON: " & $iReason
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_GOT_FOCUS)
@@ -1375,7 +1377,6 @@ EndFunc   ;==>__NetWebView2_Events__OnBrowserGotFocus
 Volatile Func __NetWebView2_Events__OnBrowserLostFocus($oWebV2M, $hGUI, $iReason)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnBrowserLostFocus]: GUI:" & $hGUI & " REASON: " & $iReason
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_LOST_FOCUS)
@@ -1384,7 +1385,6 @@ EndFunc   ;==>__NetWebView2_Events__OnBrowserLostFocus
 Volatile Func __NetWebView2_Events__OnZoomChanged($oWebV2M, $hGUI, $iFactor)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnZoomChanged]: GUI:" & $hGUI & " FACTOR: " & $iFactor
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__ZOOM_CHANGED)
@@ -1393,7 +1393,6 @@ EndFunc   ;==>__NetWebView2_Events__OnZoomChanged
 Volatile Func __NetWebView2_Events__OnURLChanged($oWebV2M, $hGUI, $sURL)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnURLChanged]: GUI:" & $hGUI & " URL: " & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__URL_CHANGED)
@@ -1402,7 +1401,6 @@ EndFunc   ;==>__NetWebView2_Events__OnURLChanged
 Volatile Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnTitleChanged]: GUI:" & $hGUI & " TITLE: " & $sTITLE
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
@@ -1411,7 +1409,6 @@ EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnNavigationStarting]: GUI:" & $hGUI & " URL: " & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
@@ -1420,7 +1417,6 @@ EndFunc   ;==>__NetWebView2_Events__OnNavigationStarting
 Volatile Func __NetWebView2_Events__OnNavigationCompleted($oWebV2M, $hGUI, $bIsSuccess, $iWebErrorStatus)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnNavigationCompleted]: GUI:" & $hGUI & " " & ($bIsSuccess ? "SUCCESS" : "ERROR ( WebErrorStatus:" & $iWebErrorStatus & ")")
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
@@ -1429,7 +1425,6 @@ EndFunc   ;==>__NetWebView2_Events__OnNavigationCompleted
 Volatile Func __NetWebView2_Events__OnContextMenuRequested($oWebV2M, $hGUI, $sLink, $iX, $iY, $sSelection)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnContextMenuRequested]: GUI:" & $hGUI & " LINK: " & $sLink & " X: " & $iX & " Y: " & $iY & " SELECTION: " & $sSelection
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 EndFunc   ;==>__NetWebView2_Events__OnContextMenuRequested
@@ -1437,7 +1432,6 @@ EndFunc   ;==>__NetWebView2_Events__OnContextMenuRequested
 Volatile Func __NetWebView2_Events__OnContextMenu($oWebV2M, $hGUI, $sMenuData)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnContextMenu]: GUI:" & $hGUI & " MENUDATA: " & $sMenuData
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 EndFunc   ;==>__NetWebView2_Events__OnContextMenu
@@ -1463,7 +1457,6 @@ EndFunc   ;==>__NetWebView2_Events__OnContextMenu
 Volatile Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnWebResourceResponseReceived]: GUI:" & $hGUI & " HTTPStatusCode: " & $iStatusCode & " (" & $sReasonPhrase & ")  URL: " & $sRequestUrl
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED)
@@ -1472,7 +1465,6 @@ EndFunc   ;==>__NetWebView2_Events__OnWebResourceResponseReceived
 Volatile Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $sURL, $sDefaultPath)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnDownloadStarting]: GUI:" & $hGUI & " URL: " & $sURL & " DEFAULT_PATH: " & $sDefaultPath
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
@@ -1481,7 +1473,6 @@ EndFunc   ;==>__NetWebView2_Events__OnDownloadStarting
 Volatile Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
 	#forceref $oWebV2M
 
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnDownloadStateChanged]: GUI:" & $hGUI & " State: " & $sState & " URL: " & $sURL & " Total_Bytes: " & $iTotal_Bytes & " Received_Bytes: " & $iReceived_Bytes
 	Local $iPercent = 0
 	If $iTotal_Bytes > 0 Then $iPercent = Round(($iReceived_Bytes / $iTotal_Bytes), 5) * 100
@@ -1505,10 +1496,20 @@ Volatile Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sSt
 EndFunc   ;==>__NetWebView2_Events__OnDownloadStateChanged
 
 Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
-	Local Const $sArgsList = '[Handled=' & $oArgs.Handled & '; KeyEventKind=' & $oArgs.KeyEventKind & '; KeyEventLParam=' & $oArgs.KeyEventLParam & '; VirtualKey=' & $oArgs.VirtualKey & ']'
-	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERRROR'))
 	#forceref $oWebV2M
+	Local Const $sArgsList = '[VirtualKey=' & $oArgs.VirtualKey & _ ; The VK code of the key.
+            '; KeyEventKind=' & $oArgs.KeyEventKind & _             ; Type of key event (Down, Up, etc.).
+            '; Handled=' & $oArgs.Handled & _                       ; Set to `True` to stop the browser from processing the key.
+            '; RepeatCount=' & $oArgs.RepeatCount & _               ; The number of times the key has repeated.
+            '; ScanCode=' & $oArgs.ScanCode & _                     ; Hardware scan code.
+            '; IsExtendedKey=' & $oArgs.IsExtendedKey & _           ; True if it's an extended key (e.g., right Alt).
+            '; IsMenuKeyDown=' & $oArgs.IsMenuKeyDown & _           ; True if Alt is pressed.
+            '; WasKeyDown=' & $oArgs.WasKeyDown & _                 ; True if the key was already down.
+            '; IsKeyReleased=' & $oArgs.IsKeyReleased & _           ; True if the event is a key up.
+            '; KeyEventLParam=' & $oArgs.KeyEventLParam & ']'       ; Gets the LPARAM value that accompanied the window message.
+
+    Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERROR'))
+
 ;~ 	https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50
 ;~ 	ConsoleWrite($oArgs.Handled & @CRLF) ; Indicates whether the AcceleratorKeyPressed event is handled by host.
 ;~ 	ConsoleWrite($oArgs.KeyEventKind & @CRLF) ; Gets the key event kind that caused the event to run

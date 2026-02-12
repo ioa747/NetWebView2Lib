@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-// --- Version 1.5.0 ---
+// --- Version 2.0.0-beta.3 ---
 
 namespace NetWebView2Lib
 {
@@ -143,6 +143,9 @@ namespace NetWebView2Lib
 
         /// <summary>Decodes a Base64 string to raw binary data (byte array).</summary>
         [DispId(229)] byte[] DecodeB64ToBinary(string base64Text);
+
+        /// <summary>Gets the version of the DLL.</summary>
+        [DispId(230)] string Version { get; }
     }
 
     /// <summary>
@@ -716,5 +719,7 @@ namespace NetWebView2Lib
             catch { return new byte[0]; }
         }
 
+        /// <summary>Gets the version of the DLL.</summary>
+        public string Version => AssemblyUtils.GetVersion();
     }
 }

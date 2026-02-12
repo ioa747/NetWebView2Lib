@@ -101,7 +101,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyUtils.cs" />
+    <Compile Include="BasicAuthenticationRequestedEventArgsWrapper.cs" />
     <Compile Include="JsonParser.cs" />
+    <Compile Include="ProcessFailedEventArgsWrapper.cs" />
+    <Compile Include="WebView2AcceleratorKeyPressedEventArgs.cs" />
     <Compile Include="WebViewBridge.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WebViewManager.cs" />

@@ -63,45 +63,51 @@ This project is provided "as-is". You are free to use, modify, and distribute it
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 🚀 What's New in v2.0.0-beta.1 - Multi-Instance & Stability Focus
+## 🚀 What's New in v2.0.0-beta.3 - AcceleratorKey Detail & Refactoring
 
-This major beta release re-engineers the core event architecture to support professional multi-instance applications and solves long-standing COM deadlock issues with pre-emptive key blocking.
+This update focuses on deep keyboard interception and code modularity.
 
 ### ⚡ Key Features & Enhancements
 
-#### **1. Sender-Aware Event Architecture**
+#### **1. PhysicalKeyStatus Expansion**
+The `OnAcceleratorKeyPressed` event now provides 1:1 access to the underlying Windows keyboard state.
+- **New Properties**: `RepeatCount`, `ScanCode`, `IsExtendedKey`, `IsMenuKeyDown`, `WasKeyDown`, and `IsKeyReleased`.
+- **Use Case**: Detect held keys, distinguish between left/right Alt/Ctrl, and implement complex hotkey logic without Win32 API calls.
 
-The entire event system has been refactored for multi-instance reliability. Every event fired from the C# core now provides a "Sender" context.
+#### **2. Performance & Modularity**
+- **Standalone Argument Logic**: Argument wrappers have been moved to dedicated files (e.g., `WebView2AcceleratorKeyPressedEventArgs.cs`).
+- **Lean Core**: Reduced `WebViewManager.cs` complexity by outsourcing event data structures.
 
-- **Instance Isolation**: AutoIt scripts can now easily distinguish which WebView2 instance triggered an event using the `parentHandle` parameter.
-- **Sealed Contexts**: The communication bridge is now sealed to its parent manager, preventing message cross-talk in complex multi-window setups.
+---
 
-#### **2. Pre-emptive Key Blocking (Zero Deadlocks)**
+## 🚀 What's New in v2.0.0-beta.2 - COM Versioning & Handle Alignment
 
-We have abandoned the legacy synchronous polling for accelerator keys in favor of a proactive, list-based approach.
+This update introduces the ability to query the DLL version directly and aligns window handles with AutoIt's native format.
 
-- **`BlockedVirtualKeys`**: Define a list of VK codes (like F5, F12) to be blocked directly by the C# engine.
-- **Performance**: Eliminates the 600ms sync-wait loops, resulting in instant response times and 0% risk of COM re-entrancy deadlocks.
-- **OnAcceleratorKeyPressed**: Still available for monitoring, but the "Handled" logic is now pre-emptively managed by the property list.
+### ⚡ Key Features & Enhancements
 
-#### **3. Native Win32 Integration**
+#### **1. Advanced Handle Formatting (`[HANDLE:0x...]`)**
+All window handles returned by the library (via properties or events) are now formatted as strings compatible with AutoIt's Advanced Window Descriptions.
+- **Direct Compatibility**: Handles like `[HANDLE:0x00010203]` can be passed directly to `WinExists`, `WinSetTitle`, etc., without `HWnd()` conversion.
 
-- **`BrowserWindowHandle`**: A new property that exposes the internal `HWND` of the browser control. This allows for advanced parent-child window relationship management and direct Win32 message interception via DLL calls.
+#### **2. COM Version Exposure**
+You can now access the `.version` property on all primary COM objects.
+- **`Manager.version`**, **`Bridge.version`**, **`Parser.version`**.
 
-#### **4. Internal Messaging Overlay**
-
-- **Improved Stability**: A new internal messaging system ensures that background state updates never interfere with the primary UI event loop, ensuring a smoother user experience during heavy navigation sequences.
+#### **3. Stabilized Infrastructure**
+- **GUID Collision Resolution**: Fixed internal interface IDs that caused registration issues in v2.0.0-beta.1.
+- **`ParentWindowHandle`**: New property to retrieve the handle passed during initialization.
 
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 📖 NetWebView2Lib Version 2.0.0-beta.1 (Quick Reference)
+## 📖 NetWebView2Lib Version 2.0.0-beta.3 (Quick Reference)
 
 ### NetWebView2Lib (ProgId: NetWebView2.Manager)
 
-#### === Properties ===
+#### ===Properties===
 
 ##### AreDevToolsEnabled
 Determines whether the user is able to use the context menu or keyboard shortcuts to open the DevTools window.
@@ -188,14 +194,18 @@ Control visibility of the browser's default error pages (e.g., connection lost).
 `object.IsBuiltInErrorPageEnabled = Value`
 
 ##### BrowserWindowHandle
-Returns the internal window handle (HWND) of the WebView2 control. This is the child window attached to the parent GUI.
+Returns the internal window handle (HWND) of the WebView2 control. [Format: `[HANDLE:0x...]`]
 `object.BrowserWindowHandle`
+
+##### ParentWindowHandle
+Returns the parent window handle provided during initialization. [Format: `[HANDLE:0x...]`]
+`object.ParentWindowHandle`
 
 ##### BlockedVirtualKeys
 A comma-separated list of Virtual Key codes to be blocked synchronously (e.g., "116,123").
 `object.BlockedVirtualKeys = "116,123"`
 
-#### === Method ===
+#### ===Method===
 
 ##### Initialize
 Initializes the WebView2 control within a parent window.
@@ -354,6 +364,7 @@ Enables or disables the Web Message communication system.
 ##### SetStatusBarEnabled
 Enables or disables the browser status bar.
 `object.SetStatusBarEnabled(Enabled As Boolean)`
+
   
 ##### CapturePreview
 Captures a screenshot of the current view to a file.
@@ -489,7 +500,7 @@ Captures page data using Chrome DevTools Protocol. Can return MHTML or other CDP
 `object.CaptureSnapshot(CdpParameters As String)`
 
 ##### SetDownloadPath
-Sets a global default folder or file path for all browser downloads. If a directory is provided, the filename is automatically appended by the library.
+Sets a global default folder or file path for all browser downloads. If a directory is provided, the filename is automatically appended by the library. Create the folder if it doesn't exist
 `object.SetDownloadPath(Path As String)`
 
 ##### CancelDownloads
@@ -504,7 +515,7 @@ Cancels active downloads. If `uri` is empty or omitted, cancels all active downl
 Captures the current page as a PDF and returns the content as a Base64-encoded string.
 `object.PrintToPdfStream()`
 
-#### === Events ===
+#### ===Events===
 
 ##### OnMessageReceived
 Fired when a message or notification is sent from the library to AutoIt.
@@ -564,14 +575,21 @@ Fired when an accelerator key is pressed. Allows blocking browser shortcuts.
 	*Args properties: 
 		VirtualKey (uint): The VK code of the key.
 		KeyEventKind (int): Type of key event (Down, Up, etc.).
-		Handled (bool): Set to `True` to stop the browser from processing the key.*
-  
+		Handled (bool): Set to `True` to stop the browser from processing the key.
+		RepeatCount (uint): The number of times the key has repeated.
+		ScanCode (uint): Hardware scan code.
+		IsExtendedKey (bool): True if it's an extended key (e.g., right Alt).
+		IsMenuKeyDown (bool): True if Alt is pressed.
+		WasKeyDown (bool): True if the key was already down.
+		IsKeyReleased (bool): True if the event is a key up.
+		KeyEventLParam  (int):  Gets the LPARAM value that accompanied the window message*
+
 
 ---
 
 ### JsonParser (ProgId: NetJson.Parser)
 
-#### === Methods ===
+#### ===Methods===
 
 ##### Parse
 Parses a JSON string. Automatically detects if it's an Object or an Array.

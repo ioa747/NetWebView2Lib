@@ -33,6 +33,8 @@ Func Main()
 
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
+
 	__Example_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()")
 
 	; navigate to HTML string - full fill the object with your own offline content - without downloading any content

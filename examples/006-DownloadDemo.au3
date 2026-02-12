@@ -1,7 +1,7 @@
 #AutoIt3Wrapper_UseX64=y
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
-
+#include <Misc.au3>
 #include "..\NetWebView2Lib.au3"
 
 ; 006-DownloadDemo.au3
@@ -35,15 +35,20 @@ Func _Example()
 
 	#EndRegion ; GUI CREATION
 
+	; BlockedVirtualKeys
+	;	A comma-separated list of Virtual Key codes to be blocked synchronously (e.g., "116,123").
+	;	`object.BlockedVirtualKeys = "116,123"`
+
+	; Block F5 (116) and F12 (123) AcceleratorKey!
+	$oWebV2M.BlockedVirtualKeys = "116,123"
+
 	; Silent Download Setting
 	$oWebV2M.IsDownloadUIEnabled = False
-	; Set default Download Path
-	DirCreate(@ScriptDir & "\Downloads_Test")
+
+	; Set default Download Path (Create the folder if it doesn't exist)
 	$oWebV2M.SetDownloadPath(@ScriptDir & "\Downloads_Test")
 
 	; navigate to the page
-;~ 	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/download/download-libreoffice", $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
-
 	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/donate/dl/win-x86_64/25.8.4/en-US/LibreOffice_25.8.4_Win_x86-64.msi", $NETWEBVIEW2_MESSAGE__NAV_STARTING)
 
 	#Region ; GUI Loop
@@ -61,7 +66,8 @@ Func _Example()
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 EndFunc   ;==>_Example
 
-Func __UserEventHandler__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
+; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
+Volatile Func __UserEventHandler__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
@@ -99,21 +105,108 @@ Func __UserEventHandler__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL,
 	EndSwitch
 EndFunc   ;==>__UserEventHandler__OnDownloadStateChanged
 
-Func __UserEventHandler__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
-	$hGUI = HWnd("0x" & Hex($hGUI, 16))
-	Local Const $sArgsList = '[Handled=' & $oArgs.Handled & '; KeyEventKind=' & $oArgs.KeyEventKind & '; KeyEventLParam=' & $oArgs.KeyEventLParam & '; VirtualKey=' & $oArgs.VirtualKey & ']'
-	Local Const $s_Prefix = "[USER:EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERRROR'))
+; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
+Volatile Func __UserEventHandler__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
+    Local Const $sArgsList = '[VirtualKey=' & $oArgs.VirtualKey & _ ; The VK code of the key.
+            '; KeyEventKind=' & $oArgs.KeyEventKind & _             ; Type of key event (Down, Up, etc.).
+            '; Handled=' & $oArgs.Handled & _                       ; Set to `True` to stop the browser from processing the key.
+            '; RepeatCount=' & $oArgs.RepeatCount & _               ; The number of times the key has repeated.
+            '; ScanCode=' & $oArgs.ScanCode & _                     ; Hardware scan code.
+            '; IsExtendedKey=' & $oArgs.IsExtendedKey & _           ; True if it's an extended key (e.g., right Alt).
+            '; IsMenuKeyDown=' & $oArgs.IsMenuKeyDown & _           ; True if Alt is pressed.
+            '; WasKeyDown=' & $oArgs.WasKeyDown & _                 ; True if the key was already down.
+            '; IsKeyReleased=' & $oArgs.IsKeyReleased & _           ; True if the event is a key up.
+            '; KeyEventLParam=' & $oArgs.KeyEventLParam & ']'       ; Gets the LPARAM value that accompanied the window message.
+
+    Local Const $s_Prefix = "[USER:EVENT: OnAcceleratorKeyPressed]:: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERROR'))
+
+    ; Example of checking specific keys
+    Switch $oArgs.VirtualKey
+        Case Int($VK_F7)
+            ConsoleWrite("! Blocked: F7 caret browsing." & @CRLF)
+            $oArgs.Handled = True
+
+        Case Int($VK_N)
+            ; Check if Ctrl is pressed (using _IsPressed for Ctrl as IsMenuKeyDown specifically targets Alt)
+            ; Use this to block shortcuts like Ctrl+N (New Window)
+            If _IsPressed("11") Then
+                ConsoleWrite("! Blocked: Ctrl+N shortcut." & @CRLF)
+                $oArgs.Handled = True
+            EndIf
+
+        Case Int($VK_ESCAPE) ; ESC 27 1b 033 Escape
+            ; Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
+            $oWebV2M.CancelDownloads()
+
+    EndSwitch
+
+    __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 0)
+
+    $oArgs = 0 ; Explicitly release the COM reference inside the volatile scope
+EndFunc   ;==>__UserEventHandler__OnAcceleratorKeyPressed
+
+; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
+Volatile Func __UserEventHandler__OnAcceleratorKeyPressed00($oWebV2M, $hGUI, $oArgs)
+	Local Const $sArgsList = '[VirtualKey=' & $oArgs.VirtualKey & _ ; The VK code of the key.
+			'; KeyEventKind=' & $oArgs.KeyEventKind & _             ; Type of key event (Down, Up, etc.).
+			'; Handled=' & $oArgs.Handled & _                       ; Set to `True` to stop the browser from processing the key.
+			'; RepeatCount=' & $oArgs.RepeatCount & _               ; The number of times the key has repeated.
+			'; ScanCode=' & $oArgs.ScanCode & _                     ; Hardware scan code.
+			'; IsExtendedKey=' & $oArgs.IsExtendedKey & _           ; True if it's an extended key (e.g., right Alt).
+			'; IsMenuKeyDown=' & $oArgs.IsMenuKeyDown & _           ; True if Alt is pressed.
+			'; WasKeyDown=' & $oArgs.WasKeyDown & _                 ; True if the key was already down.
+			'; IsKeyReleased=' & $oArgs.IsKeyReleased & _           ; True if the event is a key up.
+			'; KeyEventLParam=' & $oArgs.KeyEventLParam & ']'       ; Gets the LPARAM value that accompanied the window message.
+
+
+	Local Const $s_Prefix = "[USER:EVENT: OnAcceleratorKeyPressed]:: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERRROR'))
+
+;~  public uint VirtualKey { get; }
+;~  public int KeyEventLParam { get; }
+;~  public int KeyEventKind { get; }
+;~
+;~  public uint RepeatCount { get; }
+;~  public uint ScanCode { get; }
+;~  public bool IsExtendedKey { get; }
+;~  public bool IsMenuKeyDown { get; }
+;~  public bool WasKeyDown { get; }
+;~  public bool IsKeyReleased { get; }
 
 ;~ 	https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50
-	ConsoleWrite($oArgs.Handled & @CRLF) ; Indicates whether the AcceleratorKeyPressed event is handled by host.
-	ConsoleWrite($oArgs.KeyEventKind & @CRLF) ; Gets the key event kind that caused the event to run
-	ConsoleWrite($oArgs.KeyEventLParam & @CRLF) ; Gets the LPARAM value that accompanied the window message.
+;~ 	ConsoleWrite($oArgs.Handled & @CRLF) ; Indicates whether the AcceleratorKeyPressed event is handled by host.
+;~ 	ConsoleWrite($oArgs.KeyEventKind & @CRLF) ; Gets the key event kind that caused the event to run
+;~ 	ConsoleWrite($oArgs.KeyEventLParam & @CRLF) ; Gets the LPARAM value that accompanied the window message.
 ;~ 	ConsoleWrite('>> PhysicalKeyStatus=' & $oArgs.PhysicalKeyStatus & @CRLF) ; Gets a CoreWebView2PhysicalKeyStatus representing the information passed in the LPARAM of the window message. ==> ; https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2physicalkeystatus?view=webview2-dotnet-1.0.705.50
-	ConsoleWrite($oArgs.VirtualKey & @CRLF) ; Gets the Win32 virtual key code of the key that was pressed or released.
+;~ 	ConsoleWrite($oArgs.VirtualKey & @CRLF) ; Gets the Win32 virtual key code of the key that was pressed or released.
 
-	If $oArgs.VirtualKey = 27 Then ; ESC 27 1b 033 Escape, next character is not echoed ; https://www.autoitscript.com/autoit3/docs/appendix/ascii.htm
-		$oWebV2M.CancelDownloads($_sURLDownload_InProgress)
-	EndIf
+;~ 	If $oArgs.VirtualKey = 27 Then ; ESC 27 1b 033 Escape, next character is not echoed ; https://www.autoitscript.com/autoit3/docs/appendix/ascii.htm
+;~ 		$oWebV2M.CancelDownloads($_sURLDownload_InProgress)
+;~ 	EndIf
 
-	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
+	; Example of checking specific keys
+    Switch $oArgs.VirtualKey
+        Case Int($VK_F7)
+            ConsoleWrite("! Blocked: F7 caret browsing." & @CRLF)
+            $oArgs.Handled = True
+
+        Case Int($VK_N)
+            ; Έλεγχος αν είναι πατημένο το Ctrl (χρησιμοποιώντας το IsMenuKeyDown αν αφορά Alt ή WinAPI για Ctrl)
+            ; Αν θέλουμε να μπλοκάρουμε το Ctrl+N (New Window)
+            If _IsPressed("11") Then ; Χρειάζεται το Misc.au3 για την _IsPressed
+                ConsoleWrite("! Blocked: Ctrl+N shortcut." & @CRLF)
+                $oArgs.Handled = True
+
+			EndIf
+
+		Case Int($VK_ESCAPE) ; ESC 27 1b 033 Escape, next character is not echoed ; https://www.autoitscript.com/autoit3/docs/appendix/ascii.htm
+			; Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
+			$oWebV2M.CancelDownloads()
+
+    EndSwitch
+
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 0)
+	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
+
 EndFunc   ;==>__UserEventHandler__OnAcceleratorKeyPressed
+
+

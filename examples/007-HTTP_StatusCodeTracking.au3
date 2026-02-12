@@ -1,6 +1,8 @@
+;~ #AutoIt3Wrapper_UseX64=y
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
 #include "..\NetWebView2Lib.au3"
+#include <WinAPISysWin.au3>
 
 ; Global objects
 Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc") ; COM Error Handler
@@ -9,6 +11,7 @@ _Example_HTTP_Tracking()
 
 Func _Example_HTTP_Tracking()
 	Local $hGUI = GUICreate("WebView2 HTTP Status Tracker", 1000, 600)
+	ConsoleWrite("$hGUI=" & $hGUI & @CRLF)
 
 	; Initialize WebView2 Manager and register events
 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "WebEvents_")
@@ -49,6 +52,21 @@ EndFunc   ;==>_Example_HTTP_Tracking
 #Region ; === EVENT HANDLERS ===
 ; Handles native WebView2 events
 Func WebEvents_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+
+	; { part of the $hGUI handle explanation
+	; with the new Advanced Handle Formatting logic [HANDLE:0x...]
+	ConsoleWrite("$hGUI=" & $hGUI & @CRLF)
+	ConsoleWrite("WinExists=" & WinExists($hGUI) & @CRLF)
+	ConsoleWrite("WinGetTitle=" & WinGetTitle($hGUI) & @CRLF)
+	ConsoleWrite("! _WinAPI_GetClientWidth($hGUI)=" & _WinAPI_GetClientWidth($hGUI) & @CRLF) ; not working
+
+	Local $hWnd = WinGetHandle($hGUI)
+	ConsoleWrite("$hWnd=" & $hWnd & @CRLF)
+	ConsoleWrite("WinExists($hWnd)=" & WinExists($hWnd) & @CRLF)
+	ConsoleWrite("- _WinAPI_GetClientWidth($hWnd)=" & _WinAPI_GetClientWidth($hWnd) & @CRLF) ; working
+	; End part of the $hGUI handle explanation }
+
+
 	ConsoleWrite(">>> [WebEvents]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $iSplitPos = StringInStr($sMsg, "|")
 	Local $sCommand = $iSplitPos ? StringStripWS(StringLeft($sMsg, $iSplitPos - 1), 3) : $sMsg

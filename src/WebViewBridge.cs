@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Threading;
 
-// --- Version 2.0.0-beta.1 ---
+// --- Version 2.0.0-beta.3 ---
 // Breaking Change: Sender-Aware Events (Issue #52)
 
 namespace NetWebView2Lib
@@ -12,10 +12,10 @@ namespace NetWebView2Lib
     /// v2.0.0: Now includes sender object and parent window handle.
     /// </summary>
     /// <param name="sender">The WebViewManager instance that owns this bridge.</param>
-    /// <param name="parentHandle">The parent window handle (hWnd).</param>
+    /// <param name="parentHandle">The parent window handle (Advanced Window Description).</param>
     /// <param name="message">The message content.</param>
     [ComVisible(true)]
-    public delegate void OnMessageReceivedDelegate(object sender, object parentHandle, string message);
+    public delegate void OnMessageReceivedDelegate(object sender, string parentHandle, string message);
 
     /// <summary>
     /// Event interface for receiving messages from JavaScript via AutoIt.
@@ -33,7 +33,7 @@ namespace NetWebView2Lib
         /// <param name="parentHandle">The parent window handle.</param>
         /// <param name="message">The message content.</param>
         [DispId(1)]
-        void OnMessageReceived(object sender, object parentHandle, string message);
+        void OnMessageReceived(object sender, string parentHandle, string message);
     }
 
     /// <summary>
@@ -50,6 +50,9 @@ namespace NetWebView2Lib
         /// <param name="message">The message to send.</param>
         [DispId(1)]
         void RaiseMessage(string message);
+
+        /// <summary>Gets the version of the DLL.</summary>
+        [DispId(2)] string Version { get; }
     }
 
     /// <summary>
@@ -73,8 +76,8 @@ namespace NetWebView2Lib
         private const long ThrottlingIntervalTicks = TimeSpan.TicksPerSecond / 50; // max 50 calls/sec
 
         // v2.0.0: Parent context for Sender-Aware events
-        private object _parentManager;
-        private object _parentHandle;
+        private object _sender;
+        private string _parentHandle;
 
         /// <summary>
         /// Initializes a new instance of the WebViewBridge class.
@@ -88,12 +91,18 @@ namespace NetWebView2Lib
         /// Sets the parent context for Sender-Aware events.
         /// Must be called immediately after construction.
         /// </summary>
-        /// <param name="manager">The parent WebViewManager instance.</param>
-        /// <param name="hwnd">The parent window handle.</param>
-        public void SetParentContext(object manager, object hwnd)
+        public void SetParentContext(object sender, object hwnd)
         {
-            _parentManager = manager;
-            _parentHandle = hwnd;
+            _sender = sender;
+            
+            if (hwnd is IntPtr ptr)
+            {
+                _parentHandle = "[HANDLE:0x" + ptr.ToString("X").PadLeft(IntPtr.Size * 2, '0') + "]";
+            }
+            else
+            {
+                _parentHandle = hwnd?.ToString() ?? "[HANDLE:0x" + IntPtr.Zero.ToString("X").PadLeft(IntPtr.Size * 2, '0') + "]";
+            }
         }
 
         /// <summary>
@@ -120,8 +129,11 @@ namespace NetWebView2Lib
                 _lastMessageTicks = currentTicks;
 
                 // v2.0.0: Pass sender and parentHandle for multi-instance support
-                _syncContext?.Post(_ => OnMessageReceived?.Invoke(_parentManager, _parentHandle, message), null);
+                _syncContext?.Post(_ => OnMessageReceived?.Invoke(_sender, _parentHandle, message), null);
             }
         }
+
+        /// <summary>Gets the version of the DLL.</summary>
+        public string Version => AssemblyUtils.GetVersion();
     }
 }
