@@ -50,7 +50,7 @@ Func _Example()
 	#EndRegion ; GUI CREATION
 
 	; navigate to the page
-	__SetupStaticPDF($oWeb, @ScriptDir & "\invoice-plugin-sample.pdf", True, False)
+	__SetupStaticPDF($oWeb, @ScriptDir & "\invoice-plugin-sample.pdf", True, False, True)
 
 	_NetWebView2_ExecuteScript($oWeb, "extractPDFText();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 
@@ -111,7 +111,7 @@ Func __MyEVENTS_Bridge_OnMessageReceived($sMsg)
 	EndIf
 EndFunc   ;==>__MyEVENTS_Bridge_OnMessageReceived
 
-Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSelection = False)
+Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSelection = False, $bShowToolbar = False)
 	; 🏆 https://mozilla.github.io/pdf.js/
 
 	Local $sBlockLinksJS = ""
@@ -168,7 +168,7 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 			"                setTimeout(runExtraction, 500);" & _
 			"            }" & _
 			"        } catch (e) {" & _
-			"            window.chrome.webview.postMessage('ERROR|' + e.message);" & _
+			"            window.chrome.webview.postMessage('JS_ERROR|extractPDFText() SLN=" & @ScriptLineNumber & "' + e.message);" & _
 			"        }" & _
 			"    };" & _
 			"    runExtraction();" & _
@@ -176,7 +176,7 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 			"/* 3. Style Injection */ " & _
 			"window.addEventListener('DOMContentLoaded', () => {" & _
 			"   const style = document.createElement('style');" & _
-			"   style.innerHTML = '#toolbarContainer, #sidebarContainer { display: none !important; } ' + " & _
+			"   style.innerHTML = " & (($bShowToolbar) ? ("") : ("'#toolbarContainer, #sidebarContainer { display: none !important; } ' + ")) & _
 			"                     '#viewerContainer { top: 0 !important; bottom: 0 !important; overflow: hidden !important; } ' + " & _
 			"                     '" & $sBlockLinksCSS & "' + " & _
 			"                     '" & $sSelectionCSS & "' + " & _
