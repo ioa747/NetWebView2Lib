@@ -4,7 +4,7 @@
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #Au3Stripper_Ignore_Funcs=__NetWebView2_Events__*,__NetWebView2_JSEvents__*
 
-; NetWebView2Lib.au3 - Script Version: 2026.2.12.4 🚩
+; NetWebView2Lib.au3 - Script Version: 2026.2.12.5 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -1137,7 +1137,6 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnMessageReceived]: GUI:" & $hGUI
 
 	#Region ; Message parsing
-;~ 	Local $iSplitPos = StringSplit($sMsg, "|")
 	Local $iSplitPos = StringInStr($sMsg, "|")
 	Local $sCommand = $iSplitPos ? StringStripWS(StringLeft($sMsg, $iSplitPos - 1), 3) : $sMsg
 	Local $sData = $iSplitPos ? StringTrimLeft($sMsg, $iSplitPos) : ""
@@ -1291,7 +1290,7 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 
 		Case "ERROR"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' ! CRITICAL ERROR:' & StringTrimLeft($sMsg, 6), 1) ; trim "ERROR|"
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' ! CRITICAL ERROR:' & $sData, 1)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR)
 
 		Case Else
@@ -1525,6 +1524,7 @@ Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oA
 	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_Events__OnAcceleratorKeyPressed
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
 
 
 
