@@ -27,7 +27,7 @@ Global $__sExtSourcePath, $__sActiveExtensionsBase
 ;                  $sUserDataPath  - Path to the current WebView2 User Data Folder
 ; ===============================================================================================================================
 Func _WV2_ShowExtensionPicker($iWidth = 500, $iHeight = 650, $hWND = 0, $sExtSourcePath = "", $sUserDataPath = "")
-	ConsoleWrite("$sUserDataPath=" & $sUserDataPath & @CRLF)
+	If Not @compiled Then ConsoleWrite("$sUserDataPath=" & $sUserDataPath & @CRLF)
 
 	If Not FileExists($sExtSourcePath) Then Return MsgBox(48, "Extension Manager", "Extension Libpary is empty" & _
 			@CRLF & "or path not exist")
