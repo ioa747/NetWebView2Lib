@@ -1566,4 +1566,28 @@ Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oA
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_Events__OnAcceleratorKeyPressed
+
+Volatile Func __NetWebView2_Events__OnProcessFailed($oWebV2M, $hGUI, $oArgs)
+	#forceref $oWebV2M
+	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnProcessFailed]: GUI:" & $hGUI
+	Local $sArgsList = '[Kind=' & $oArgs.ProcessFailedKind & _
+			'; Reason=' & $oArgs.Reason & _
+			'; ExitCode=' & $oArgs.ExitCode & _
+			'; Description=' & $oArgs.ProcessDescription & ']'
+
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ARGS: " & $sArgsList, 1)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__PROCESS_FAILED)
+	$oArgs = 0
+EndFunc   ;==>__NetWebView2_Events__OnProcessFailed
+
+Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hGUI, $oArgs)
+	#forceref $oWebV2M
+	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnBasicAuthenticationRequested]: GUI:" & $hGUI
+	Local $sArgsList = '[Uri=' & $oArgs.Uri & '; Challenge=' & $oArgs.Challenge & ']'
+
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ARGS: " & $sArgsList, 1)
+	__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__BASIC_AUTHENTICATION_REQUESTED)
+	; Note: User should handle $oArgs.UserName / $oArgs.Password and call $oArgs.Complete() in their script.
+	$oArgs = 0
+EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
