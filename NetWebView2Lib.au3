@@ -84,6 +84,24 @@ Global Enum _
 		$NETWEBVIEW2_EXECUTEJS_MODE2_RESULT, _
 		$NETWEBVIEW2_ExecuteJS__FAKE_COUNTER
 
+Global Enum _ ; Indicates the type of process that has failed.
+		$NETWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_EXITED, _
+		$NETWEBVIEW2_PROCESS_FAILED_KIND_RENDER_EXITED, _
+		$NETWEBVIEW2_PROCESS_FAILED_KIND_RENDER_UNRESPONSIVE, _
+		$NETWEBVIEW2_PROCESS_FAILED_KIND_FRAME_RENDER_EXITED, _
+		$NETWEBVIEW2_PROCESS_FAILED_KIND_UTILITY_EXITED, _
+		$NETWEBVIEW2_PROCESS_FAILED_KIND_SANDBOX_EXITED, _
+		$NETWEBVIEW2_PROCESS_FAILED_KIND_GPU_EXITED
+
+Global Enum _ ; Indicates the reason for the process failure.
+		$NETWEBVIEW2_PROCESS_FAILED_REASON_UNEXPECTED, _
+		$NETWEBVIEW2_PROCESS_FAILED_REASON_UNRESPONSIVE, _
+		$NETWEBVIEW2_PROCESS_FAILED_REASON_TERMINATED, _
+		$NETWEBVIEW2_PROCESS_FAILED_REASON_CRASHED, _
+		$NETWEBVIEW2_PROCESS_FAILED_REASON_LAUNCH_FAILED, _
+		$NETWEBVIEW2_PROCESS_FAILED_REASON_OUT_OF_MEMORY
+
+
 #Region ; NetWebView2Lib UDF - _NetWebView2_* core functions
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_CreateManager
@@ -362,6 +380,29 @@ Func _NetWebView2_GetBridge($oWebV2M, $s_fnEventPrefix = "")
 
 	Return SetError(@error, @extended, $oWebJS)
 EndFunc   ;==>_NetWebView2_GetBridge
+
+; #FUNCTION# ====================================================================================================================
+; Name ..........: _NetWebView2_GetVersion
+; Description ...: Get NetWebView2Lib component version number
+; Syntax ........: _NetWebView2_GetVersion($oWebV2M)
+; Parameters ....: $oWebV2M             - an object.
+; Return values .: NetWebView2Lib component version number or set @error
+; Author ........: mLipok
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........:
+; Example .......: No
+; ===============================================================================================================================
+Func _NetWebView2_GetVersion($oWebV2M)
+	Local Const $s_Prefix = "[_NetWebView2_GetVersion]:"
+	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
+	#forceref $oMyError
+
+	Local $sVersion = $oWebV2M.version
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " : Version=" & $sVersion, 1)
+	Return SetError(@error, @extended, $sVersion)
+EndFunc   ;==>_NetWebView2_GetVersion
 
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _NetWebView2_LoadWait
