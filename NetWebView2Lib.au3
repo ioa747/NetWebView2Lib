@@ -144,9 +144,9 @@ EndFunc   ;==>_NetWebView2_CreateManager
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_Initialize
 ; Description ...:
-; Syntax ........: _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory[, $i_Left = 0[, $i_Top = 0[, $i_Width = 0[, $i_Height = 0[, $b_LoadWait = True[, $b_SetAutoResize = True[, $b_DevToolsEnabled = True[, $i_ZoomFactor = 1.0[, $s_BackColor = "0x2B2B2B"[, $b_InitConsole = False]]]]]]]]]])
+; Syntax ........: _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory[, $i_Left = 0[, $i_Top = 0[, $i_Width = 0[, $i_Height = 0[, $b_LoadWait = True[, $b_SetAutoResize = True[, $b_DevToolsEnabled = True[, $i_ZoomFactor = 1.0[, $s_BackColor = "0x2B2B2B"[, $b_InitConsole = False]]]]]]]]]])
 ; Parameters ....: $oWebV2M             - an object.
-;                  $hGUI                - a handle value.
+;                  $hUserGUI            - a handle to User window in which new WebView Window containng the controler should be placed/added
 ;                  $s_ProfileDirectory  - a string value.
 ;                  $i_Left              - [optional] an integer value. Default is 0.
 ;                  $i_Top               - [optional] an integer value. Default is 0.
@@ -166,20 +166,20 @@ EndFunc   ;==>_NetWebView2_CreateManager
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_Initialize($oWebV2M, $hGUI, $s_ProfileDirectory, $i_Left = 0, $i_Top = 0, $i_Width = 0, $i_Height = 0, $b_LoadWait = True, $b_SetAutoResize = True, $b_DevToolsEnabled = True, $i_ZoomFactor = 1.0, $s_BackColor = "0x2B2B2B", $b_InitConsole = False)
+Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left = 0, $i_Top = 0, $i_Width = 0, $i_Height = 0, $b_LoadWait = True, $b_SetAutoResize = True, $b_DevToolsEnabled = True, $i_ZoomFactor = 1.0, $s_BackColor = "0x2B2B2B", $b_InitConsole = False)
 
-	Local Const $s_Prefix = "[_NetWebView2_Initialize]: GUI:" & $hGUI & " ProfileDirectory:" & $s_ProfileDirectory & " LEFT:" & $i_Left & " TOP:" & $i_Top & " WIDTH" & $i_Width & " HEIGHT:" & $i_Height & " LOADWAIT:" & $b_LoadWait & " SETAUTORESIZE:" & $b_SetAutoResize & " SetAutoResize:" & $b_DevToolsEnabled & " ZoomFactor:" & $i_ZoomFactor & " BackColor:" & $s_BackColor
+	Local Const $s_Prefix = "[_NetWebView2_Initialize]: GUI:" & $hUserGUI & " ProfileDirectory:" & $s_ProfileDirectory & " LEFT:" & $i_Left & " TOP:" & $i_Top & " WIDTH" & $i_Width & " HEIGHT:" & $i_Height & " LOADWAIT:" & $b_LoadWait & " SETAUTORESIZE:" & $b_SetAutoResize & " SetAutoResize:" & $b_DevToolsEnabled & " ZoomFactor:" & $i_ZoomFactor & " BackColor:" & $s_BackColor
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	If Not IsHWnd($hGUI) Then
-		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " !!! ERROR: $hGUI is not a valid HWND pointer.", 1)
+	If Not IsHWnd($hUserGUI) Then
+		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " !!! ERROR: $hUserGUI is not a valid HWND pointer.", 1)
 		Return SetError($NETWEBVIEW2_MESSAGE__CRITICAL_ERROR, 0, False)
 	EndIf
 
-	; ⚠️ Important: Enclose ($hGUI) in parentheses to force "Pass-by-Value".
+	; ⚠️ Important: Enclose ($hUserGUI) in parentheses to force "Pass-by-Value".
 	; This prevents the COM layer from changing the AutoIt variable type from Ptr to Int64.
-	Local $iInit = $oWebV2M.Initialize(($hGUI), $s_ProfileDirectory, $i_Left, $i_Top, $i_Width, $i_Height)
+	Local $iInit = $oWebV2M.Initialize(($hUserGUI), $s_ProfileDirectory, $i_Left, $i_Top, $i_Width, $i_Height)
 	If @error Then Return SetError(@error, @extended, $iInit)
 
 	Local $iMessage
@@ -1534,12 +1534,6 @@ Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oA
 	Local Const $s_Prefix = "[NetWebView2Lib:EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERROR'))
 
 ;~ 	https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50
-;~ 	ConsoleWrite($oArgs.Handled & @CRLF) ; Indicates whether the AcceleratorKeyPressed event is handled by host.
-;~ 	ConsoleWrite($oArgs.KeyEventKind & @CRLF) ; Gets the key event kind that caused the event to run
-;~ 	ConsoleWrite($oArgs.KeyEventLParam & @CRLF) ; Gets the LPARAM value that accompanied the window message.
-;~ 	ConsoleWrite('>> PhysicalKeyStatus=' & $oArgs.PhysicalKeyStatus & @CRLF) ; Gets a CoreWebView2PhysicalKeyStatus representing the information passed in the LPARAM of the window message. ==> ; https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2physicalkeystatus?view=webview2-dotnet-1.0.705.50
-;~ 	ConsoleWrite($oArgs.VirtualKey & @CRLF) ; Gets the Win32 virtual key code of the key that was pressed or released.
-
 	If $oArgs.VirtualKey = 27 Then ; ESC 27 1b 033 Escape, next character is not echoed ; https://www.autoitscript.com/autoit3/docs/appendix/ascii.htm
 ;~ 		$oWebV2M.CancelDownloads($_sURLDownload_InProgress)
 	EndIf
