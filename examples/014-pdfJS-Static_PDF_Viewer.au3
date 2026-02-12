@@ -54,6 +54,15 @@ Func _Example()
 
 	_NetWebView2_ExecuteScript($oWeb, "extractPDFText();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 
+	_NetWebView2_ExecuteScript($oWeb, "highlightSpansContainingText('January 31, 2016', 'red', 'yellow');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "highlightSpansContainingText('January 31, 2016', 'red', 'yellow');")
+
+	_NetWebView2_ExecuteScript($oWeb, "highlightSpansContainingText('Total Due', 'red', 'lightblue');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "highlightSpansContainingText('Total Due', 'red', 'lightblue');")
+
+	_NetWebView2_ExecuteScript($oWeb, "removeHighlights('January 31, 2016');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "removeHighlights('January 31, 2016');")
+
 	; Main Loop
 	While 1
 		Switch GUIGetMsg()
@@ -182,7 +191,49 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 			"                     '" & $sSelectionCSS & "' + " & _
 			"                     ' ::-webkit-scrollbar { display: none !important; }';" & _
 			"   document.head.appendChild(style);" & _
-			"});"
+			"});" & _
+			"/* 4. HighLight text */ " & _
+			"function highlightSpansContainingText(searchText, borderColor = 'red', backgroundColor = 'yellow') {" & _
+			"    if (!searchText || typeof searchText !== 'string') return;" & _
+			"    const normalize = str => str.replace(/\s+/g, ' ').trim().toLowerCase();" & _
+			"    const normalizedSearch = normalize(searchText);" & _
+			"    const spans = document.querySelectorAll('span');" & _
+			"    spans.forEach(span => {" & _
+			"        // Reset previous highlights in this SPAN" & _
+			"        if (!span.dataset.originalText) {" & _
+			"            span.dataset.originalText = span.innerHTML; // preserve original content" & _
+			"        } else {" & _
+			"            span.innerHTML = span.dataset.originalText; // restore previous state" & _
+			"        }" & _
+			"        const spanText = span.textContent;" & _
+			"        const spanTextNormalized = normalize(spanText);" & _
+			"        if (spanTextNormalized.includes(normalizedSearch)) {" & _
+			"            const regex = new RegExp(searchText, 'gi');" & _
+			"            span.innerHTML = spanText.replace(regex, match => {" & _
+			"                return `<span data-highlight-by-au3udf='true' style='border:1px solid ${borderColor}; background-color:${backgroundColor}; color:black; padding:1px;'>${match}</span>`;" & _
+			"            });" & _
+			"        }" & _
+			"    });" & _
+			"};" & _
+			"function removeHighlights(searchText) {" & _
+			"    if (!searchText || typeof searchText !== 'string') return;" & _
+			"    const normalize = str => str.replace(/\s+/g, ' ').trim().toLowerCase();" & _
+			"    const normalizedSearch = normalize(searchText);" & _
+			"    // Find all highlighted SPANs" & _
+			"    const highlightedSpans = document.querySelectorAll('span[data-highlight-by-au3udf=\'true\']');" & _
+			"    highlightedSpans.forEach(innerSpan => {" & _
+			"        const parentSpan = innerSpan.parentElement;" & _
+			"        if (!parentSpan || !parentSpan.dataset.originalText) return;" & _
+			"        // Check if the highlighted fragment contains searchText" & _
+			"        const spanText = innerSpan.textContent;" & _
+			"        if (normalize(spanText).includes(normalizedSearch)) {" & _
+			"            // Restore parent's original content" & _
+			"            parentSpan.innerHTML = parentSpan.dataset.originalText;" & _
+			"            delete parentSpan.dataset.originalText;" & _
+			"        }" & _
+			"    });" & _
+			"};" & _
+			""
 
 	$oWeb.AddInitializationScript($sCleanupJS)
 
