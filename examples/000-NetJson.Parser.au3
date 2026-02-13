@@ -14,18 +14,19 @@ _Example()
 Exit
 
 Func _Example()
-	; Initialize the COM Object
+	ConsoleWrite(@CRLF & "=== STARTING NETJSON TUTORIAL ===" & @CRLF)
+
+	#Region ; 0. Initialize the COM Object
 	Local $oJson = ObjCreate("NetJson.Parser")
 	If Not IsObj($oJson) Then
 		MsgBox(16, "Error", "Could not create NetWebView2Lib.JsonParser. Make sure the DLL is registered.")
 		Return
 	EndIf
+	#EndRegion ; 0. Initialize the COM Object
 
-	ConsoleWrite(@CRLF & "=== STARTING NETJSON TUTORIAL ===" & @CRLF)
 
-	; ---------------------------------------------------------
+	#Region ; 1. PARSING & BASICS
 	ConsoleWrite(@CRLF & "+> 1. PARSING & BASICS <+" & @CRLF)
-	; ---------------------------------------------------------
 	Local $sRaw = '{"user": "John", "roles": ["Admin", "Tester"], "active": true}'
 	$oJson.Parse($sRaw)
 	ConsoleWrite("Full JSON: " & $oJson.GetJson() & @CRLF)
@@ -34,20 +35,22 @@ Func _Example()
 	If $oJson.Exists("user") Then
 		ConsoleWrite("- User exists: " & $oJson.GetTokenValue("user") & @CRLF)
 	EndIf
+	#EndRegion ; 1. PARSING & BASICS
 
-	; ---------------------------------------------------------
+
+	#Region ; 2. ARRAY OPERATIONS
 	ConsoleWrite(@CRLF & "+> 2. ARRAY OPERATIONS <+" & @CRLF)
-	; ---------------------------------------------------------
 	; Get length of the 'roles' array
 	Local $iRolesCount = $oJson.GetArrayLength("roles")
 	ConsoleWrite("- Roles count: " & $iRolesCount & @CRLF)
 
 	; Get specific element from array
 	ConsoleWrite("- First role: " & $oJson.GetTokenValue("roles[0]") & @CRLF)
+	#EndRegion ; 2. ARRAY OPERATIONS
 
-	; ---------------------------------------------------------
+
+	#Region ; 2b. DEEP PATH NOTATION (The Power of JSON Path)
 	ConsoleWrite(@CRLF & "+> 2b. DEEP PATH NOTATION (The Power of JSON Path) <+" & @CRLF)
-	; ---------------------------------------------------------
 	Local $sComplex = '{"store": {"book": [{"title": "Coding 101", "price": 10}, {"title": "AutoIt Guru", "price": 25}], "location": "Athens"}}'
 	$oJson.Parse($sComplex)
 
@@ -63,17 +66,19 @@ Func _Example()
 	If $oJson.Exists("store.location") Then
 		ConsoleWrite("- Store Location: " & $oJson.GetTokenValue("store.location") & @CRLF)
 	EndIf
+	#EndRegion ; 2b. DEEP PATH NOTATION (The Power of JSON Path)
 
-	; ---------------------------------------------------------
+
+	#Region ; 3. MODIFICATION (SetTokenValue)
 	ConsoleWrite(@CRLF & "+> 3. MODIFICATION (SetTokenValue) <+" & @CRLF)
-	; ---------------------------------------------------------
 	$oJson.SetTokenValue("user", "George")
 	$oJson.SetTokenValue("active", "false") ; Note: Values are sent as strings
 	ConsoleWrite("- Updated User: " & $oJson.GetTokenValue("user") & @CRLF)
+	#EndRegion ; 3. MODIFICATION (SetTokenValue)
 
-	; ---------------------------------------------------------
+
+	#Region ; 4. FILE I/O
 	ConsoleWrite(@CRLF & "+> 4. FILE I/O <+" & @CRLF)
-	; ---------------------------------------------------------
 	; Save current state to a file
 	$oJson.SaveToFile(@ScriptDir & "\settings.json")
 	ConsoleWrite("JSON saved to file." & @CRLF)
@@ -84,49 +89,51 @@ Func _Example()
 
 	$oJson.LoadFromFile(@ScriptDir & "\settings.json")
 	ConsoleWrite("- Reloaded from file, User is: " & $oJson.GetTokenValue("user") & @CRLF)
+	#EndRegion ; 4. FILE I/O
 
-	; ---------------------------------------------------------
+
+	#Region ; 5. FORMATTING (Pretty vs Minified)
 	ConsoleWrite(@CRLF & "+> 5. FORMATTING (Pretty vs Minified) <+" & @CRLF)
-	; ---------------------------------------------------------
 	ConsoleWrite(@CRLF & "--- PRETTY JSON ---" & @CRLF)
 	ConsoleWrite($oJson.GetPrettyJson() & @CRLF)
 
 	ConsoleWrite(@CRLF & "--- MINIFIED JSON ---" & @CRLF)
 	ConsoleWrite($oJson.GetMinifiedJson() & @CRLF)
+	#EndRegion ; 5. FORMATTING (Pretty vs Minified)
 
-	; ---------------------------------------------------------
+
+	#Region ; 6. ESCAPING TOOLS (Utility Methods)
 	ConsoleWrite(@CRLF & "+> 6. ESCAPING TOOLS (Utility Methods) <+" & @CRLF)
-	; ---------------------------------------------------------
 	Local $sDirtyString = 'Hello "World" \ Name'
 	Local $sEscaped = $oJson.EscapeString($sDirtyString)
 	ConsoleWrite("- Escaped: " & $sEscaped & @CRLF)
 	ConsoleWrite("- Unescaped: " & $oJson.UnescapeString($sEscaped) & @CRLF)
+	#EndRegion ; 6. ESCAPING TOOLS (Utility Methods)
 
-	; ---------------------------------------------------------
+
+	#Region ; 7. ADVANCED DATA INTELLIGENCE (v1.4.1)
 	ConsoleWrite(@CRLF & "+> 7. ADVANCED DATA INTELLIGENCE (v1.4.1) <+" & @CRLF)
-	; ---------------------------------------------------------
 
-	; ---------------------------------------------------------
+	#Region ; 7.1 MERGE EXAMPLE
 	ConsoleWrite(@CRLF & "+> 7.1 MERGE EXAMPLE <+" & @CRLF)
-	; ---------------------------------------------------------
 	; Let's merge some new data into our current JSON
 	Local $sUpdate = '{"user": "Admin_SmartUser", "preferences": {"theme": "Dark", "notifications": true}}'
 	$oJson.Merge($sUpdate)
 	ConsoleWrite("- After Merge (User Updated & Prefs Added): " & $oJson.GetTokenValue("user") & @CRLF)
 	ConsoleWrite("- New Nested Value: " & $oJson.GetTokenValue("preferences.theme") & @CRLF)
+	#EndRegion ; 7.1 MERGE EXAMPLE
 
-	; ---------------------------------------------------------
+	#Region ; 7.2 TYPE CHECKING
 	ConsoleWrite(@CRLF & "+> 7.2 TYPE CHECKING <+" & @CRLF)
-	; ---------------------------------------------------------
 	; Check what kind of data we have at a specific path
 	Local $sThemeType = $oJson.GetTokenType("preferences")
 	Local $sUserType = $oJson.GetTokenType("user")
 	ConsoleWrite("- 'preferences' type: " & $sThemeType & @CRLF) ; Should return Object
 	ConsoleWrite("- 'user' type: " & $sUserType & @CRLF)    ; Should return String
+	#EndRegion ; 7.2 TYPE CHECKING
 
-	; ---------------------------------------------------------
+	#Region ; 7.3 SEARCH (JSONPath)
 	ConsoleWrite(@CRLF & "+> 7.3 SEARCH (JSONPath) <+" & @CRLF)
-	; ---------------------------------------------------------
 	; $..* Returns everything in a flat list (all values).
 	; $.store.book[*].author Returns all authors in the book array.
 	; $..book[0] Returns the first book, wherever the book array is.
@@ -145,18 +152,18 @@ Func _Example()
 	; Expected result: ["AutoIt Guru"]
 	Local $sFullObjects = $oJson.Search("$..book[?(@.price > 15)]")
 	ConsoleWrite("- Full Objects : " & $sFullObjects & @CRLF)
+	#EndRegion ; 7.3 SEARCH (JSONPath)
 
-	; ---------------------------------------------------------
+	#Region ; 7.4 FLATTEN
 	ConsoleWrite(@CRLF & "+> 7.4 FLATTEN <+" & @CRLF)
-	; ---------------------------------------------------------
 	; Convert the complex nested structure into a flat key-value list
 	Local $sFlatJson = $oJson.Flatten()
 	ConsoleWrite("- FLATTENED VIEW (Key.Path = Value)" & @CRLF)
 	ConsoleWrite($sFlatJson & @CRLF)
+	#EndRegion ; 7.4 FLATTEN
 
-	; ---------------------------------------------------------
+	#Region ; 7.5 REMOVE TOKEN
 	ConsoleWrite(@CRLF & "+> 7.5 REMOVE TOKEN <+" & @CRLF)
-	; ---------------------------------------------------------
 	; Remove the 'preferences' object completely
 	Local $bRemoved = $oJson.RemoveToken("preferences")
 
@@ -172,18 +179,18 @@ Func _Example()
 	Else
 		ConsoleWrite("- Verify existence: Gone! (Success)" & @CRLF)
 	EndIf
+	#EndRegion ; 7.5 REMOVE TOKEN
 
-	; ---------------------------------------------------------
+	#Region ; 7.6 CLONE LOGIC
 	ConsoleWrite(@CRLF & "+> 7.6 CLONE LOGIC <+" & @CRLF)
-	; ---------------------------------------------------------
 	; Check if we can backup our data
 	If $oJson.CloneTo("BackupInstance") Then
 		ConsoleWrite("- Data integrity check for cloning: OK" & @CRLF)
 	EndIf
+	#EndRegion ; 7.6 CLONE LOGIC
 
-	; ---------------------------------------------------------
+	#Region ; 7.7 FLATTEN TO TABLE (_ArrayFromString ready)
 	ConsoleWrite(@CRLF & "+> 7.7 FLATTEN TO TABLE (_ArrayFromString ready) <+" & @CRLF)
-	; ---------------------------------------------------------
 	Local $sTable = $oJson.FlattenToTable("|", @CRLF)
 	Local $aFinalGrid = _ArrayFromString($sTable, "|", @CRLF, True)
 
@@ -194,14 +201,16 @@ Func _Example()
 			ConsoleWrite($i & ") " & $aFinalGrid[$i][0] & " = " & $aFinalGrid[$i][1] & @CRLF)
 		Next
 	EndIf
+	#EndRegion ; 7.7 FLATTEN TO TABLE (_ArrayFromString ready)
 
-	; ---------------------------------------------------------
-	ConsoleWrite(@CRLF & "--- TUTORIAL COMPLETED ---" & @CRLF)
-	; ---------------------------------------------------------
-	; Clean up object
+	#EndRegion ; 7. ADVANCED DATA INTELLIGENCE (v1.4.1)
+
+
+	#Region ; 8. Clean up object
 	$oJson = Null
+	#EndRegion ; 8. Clean up object
 
-	; ---------------------------------------------------------
+	ConsoleWrite(@CRLF & "--- TUTORIAL COMPLETED ---" & @CRLF)
 
 EndFunc   ;==>_Example
 
