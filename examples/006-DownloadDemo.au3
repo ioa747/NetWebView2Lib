@@ -28,7 +28,7 @@ Func _Example()
 
 	; initialize browser - put it on the GUI
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B")
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, 1.2, "0x2B2B2B")
 
 	; show the GUI after browser was fully initialized
 	GUISetState(@SW_SHOW)
@@ -208,5 +208,3 @@ Volatile Func __UserEventHandler__OnAcceleratorKeyPressed00($oWebV2M, $hGUI, $oA
 	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 
 EndFunc   ;==>__UserEventHandler__OnAcceleratorKeyPressed
-
-
