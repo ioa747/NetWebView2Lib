@@ -65,7 +65,7 @@ Func _Create_Form(ByRef $oWebV2M, ByRef $oBridge)
 
 	; initialize browser - put it on the GUI
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 30, 450, 430, True, False, False, 1.1)
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 30, 450, 430, True, False, 1.1)
 	If @error Then Return SetError(@error, @extended, '')
 
 	$oWebV2M.IsZoomControlEnabled = False
@@ -78,6 +78,50 @@ Func _Create_Form(ByRef $oWebV2M, ByRef $oBridge)
 	_NetWebView2_NavigateToString($oWebV2M, $sHTML, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5000)
 	GUISetState(@SW_SHOW, $hGUI)
 EndFunc   ;==>_Create_Form
+
+; Injects a temporary notification box into the web page
+Func _ShowWebNotification($oWebV2M, $sMessage, $sBgColor = "#4CAF50", $iDuration = 3000)
+	; Local error handler for COM objects
+	Local $oMyError = ObjEvent("AutoIt.Error", __HtmlGUI_ErrFunc)
+	#forceref $oMyError
+
+	; We use a unique ID 'autoit-notification' to find and replace existing alerts
+	Local $sJS = _
+			"var oldDiv = document.getElementById('autoit-notification');" & _
+			"if (oldDiv) { oldDiv.remove(); }" & _
+			"var div = document.createElement('div');" & _
+			"div.id = 'autoit-notification';" & _ ; Assign the ID
+			"div.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); padding:15px; background:" & $sBgColor & _
+			"; color:white; border-radius:8px; z-index:9999; font-family:sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: opacity 0.5s;';" & _
+			"div.innerText = '" & $sMessage & "';" & _
+			"document.body.appendChild(div);" & _
+			"setTimeout(() => {" & _
+			"   var target = document.getElementById('autoit-notification');" & _
+			"   if(target) { target.style.opacity = '0'; setTimeout(() => target.remove(), 500); }" & _
+			"}, " & $iDuration & ");"
+
+	$oWebV2M.ExecuteScript($sJS)
+EndFunc   ;==>_ShowWebNotification
+
+; User's COM error function. Will be called if COM error occurs
+Func __HtmlGUI_ErrFunc($oError)
+	; Do anything here.
+	ConsoleWrite(@ScriptName & " (" & $oError.scriptline & ") : ==> COM Error intercepted !" & @CRLF & _
+			@TAB & "err.number is: " & @TAB & @TAB & "0x" & Hex($oError.number) & @CRLF & _
+			@TAB & "err.windescription:" & @TAB & $oError.windescription & @CRLF & _
+			@TAB & "err.description is: " & @TAB & $oError.description & @CRLF & _
+			@TAB & "err.source is: " & @TAB & @TAB & $oError.source & @CRLF & _
+			@TAB & "err.helpfile is: " & @TAB & $oError.helpfile & @CRLF & _
+			@TAB & "err.helpcontext is: " & @TAB & $oError.helpcontext & @CRLF & _
+			@TAB & "err.lastdllerror is: " & @TAB & $oError.lastdllerror & @CRLF & _
+			@TAB & "err.scriptline is: " & @TAB & $oError.scriptline & @CRLF & _
+			@TAB & "err.retcode is: " & @TAB & "0x" & Hex($oError.retcode) & @CRLF & @CRLF)
+EndFunc   ;==>__HtmlGUI_ErrFunc
+
+Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
+	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
+	Return SetError($iError, $iExtended, '')
+EndFunc   ;==>__Example_Log
 
 ; Handles data received from the JavaScript 'postMessage'
 Func __USER_Events_Bridge_OnMessageReceived($oWebV2M, $hGUI, $sMessage) ; fork from __NetWebView2_JSEvents__OnMessageReceived()
@@ -110,10 +154,10 @@ Func __USER_Events_Bridge_OnMessageReceived($oWebV2M, $hGUI, $sMessage) ; fork f
 					FileClose($hFile)
 				EndIf
 
-				ShowWebNotification($oWebV2M, "Data Saved Successfully!")
+				_ShowWebNotification($oWebV2M, "Data Saved Successfully!")
 			Else
 				; Trigger a visual notification inside the WebView
-				ShowWebNotification($oWebV2M, "Please enter valid data", '#d70000')
+				_ShowWebNotification($oWebV2M, "Please enter valid data", '#d70000')
 			EndIf
 		EndIf
 	EndIf
@@ -200,46 +244,3 @@ Func __FormHTML()
 	Return $sHTML
 EndFunc   ;==>__FormHTML
 
-; Injects a temporary notification box into the web page
-Func ShowWebNotification($oWebV2M, $sMessage, $sBgColor = "#4CAF50", $iDuration = 3000)
-	; Local error handler for COM objects
-	Local $oMyError = ObjEvent("AutoIt.Error", __HtmlGUI_ErrFunc)
-	#forceref $oMyError
-
-	; We use a unique ID 'autoit-notification' to find and replace existing alerts
-	Local $sJS = _
-			"var oldDiv = document.getElementById('autoit-notification');" & _
-			"if (oldDiv) { oldDiv.remove(); }" & _
-			"var div = document.createElement('div');" & _
-			"div.id = 'autoit-notification';" & _ ; Assign the ID
-			"div.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); padding:15px; background:" & $sBgColor & _
-			"; color:white; border-radius:8px; z-index:9999; font-family:sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: opacity 0.5s;';" & _
-			"div.innerText = '" & $sMessage & "';" & _
-			"document.body.appendChild(div);" & _
-			"setTimeout(() => {" & _
-			"   var target = document.getElementById('autoit-notification');" & _
-			"   if(target) { target.style.opacity = '0'; setTimeout(() => target.remove(), 500); }" & _
-			"}, " & $iDuration & ");"
-
-	$oWebV2M.ExecuteScript($sJS)
-EndFunc   ;==>ShowWebNotification
-
-; User's COM error function. Will be called if COM error occurs
-Func __HtmlGUI_ErrFunc($oError)
-	; Do anything here.
-	ConsoleWrite(@ScriptName & " (" & $oError.scriptline & ") : ==> COM Error intercepted !" & @CRLF & _
-			@TAB & "err.number is: " & @TAB & @TAB & "0x" & Hex($oError.number) & @CRLF & _
-			@TAB & "err.windescription:" & @TAB & $oError.windescription & @CRLF & _
-			@TAB & "err.description is: " & @TAB & $oError.description & @CRLF & _
-			@TAB & "err.source is: " & @TAB & @TAB & $oError.source & @CRLF & _
-			@TAB & "err.helpfile is: " & @TAB & $oError.helpfile & @CRLF & _
-			@TAB & "err.helpcontext is: " & @TAB & $oError.helpcontext & @CRLF & _
-			@TAB & "err.lastdllerror is: " & @TAB & $oError.lastdllerror & @CRLF & _
-			@TAB & "err.scriptline is: " & @TAB & $oError.scriptline & @CRLF & _
-			@TAB & "err.retcode is: " & @TAB & "0x" & Hex($oError.retcode) & @CRLF & @CRLF)
-EndFunc   ;==>__HtmlGUI_ErrFunc
-
-Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
-	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
-	Return SetError($iError, $iExtended, '')
-EndFunc   ;==>__Example_Log
