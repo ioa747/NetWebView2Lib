@@ -21,7 +21,7 @@ Func _Example_Console_Redirect()
 
 	; initialize browser - put it on the GUI
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, True, 1.2, "0x2B2B2B", True)
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, 1.2, "0x2B2B2B", True)
 	GUISetState(@SW_SHOW)
 
 	; create JavaScript Bridge object
