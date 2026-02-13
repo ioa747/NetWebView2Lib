@@ -244,11 +244,8 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 	Local $s_Viewer_URL = "file:///" & $s_PDF_JS_URL & $s_PDF_URL
 	ConsoleWrite("- $s_Viewer_URL= " & $s_Viewer_URL & @CRLF)
 
-	$oWeb.Navigate($s_Viewer_URL)
-;~ 	_NetWebView2_Navigate($oWeb, $s_Viewer_URL, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5000)
-	ConsoleWrite("! we're done with navigation, but check how many more messages there are below. SLN=" & @ScriptLineNumber & @CRLF)
-
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Wait for all messages to full loading PDF by pdf.js')
+	_NetWebView2_Navigate($oWeb, $s_Viewer_URL, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5000)
+	ConsoleWrite("! we're done with navigation, check how many more messages there are below. SLN=" & @ScriptLineNumber & @CRLF)
 
 	; $oWeb.IsZoomControlEnabled = False ; <--- It doesn't work in PDF. 👈
 	$oWeb.DisableBrowserFeatures()
