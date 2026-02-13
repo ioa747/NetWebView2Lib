@@ -54,7 +54,7 @@ Func _Example()
 ;~ 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, 1.2, "0x2B2B2B")
 
 	GUISetState(@SW_SHOW, $hGUI)
 	WinSetOnTop($hGUI, '', $WINDOWS_ONTOP)
