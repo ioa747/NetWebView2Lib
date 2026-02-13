@@ -50,7 +50,9 @@ Func Main()
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to a given URL - online content')
 
 	; navigate to fake/broken url
+	__Example_Log(@ScriptLineNumber, "Before: htpppps://www.microsoft.com")
 	_NetWebView2_Navigate($oWebV2M, 'htpppps://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5 * 1000)
+	__Example_Log(@ScriptLineNumber, "After: htpppps://www.microsoft.com")
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to fake/broken url')
 
 	; navigate to fake not ex url
