@@ -1,4 +1,5 @@
 #WIP - this Example is imported from 1.5.0 UDF - and is in "WORK IN PROGRESS" state
+#TODO fix highlightSpansContainingText()
 
 #AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Run_AU3Check=Y
