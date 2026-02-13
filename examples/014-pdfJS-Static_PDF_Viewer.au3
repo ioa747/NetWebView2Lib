@@ -39,10 +39,10 @@ Func _Example()
 
 	; initialize browser - put it on the GUI
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWeb, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, False, False, 0.7)
+	_NetWebView2_Initialize($oWeb, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, False, 0.7)
 
 	; Get the bridge object and register events
-	_NetWebView2_GetBridge($oWeb, "__MyEVENTS_Bridge_")
+	_NetWebView2_GetBridge($oWeb, "__UserEventHandler__Bridge_")
 
 	; show the GUI after browser was fully initialized
 	GUISetState(@SW_SHOW)
@@ -77,7 +77,7 @@ Func _Example()
 EndFunc   ;==>_Example
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
-Func __MyEVENTS_Bridge_OnMessageReceived($sMsg)
+Func __UserEventHandler__Bridge_OnMessageReceived($sMsg)
 	ConsoleWrite(">>> [__EVENTS_Bridge]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $sFirstChar = StringLeft($sMsg, 1)
 
@@ -118,7 +118,7 @@ Func __MyEVENTS_Bridge_OnMessageReceived($sMsg)
 				ConsoleWrite("! Status: " & $sData & @CRLF)
 		EndSwitch
 	EndIf
-EndFunc   ;==>__MyEVENTS_Bridge_OnMessageReceived
+EndFunc   ;==>__UserEventHandler__Bridge_OnMessageReceived
 
 Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSelection = False, $bShowToolbar = False)
 	; 🏆 https://mozilla.github.io/pdf.js/
