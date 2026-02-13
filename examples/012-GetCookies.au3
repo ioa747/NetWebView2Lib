@@ -10,7 +10,7 @@
 _VersionChecker("1.2.0.0") ; DLL Version Check
 
 ; Register the exit function
-OnAutoItExitRegister("_CleanExit")
+OnAutoItExitRegister(_CleanExit)
 
 ; Global objects handler for COM objects
 Global $oManager, $oBridge
