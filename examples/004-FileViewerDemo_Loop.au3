@@ -53,7 +53,7 @@ Func _Example()
 ;~ 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWebV2M, $hMainGUIWindow, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, True, 1.2, "0x2B2B2B")
+	_NetWebView2_Initialize($oWebV2M, $hMainGUIWindow, $sProfileDirectory, 0, 0, 0, $iHeight - 20, True, True, 1.2, "0x2B2B2B")
 	Local $i_ProcessID = @extended
 	#forceref $i_ProcessID
 
@@ -78,7 +78,7 @@ Func _Example()
 			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation started: ' & $s_PDF_FileFullPath)
 			_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000, True)
 			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation completed: ' & $s_PDF_FileFullPath)
-			ConsoleWrite("! === @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
+			ConsoleWrite("! =Example= @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
 			If $bSleep_UserReaction Then Sleep(2000) ; simulates user reaction on PDF
 		Next
 	EndIf
