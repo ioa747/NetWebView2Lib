@@ -57,7 +57,7 @@ Func _Example()
 
 
 	; navigate to the page
-	_NetWebView2_Navigate($oWebV2M, "https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population", $NETWEBVIEW2_MESSAGE__NAVIGATION_COMPLETED)
+	_NetWebView2_Navigate($oWebV2M, "https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population", $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 	ConsoleWrite("navigate to the page" & @CRLF)
 
 	; Main Loop

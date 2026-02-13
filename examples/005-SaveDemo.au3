@@ -73,6 +73,20 @@ Func _Example()
 	ShellExecute($s_MHTML_FileFullPath)
 	#EndRegion ; MHTML
 
+	#Region ; PDF
+	; get Browser content as PDF Base64 encoded binary data
+	Local $s_PDF_FileFullPath = @ScriptDir & '\5-SaveDemo_result.pdf'
+	Local $dBinaryDataToWrite = _NetWebView2_PrintToPdfStream($oWebV2M, True)
+
+	; finally save PDF to FILE
+	Local $hFile = FileOpen($s_PDF_FileFullPath, $FO_OVERWRITE + $FO_BINARY)
+	FileWrite($hFile, $dBinaryDataToWrite)
+	FileClose($hFile)
+
+	; open PDF file in viewer (viewer which is set as default in Windows)
+	ShellExecute($s_PDF_FileFullPath)
+	#EndRegion ; PDF
+
 	#Region ; GUI Loop
 	; Main Loop
 	While 1

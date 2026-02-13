@@ -10,7 +10,7 @@
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; ⚠️ to make this work, download pdfJS library from https://mozilla.github.io/pdf.js/
 ; for example:
-; https://github.com/mozilla/pdf.js/releases/download/v5.4.530/pdfjs-5.4.530-dist.zip
+; https://github.com/mozilla/pdf.js/releases/download/v5.4.624/pdfjs-5.4.624-dist.zip
 ; and unzip to:   @ScriptDir & "\JS_Lib\pdfjs\"
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -50,9 +50,18 @@ Func _Example()
 	#EndRegion ; GUI CREATION
 
 	; navigate to the page
-	__SetupStaticPDF($oWeb, @ScriptDir & "\invoice-plugin-sample.pdf", True, True)
+	__SetupStaticPDF($oWeb, @ScriptDir & "\invoice-plugin-sample.pdf", True, False, True)
 
 	_NetWebView2_ExecuteScript($oWeb, "extractPDFText();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+
+	_NetWebView2_ExecuteScript($oWeb, "highlightSpansContainingText('January 31, 2016', 'red', 'yellow');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "highlightSpansContainingText('January 31, 2016', 'red', 'yellow');")
+
+	_NetWebView2_ExecuteScript($oWeb, "highlightSpansContainingText('Total Due', 'red', 'lightblue');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "highlightSpansContainingText('Total Due', 'red', 'lightblue');")
+
+	_NetWebView2_ExecuteScript($oWeb, "removeHighlights('January 31, 2016');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "removeHighlights('January 31, 2016');")
 
 	; Main Loop
 	While 1
@@ -111,7 +120,7 @@ Func __MyEVENTS_Bridge_OnMessageReceived($sMsg)
 	EndIf
 EndFunc   ;==>__MyEVENTS_Bridge_OnMessageReceived
 
-Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSelection = False)
+Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSelection = False, $bShowToolbar = False)
 	; 🏆 https://mozilla.github.io/pdf.js/
 
 	Local $sBlockLinksJS = ""
@@ -168,7 +177,7 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 			"                setTimeout(runExtraction, 500);" & _
 			"            }" & _
 			"        } catch (e) {" & _
-			"            window.chrome.webview.postMessage('ERROR|' + e.message);" & _
+			"            window.chrome.webview.postMessage('JS_ERROR|extractPDFText() SLN=" & @ScriptLineNumber & "' + e.message);" & _
 			"        }" & _
 			"    };" & _
 			"    runExtraction();" & _
@@ -176,13 +185,55 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 			"/* 3. Style Injection */ " & _
 			"window.addEventListener('DOMContentLoaded', () => {" & _
 			"   const style = document.createElement('style');" & _
-			"   style.innerHTML = '#toolbarContainer, #sidebarContainer { display: none !important; } ' + " & _
+			"   style.innerHTML = " & (($bShowToolbar) ? ("") : ("'#toolbarContainer, #sidebarContainer { display: none !important; } ' + ")) & _
 			"                     '#viewerContainer { top: 0 !important; bottom: 0 !important; overflow: hidden !important; } ' + " & _
 			"                     '" & $sBlockLinksCSS & "' + " & _
 			"                     '" & $sSelectionCSS & "' + " & _
 			"                     ' ::-webkit-scrollbar { display: none !important; }';" & _
 			"   document.head.appendChild(style);" & _
-			"});"
+			"});" & _
+			"/* 4. HighLight text */ " & _
+			"function highlightSpansContainingText(searchText, borderColor = 'red', backgroundColor = 'yellow') {" & _
+			"    if (!searchText || typeof searchText !== 'string') return;" & _
+			"    const normalize = str => str.replace(/\s+/g, ' ').trim().toLowerCase();" & _
+			"    const normalizedSearch = normalize(searchText);" & _
+			"    const spans = document.querySelectorAll('span');" & _
+			"    spans.forEach(span => {" & _
+			"        // Reset previous highlights in this SPAN" & _
+			"        if (!span.dataset.originalText) {" & _
+			"            span.dataset.originalText = span.innerHTML; // preserve original content" & _
+			"        } else {" & _
+			"            span.innerHTML = span.dataset.originalText; // restore previous state" & _
+			"        }" & _
+			"        const spanText = span.textContent;" & _
+			"        const spanTextNormalized = normalize(spanText);" & _
+			"        if (spanTextNormalized.includes(normalizedSearch)) {" & _
+			"            const regex = new RegExp(searchText, 'gi');" & _
+			"            span.innerHTML = spanText.replace(regex, match => {" & _
+			"                return `<span data-highlight-by-au3udf='true' style='border:1px solid ${borderColor}; background-color:${backgroundColor}; color:black; padding:1px;'>${match}</span>`;" & _
+			"            });" & _
+			"        }" & _
+			"    });" & _
+			"};" & _
+			"function removeHighlights(searchText) {" & _
+			"    if (!searchText || typeof searchText !== 'string') return;" & _
+			"    const normalize = str => str.replace(/\s+/g, ' ').trim().toLowerCase();" & _
+			"    const normalizedSearch = normalize(searchText);" & _
+			"    // Find all highlighted SPANs" & _
+			"    const highlightedSpans = document.querySelectorAll('span[data-highlight-by-au3udf=\'true\']');" & _
+			"    highlightedSpans.forEach(innerSpan => {" & _
+			"        const parentSpan = innerSpan.parentElement;" & _
+			"        if (!parentSpan || !parentSpan.dataset.originalText) return;" & _
+			"        // Check if the highlighted fragment contains searchText" & _
+			"        const spanText = innerSpan.textContent;" & _
+			"        if (normalize(spanText).includes(normalizedSearch)) {" & _
+			"            // Restore parent's original content" & _
+			"            parentSpan.innerHTML = parentSpan.dataset.originalText;" & _
+			"            delete parentSpan.dataset.originalText;" & _
+			"        }" & _
+			"    });" & _
+			"};" & _
+			""
 
 	$oWeb.AddInitializationScript($sCleanupJS)
 
@@ -194,6 +245,10 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 	ConsoleWrite("- $s_Viewer_URL= " & $s_Viewer_URL & @CRLF)
 
 	$oWeb.Navigate($s_Viewer_URL)
+;~ 	_NetWebView2_Navigate($oWeb, $s_Viewer_URL, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5000)
+	ConsoleWrite("! we're done with navigation, but check how many more messages there are below. SLN=" & @ScriptLineNumber & @CRLF)
+
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Wait for all messages to full loading PDF by pdf.js')
 
 	; $oWeb.IsZoomControlEnabled = False ; <--- It doesn't work in PDF. 👈
 	$oWeb.DisableBrowserFeatures()

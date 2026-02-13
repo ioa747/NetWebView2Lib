@@ -39,12 +39,14 @@ Func _Example()
 	; Create the UI
 	Local $iHeight = 800
 	Local $hMainGUIWindow = GUICreate("WebView2 .NET Manager - Demo: " & @ScriptName, 1100, $iHeight, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
-	Local $idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 880, 20)
+	Local $idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 1080, 20)
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 
 	; Initialize WebView2 Manager and register events
 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--mute-audio")
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
+
+	ConsoleWrite("! " & _NetWebView2_GetVersion($oWebV2M) & @CRLF)
 
 ;~ 	; Initialize JavaScript Bridge
 ;~ 	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
@@ -60,7 +62,7 @@ Func _Example()
 ;~ 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 0)
 	Local $s_PDF_FileFullPath
 
-	Local $s_PDF_Directory = FileSelectFolder('Choose folder with PDF', '')
+	Local $s_PDF_Directory = FileSelectFolder('Choose folder with PDF', @ScriptDir)
 
 	WinSetOnTop($hMainGUIWindow, "", $WINDOWS_ONTOP)
 
@@ -74,7 +76,7 @@ Func _Example()
 
 			$s_PDF_FileFullPath = $a_Files[$IDX_File]
 			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation started: ' & $s_PDF_FileFullPath)
-			_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000)
+			_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000, True)
 			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation completed: ' & $s_PDF_FileFullPath)
 			ConsoleWrite("! === @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
 			If $bSleep_UserReaction Then Sleep(2000) ; simulates user reaction on PDF
@@ -95,8 +97,7 @@ Func _Example()
 EndFunc   ;==>_Example
 
 Func __NetWebView2_freezer($oWebV2M, ByRef $idPic)
-	#TODO  https://github.com/ioa747/NetWebView2Lib/issues/52#issuecomment-3864784975
-	Local $hWebView2_Window = HWnd("0x" & Hex($oWebV2M.BrowserWindowHandle, 16))
+	Local $hWebView2_Window = WinGetHandle($oWebV2M.BrowserWindowHandle)
 	#Region ; if $idPic is given then it means you already have it and want to delete it - unfreeze - show WebView2 content
 	If $idPic Then
 		_SendMessage($hWebView2_Window, $WM_SETREDRAW, True, 0) ; Enables
@@ -112,6 +113,7 @@ Func __NetWebView2_freezer($oWebV2M, ByRef $idPic)
 	#Region ; add PIC to parent window
 	Local $hMainGUI_Window = _WinAPI_GetWindow($hWebView2_Window, $GW_HWNDPREV)
 	Local $aPos = WinGetPos($hWebView2_Window)
+;~ 	_ArrayDisplay($aPos, '$aPos ' & @ScriptLineNumber)
 	Local $hPrev = GUISwitch($hMainGUI_Window)
 	$idPic = GUICtrlCreatePic('', 0, 0, $aPos[2], $aPos[3])
 	Local $hPic = GUICtrlGetHandle($idPic)
