@@ -36,7 +36,6 @@ Func _Example()
 
 	; navigate to the page
 	_NetWebView2_Navigate($oWebV2M, "https://www.microsoft.com/")
-	_NetWebView2_WaitForReadyState($oWebV2M)
 
 	#Region ; PDF
 	; get Browser content as PDF Base64 encoded binary data
@@ -73,20 +72,6 @@ Func _Example()
 	ShellExecute($s_MHTML_FileFullPath)
 	#EndRegion ; MHTML
 
-	#Region ; PDF
-	; get Browser content as PDF Base64 encoded binary data
-	Local $s_PDF_FileFullPath = @ScriptDir & '\5-SaveDemo_result.pdf'
-	Local $dBinaryDataToWrite = _NetWebView2_PrintToPdfStream($oWebV2M, True)
-
-	; finally save PDF to FILE
-	Local $hFile = FileOpen($s_PDF_FileFullPath, $FO_OVERWRITE + $FO_BINARY)
-	FileWrite($hFile, $dBinaryDataToWrite)
-	FileClose($hFile)
-
-	; open PDF file in viewer (viewer which is set as default in Windows)
-	ShellExecute($s_PDF_FileFullPath)
-	#EndRegion ; PDF
-
 	#Region ; GUI Loop
 	; Main Loop
 	While 1
@@ -103,49 +88,3 @@ Func _Example()
 
 EndFunc   ;==>_Example
 
-; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_WaitForReadyState
-; Description ...: Polls the browser until the document.readyState reaches 'complete'.
-; Syntax.........: _NetWebView2_WaitForReadyState($oWebV2M, $iTimeout_ms = 5000)
-; Parameters ....: $oWebV2M       - The WebView2 Manager object.
-;                  $iTimeout_ms   - Maximum time to wait in milliseconds. 0 for infinite.
-; Return values .: Success: True
-;                  Failure: False, sets @error:
-;                      1 - Timeout reached before document was complete.
-;                      2 - WebView2 object is not valid or ready.
-; Author ........: ioa747
-; Modified.......:
-; Remarks .......: This function uses JavaScript execution to check the internal state of the page.
-;                  Useful for tasks like PDF printing where 'complete' state is mandatory.
-; ===============================================================================================================================
-Func _NetWebView2_WaitForReadyState($oWebV2M, $iTimeout_ms = 5000)
-    Local Const $s_Prefix = ">>>[_NetWebView2_WaitForReadyState]:"
-
-    If Not IsObj($oWebV2M) Then Return SetError(2, 0, False)
-    Local $hTimer = TimerInit()
-    Local $sReadyState = ""
-
-    While 1
-        ; Execute JS via the Bridge (Mode 2)
-        $sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
-
-        ; Check for the 'complete' state
-        If $sReadyState == "complete" Then
-            __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " SUCCESS: Document is ready. Timeout_ms: " & Round(TimerDiff($hTimer), 0), 0)
-            Return True
-        EndIf
-
-        ; Check for C# Bridge internal errors (Timeout/Init)
-        If StringLeft($sReadyState, 6) == "ERROR:" Then
-            __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " BRIDGE " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
-            Return SetError(3, 0, False)
-        EndIf
-
-        ; Check for AutoIt-side Timeout
-        If $iTimeout_ms > 0 And TimerDiff($hTimer) > $iTimeout_ms Then
-            __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " TIMEOUT: Document state is " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
-            Return SetError(1, 0, False)
-        EndIf
-        Sleep(100)
-    WEnd
-EndFunc   ;==>_NetWebView2_WaitForReadyState
