@@ -13,6 +13,8 @@
 _Example()
 
 Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
 
