@@ -1,11 +1,12 @@
 #WIP - this Example is imported from 1.5.0 UDF - and is in "WORK IN PROGRESS" state
-#TODO fix highlightSpansContainingText()
 
 #AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #Au3Stripper_Ignore_Funcs=__NetWebView2_WebEvents_*,__NetWebView2_JSEvents_*
+
+#Tidy_Parameters=/tcb=-1
 
 ; 014-pdfJS-Static_PDF_Viewer.au3
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -20,8 +21,6 @@
 #include "..\NetWebView2Lib.au3"
 
 ; Global objects
-Global $oBridge
-Global $hGUI
 
 _Example()
 
@@ -32,7 +31,7 @@ Func _Example()
 	#Region ; GUI CREATION
 
 	; Create the GUI
-	$hGUI = GUICreate("WebView2 .NET Manager", 800, 1000)
+	Local $hGUI = GUICreate("WebView2 .NET Manager", 800, 1000)
 
 	; Get the WebView2 Manager object and register events
 	Local $oWeb = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", _
@@ -40,29 +39,42 @@ Func _Example()
 
 	; initialize browser - put it on the GUI
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWeb, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, False, 0.7)
+	_NetWebView2_Initialize($oWeb, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, False, False, 0.7)
 
 	; Get the bridge object and register events
-	_NetWebView2_GetBridge($oWeb, "__UserEventHandler__Bridge_")
+	Local $oBridge = _NetWebView2_GetBridge($oWeb, "__UserEventHandler__Bridge_")
 
 	; show the GUI after browser was fully initialized
 	GUISetState(@SW_SHOW)
 
 	#EndRegion ; GUI CREATION
 
+	; Adds a JavaScript to be executed before any other script when a new page is loaded.
+	Local $sScriptId = New_NetWebView2_AddInitializationScript($oWeb, @ScriptDir & "\JS_Lib\PDF_Tools.js")
+	ConsoleWrite("$sScriptId=" & $sScriptId & @CRLF)
+
 	; navigate to the page
 	__SetupStaticPDF($oWeb, @ScriptDir & "\invoice-plugin-sample.pdf", True, False, True)
 
-	_NetWebView2_ExecuteScript($oWeb, "extractPDFText();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 
-	_NetWebView2_ExecuteScript($oWeb, "highlightSpansContainingText('January 31, 2016', 'red', 'yellow');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "highlightSpansContainingText('January 31, 2016', 'red', 'yellow');")
+	; now I call the script directly from the js library
+	_NetWebView2_ExecuteScript($oWeb, "PDF_ExtractToJSON();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+;~ 	_NetWebView2_ExecuteScript($oWeb, "PDF_ExtractLegacy();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 
-	_NetWebView2_ExecuteScript($oWeb, "highlightSpansContainingText('Total Due', 'red', 'lightblue');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "highlightSpansContainingText('Total Due', 'red', 'lightblue');")
+	Sleep(500)
 
-	_NetWebView2_ExecuteScript($oWeb, "removeHighlights('January 31, 2016');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "removeHighlights('January 31, 2016');")
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_ExtractToJSON();")
+
+
+	_NetWebView2_ExecuteScript($oWeb, "PDF_HighlightSpansContainingText('January 31, 2016', 'red', 'yellow');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_HighlightSpansContainingText('January 31, 2016', 'red', 'yellow');")
+
+	_NetWebView2_ExecuteScript($oWeb, "PDF_HighlightSpansContainingText('Total Due', 'white', 'red');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_HighlightSpansContainingText('Total Due', 'white', 'red');")
+
+	_NetWebView2_ExecuteScript($oWeb, "PDF_RemoveHighlights('January 31, 2016');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_RemoveHighlights('January 31, 2016');")
+
 
 	; Main Loop
 	While 1
@@ -73,19 +85,20 @@ Func _Example()
 	WEnd
 
 	GUIDelete($hGUI)
-
 	_NetWebView2_CleanUp($oWeb, $oBridge)
 EndFunc   ;==>_Example
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
-Func __UserEventHandler__Bridge_OnMessageReceived($sMsg)
+Func __UserEventHandler__Bridge_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+	#forceref $oWebV2M, $hGUI
+	ConsoleWrite("$sMsg=" & $sMsg & @CRLF)
 	ConsoleWrite(">>> [__EVENTS_Bridge]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $sFirstChar = StringLeft($sMsg, 1)
 
 	If $sFirstChar = "{" Or $sFirstChar = "[" Then ; 1. JSON Messaging
 		ConsoleWrite("+> : Processing JSON Messaging..." & @CRLF)
 		Local $oJson = ObjCreate("NetJson.Parser")
-		If Not IsObj($oJson) Then Return ConsoleWrite("!> Error: Failed to create NetJson object." & @CRLF)
+		If ObjName($oJson, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return ConsoleWrite("!> Error: Failed to create NetJson object." & @CRLF)
 
 		$oJson.Parse($sMsg)
 		Local $sJobType = $oJson.GetTokenValue("type")
@@ -93,6 +106,15 @@ Func __UserEventHandler__Bridge_OnMessageReceived($sMsg)
 		Switch $sJobType
 			Case "COM_TEST"
 				ConsoleWrite("- COM_TEST Confirmed: " & $oJson.GetTokenValue("status") & @CRLF)
+
+			Case "PDF_DATA_PACKAGE"
+				ConsoleWrite("> PDF Metadata: " & $oJson.GetTokenValue("metadata.title") & " by " & $oJson.GetTokenValue("metadata.author") & @CRLF)
+
+				; Loop through pages (if your parser supports it)
+				Local $iPages = $oJson.GetTokenValue("metadata.pagesCount")
+				For $i = 0 To $iPages - 1
+					ConsoleWrite("- Page " & ($i + 1) & " content: " & StringLeft($oJson.GetTokenValue("pages[" & $i & "].text"), 150) & "..." & @CRLF)
+				Next
 		EndSwitch
 
 	Else ; 2. Legacy / Native Pipe-Delimited Messaging
@@ -112,8 +134,8 @@ Func __UserEventHandler__Bridge_OnMessageReceived($sMsg)
 			Case "COM_TEST"
 				ConsoleWrite("- Status: Legacy COM_TEST: " & $sData & @CRLF)
 
-			Case "PDF_TEXT"
-				ConsoleWrite("- PDF_TEXT: " & @CRLF & $sData & @CRLF)
+			Case "PDF_TEXT_RESULT"
+				ConsoleWrite("- PDF_TEXT_RESULT: " & @CRLF & $sData & @CRLF)
 
 			Case "ERROR"
 				ConsoleWrite("! Status: " & $sData & @CRLF)
@@ -245,10 +267,59 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 	Local $s_Viewer_URL = "file:///" & $s_PDF_JS_URL & $s_PDF_URL
 	ConsoleWrite("- $s_Viewer_URL= " & $s_Viewer_URL & @CRLF)
 
-	_NetWebView2_Navigate($oWeb, $s_Viewer_URL, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, 5000)
-	ConsoleWrite("! we're done with navigation, check how many more messages there are below. SLN=" & @ScriptLineNumber & @CRLF)
+	_NetWebView2_Navigate($oWeb, $s_Viewer_URL)
+	#Region ; mLipok #TODO this should be fixed by better LoadWait, I mean adding a check if the desired title appears
+	ConsoleWrite("! we're done with navigation, but check how many more messages there are below. SLN=" & @ScriptLineNumber & @CRLF)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Wait for all messages to full loading PDF by pdf.js')
+	#EndRegion ; mLipok #TODO this should be fixed by better LoadWait, I mean adding a check if the desired title appears
 
-	; $oWeb.IsZoomControlEnabled = False ; <--- It doesn't work in PDF. 👈
+	; $oWeb.IsZoomControlEnabled = False ; <--- It doesn't work in PDF.
 	$oWeb.DisableBrowserFeatures()
 	$oWeb.LockWebView()
 EndFunc   ;==>__SetupStaticPDF
+
+
+; Polls the browser until the document.readyState reaches 'complete'.
+Func _NetWebView2_WaitForReadyState($oWebV2M, $iTimeout_ms = 5000)
+	Local Const $s_Prefix = ">>>[_NetWebView2_WaitForReadyState]:"
+
+	If ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(2, 0, False)
+	Local $hTimer = TimerInit()
+	Local $sReadyState = ""
+
+	While 1
+		; Execute JS via the Bridge (Mode 2)
+		$sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
+
+		; Check for the 'complete' state
+		If $sReadyState == "complete" Then
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " SUCCESS: Document is ready. Timeout_ms: " & Round(TimerDiff($hTimer), 0), 0)
+			Return True
+		EndIf
+
+		; Check for C# Bridge internal errors (Timeout/Init)
+		If StringLeft($sReadyState, 6) == "ERROR:" Then
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " BRIDGE " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
+			Return SetError(3, 0, False)
+		EndIf
+
+		; Check for AutoIt-side Timeout
+		If $iTimeout_ms > 0 And TimerDiff($hTimer) > $iTimeout_ms Then
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " TIMEOUT: Document state is " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
+			Return SetError(1, 0, False)
+		EndIf
+		Sleep(100)
+	WEnd
+EndFunc   ;==>_NetWebView2_WaitForReadyState
+
+; New to replace _NetWebView2_AddInitializationScript in UDF
+Func New_NetWebView2_AddInitializationScript($oWebV2M, $vScript)
+	If ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, "ERROR: Invalid Object")
+
+	; Smart Detection
+	If FileExists($vScript) Then $vScript = FileRead($vScript)
+
+	Local $sScriptId = $oWebV2M.AddInitializationScript($vScript)
+	If StringInStr($sScriptId, "ERROR:") Then Return SetError(2, 0, $sScriptId)
+	Return SetError(0, 0, $sScriptId)
+EndFunc   ;==>New_NetWebView2_AddInitializationScript
