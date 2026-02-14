@@ -4,6 +4,8 @@
 #include <Misc.au3>
 #include "..\NetWebView2Lib.au3"
 
+#Tidy_Parameters=/tcb=-1
+
 ; 006-DownloadDemo.au3
 
 Global $_sURLDownload_InProgress = ''
@@ -107,42 +109,42 @@ EndFunc   ;==>__UserEventHandler__OnDownloadStateChanged
 
 ; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
 Volatile Func __UserEventHandler__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
-    Local Const $sArgsList = '[VirtualKey=' & $oArgs.VirtualKey & _ ; The VK code of the key.
-            '; KeyEventKind=' & $oArgs.KeyEventKind & _             ; Type of key event (Down, Up, etc.).
-            '; Handled=' & $oArgs.Handled & _                       ; Set to `True` to stop the browser from processing the key.
-            '; RepeatCount=' & $oArgs.RepeatCount & _               ; The number of times the key has repeated.
-            '; ScanCode=' & $oArgs.ScanCode & _                     ; Hardware scan code.
-            '; IsExtendedKey=' & $oArgs.IsExtendedKey & _           ; True if it's an extended key (e.g., right Alt).
-            '; IsMenuKeyDown=' & $oArgs.IsMenuKeyDown & _           ; True if Alt is pressed.
-            '; WasKeyDown=' & $oArgs.WasKeyDown & _                 ; True if the key was already down.
-            '; IsKeyReleased=' & $oArgs.IsKeyReleased & _           ; True if the event is a key up.
-            '; KeyEventLParam=' & $oArgs.KeyEventLParam & ']'       ; Gets the LPARAM value that accompanied the window message.
+	Local Const $sArgsList = '[VirtualKey=' & $oArgs.VirtualKey & _ ; The VK code of the key.
+			'; KeyEventKind=' & $oArgs.KeyEventKind & _             ; Type of key event (Down, Up, etc.).
+			'; Handled=' & $oArgs.Handled & _                       ; Set to `True` to stop the browser from processing the key.
+			'; RepeatCount=' & $oArgs.RepeatCount & _               ; The number of times the key has repeated.
+			'; ScanCode=' & $oArgs.ScanCode & _                     ; Hardware scan code.
+			'; IsExtendedKey=' & $oArgs.IsExtendedKey & _           ; True if it's an extended key (e.g., right Alt).
+			'; IsMenuKeyDown=' & $oArgs.IsMenuKeyDown & _           ; True if Alt is pressed.
+			'; WasKeyDown=' & $oArgs.WasKeyDown & _                 ; True if the key was already down.
+			'; IsKeyReleased=' & $oArgs.IsKeyReleased & _           ; True if the event is a key up.
+			'; KeyEventLParam=' & $oArgs.KeyEventLParam & ']'       ; Gets the LPARAM value that accompanied the window message.
 
-    Local Const $s_Prefix = "[USER:EVENT: OnAcceleratorKeyPressed]:: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERROR'))
+	Local Const $s_Prefix = "[USER:EVENT: OnAcceleratorKeyPressed]:: GUI:" & $hGUI & " ARGS: " & ((IsObj($oArgs)) ? ($sArgsList) : ('ERROR'))
 
-    ; Example of checking specific keys
-    Switch $oArgs.VirtualKey
-        Case Int($VK_F7)
-            ConsoleWrite("! Blocked: F7 caret browsing." & @CRLF)
-            $oArgs.Handled = True
+	; Example of checking specific keys
+	Switch $oArgs.VirtualKey
+		Case Int($VK_F7)
+			ConsoleWrite("! Blocked: F7 caret browsing." & @CRLF)
+			$oArgs.Handled = True
 
-        Case Int($VK_N)
-            ; Check if Ctrl is pressed (using _IsPressed for Ctrl as IsMenuKeyDown specifically targets Alt)
-            ; Use this to block shortcuts like Ctrl+N (New Window)
-            If _IsPressed("11") Then
-                ConsoleWrite("! Blocked: Ctrl+N shortcut." & @CRLF)
-                $oArgs.Handled = True
-            EndIf
+		Case Int($VK_N)
+			; Check if Ctrl is pressed (using _IsPressed for Ctrl as IsMenuKeyDown specifically targets Alt)
+			; Use this to block shortcuts like Ctrl+N (New Window)
+			If _IsPressed("11") Then
+				ConsoleWrite("! Blocked: Ctrl+N shortcut." & @CRLF)
+				$oArgs.Handled = True
+			EndIf
 
-        Case Int($VK_ESCAPE) ; ESC 27 1b 033 Escape
-            ; Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
-            $oWebV2M.CancelDownloads()
+		Case Int($VK_ESCAPE) ; ESC 27 1b 033 Escape
+			; Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
+			$oWebV2M.CancelDownloads()
 
-    EndSwitch
+	EndSwitch
 
-    __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 0)
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 0)
 
-    $oArgs = 0 ; Explicitly release the COM reference inside the volatile scope
+	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scope
 EndFunc   ;==>__UserEventHandler__OnAcceleratorKeyPressed
 
 ; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
@@ -184,17 +186,17 @@ Volatile Func __UserEventHandler__OnAcceleratorKeyPressed00($oWebV2M, $hGUI, $oA
 ;~ 	EndIf
 
 	; Example of checking specific keys
-    Switch $oArgs.VirtualKey
-        Case Int($VK_F7)
-            ConsoleWrite("! Blocked: F7 caret browsing." & @CRLF)
-            $oArgs.Handled = True
+	Switch $oArgs.VirtualKey
+		Case Int($VK_F7)
+			ConsoleWrite("! Blocked: F7 caret browsing." & @CRLF)
+			$oArgs.Handled = True
 
-        Case Int($VK_N)
-            ; Έλεγχος αν είναι πατημένο το Ctrl (χρησιμοποιώντας το IsMenuKeyDown αν αφορά Alt ή WinAPI για Ctrl)
-            ; Αν θέλουμε να μπλοκάρουμε το Ctrl+N (New Window)
-            If _IsPressed("11") Then ; Χρειάζεται το Misc.au3 για την _IsPressed
-                ConsoleWrite("! Blocked: Ctrl+N shortcut." & @CRLF)
-                $oArgs.Handled = True
+		Case Int($VK_N)
+			; Check if Ctrl is pressed (using IsMenuKeyDown if it concerns Alt or WinAPI for Ctrl)
+			; If we want to block Ctrl+N (New Window)
+			If _IsPressed("11") Then ; Need Misc.au3 for _IsPressed
+				ConsoleWrite("! Blocked: Ctrl+N shortcut." & @CRLF)
+				$oArgs.Handled = True
 
 			EndIf
 
@@ -202,9 +204,11 @@ Volatile Func __UserEventHandler__OnAcceleratorKeyPressed00($oWebV2M, $hGUI, $oA
 			; Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
 			$oWebV2M.CancelDownloads()
 
-    EndSwitch
+	EndSwitch
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 0)
 	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 
-EndFunc   ;==>__UserEventHandler__OnAcceleratorKeyPressed
+EndFunc   ;==>__UserEventHandler__OnAcceleratorKeyPressed00
+
+
