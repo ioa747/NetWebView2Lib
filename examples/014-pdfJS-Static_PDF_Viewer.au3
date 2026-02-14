@@ -49,31 +49,38 @@ Func _Example()
 
 	#EndRegion ; GUI CREATION
 
-	; Adds a JavaScript to be executed before any other script when a new page is loaded.
+	; Adds a JavaScript library to be executed before any other script when a new page is loaded.
 	Local $sScriptId = New_NetWebView2_AddInitializationScript($oWeb, @ScriptDir & "\JS_Lib\NetWebView2Lib_pdfjs_Tools.js")
 	ConsoleWrite("$sScriptId=" & $sScriptId & @CRLF)
 
 	; navigate to the page
 	__SetupStaticPDF($oWeb, @ScriptDir & "\invoice-plugin-sample.pdf", True, False, True)
 
+	#Region ; now we can call the script directly from the JavaScript library "NetWebView2Lib_pdfjs_Tools.js" - some pdfjs magic stuff ;)
+	Local $s_JavaScript_snipp = ''
 
-	; now I call the script directly from the js library
-	_NetWebView2_ExecuteScript($oWeb, "PDF_ExtractToJSON();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-;~ 	_NetWebView2_ExecuteScript($oWeb, "PDF_ExtractLegacy();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	$s_JavaScript_snipp = "PDF_ExtractToJSON();"
+	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	Sleep(500) ; mLipok #TODO we should avoid Sleep() here
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
-	Sleep(500)
+	$s_JavaScript_snipp = "PDF_HighlightSpansContainingText('2016', 'blue', 'pink');"
+	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_ExtractToJSON();")
+	$s_JavaScript_snipp = "PDF_HighlightSpansContainingText('January 31, 2016', 'red', 'yellow');"
+	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
-	_NetWebView2_ExecuteScript($oWeb, "PDF_HighlightSpansContainingText('January 31, 2016', 'red', 'yellow');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_HighlightSpansContainingText('January 31, 2016', 'red', 'yellow');")
+	$s_JavaScript_snipp = "PDF_HighlightSpansContainingText('Total Due', 'white', 'red');"
+	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
-	_NetWebView2_ExecuteScript($oWeb, "PDF_HighlightSpansContainingText('Total Due', 'white', 'red');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_HighlightSpansContainingText('Total Due', 'white', 'red');")
+	$s_JavaScript_snipp = "PDF_RemoveHighlights('January 31, 2016');"
+	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
-	_NetWebView2_ExecuteScript($oWeb, "PDF_RemoveHighlights('January 31, 2016');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_RemoveHighlights('January 31, 2016');")
-
+	#EndRegion ; now we can call the script directly from the JavaScript library "NetWebView2Lib_pdfjs_Tools.js" - some pdfjs magic stuff ;)
 
 	; Main Loop
 	While 1
