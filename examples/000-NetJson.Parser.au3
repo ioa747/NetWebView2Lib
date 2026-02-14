@@ -5,6 +5,7 @@
 
 #include <Array.au3>
 #include <MsgBoxConstants.au3>
+#include "..\NetWebView2Lib.au3"
 
 ; Global objects handler for COM objects
 Global $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
@@ -17,8 +18,8 @@ Func _Example()
 	ConsoleWrite(@CRLF & "=== STARTING NETJSON TUTORIAL ===" & @CRLF)
 
 	#Region ; 0. Initialize the COM Object
-	Local $oJson = ObjCreate("NetJson.Parser")
-	If Not IsObj($oJson) Then
+	Local $oJson = _NetJson_CreateParser()
+	If @error Then
 		MsgBox(16, "Error", "Could not create NetWebView2Lib.JsonParser. Make sure the DLL is registered.")
 		Return
 	EndIf
