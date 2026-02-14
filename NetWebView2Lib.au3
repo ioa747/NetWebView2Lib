@@ -51,7 +51,6 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by mainly by __NetWebView2_Event
 		$NETWEBVIEW2_MESSAGE__CRITICAL_ERROR, _
 		$NETWEBVIEW2_MESSAGE__DOM_CONTENT_LOADED, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events
 		$NETWEBVIEW2_MESSAGE__NAV_ERROR, _
-		$NETWEBVIEW2_MESSAGE__READY_STATE_ERROR, _
 		$NETWEBVIEW2_MESSAGE__NAV_COMPLETED, _
 		$NETWEBVIEW2_MESSAGE__TITLE_CHANGED, _
 		$NETWEBVIEW2_MESSAGE__EXTENSION, _
@@ -204,7 +203,7 @@ Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left =
 		EndIf
 		If TimerDiff($hTimer) >= $iTimeOut_ms Then Return SetError(1, 0, '')
 	Until $oWebV2M.IsReady Or $iMessage = $NETWEBVIEW2_MESSAGE__INIT_READY
-	If Not __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms) Then Return SetError($NETWEBVIEW2_MESSAGE__READY_STATE_ERROR, 0, '')
+	If Not __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms) Then Return SetError(2, 0, '')
 	#EndRegion ; After Initialization wait for the engine to be ready before navigating
 
 	; WebView2 Configuration
@@ -246,6 +245,7 @@ Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms)
 	While 1
 		; Execute JS via the Bridge (Mode 2)
 		$sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
+		If @error Then Return SetError(@error, @extended, False)
 
 		; Check for the 'complete' state
 		If $sReadyState == "complete" Then
@@ -504,20 +504,35 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 		; RULE 3: if browser is not ready continue waiting
 		If Not $bWebIsReady Then ContinueLoop ; For navigation events, ensure the browser reports IsReady
 
-		; RULE 4: checking events messages
-		Local $iCurrentStatus = __NetWebView2_LastMessageReceived($oWebV2M)
-		If $iCurrentStatus = $NETWEBVIEW2_MESSAGE__NAV_ERROR Or $iCurrentStatus = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED Or $iCurrentStatus = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
-			Return SetError(3, $iCurrentStatus, False)
-		ElseIf $iCurrentStatus >= $iWaitMessage And $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then ; checking events
-			; RULE 5: checking browser ReadyState
-			If __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms) Then
+		; RULE 4: checking browser ReadyState
+		Local $sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
+		If @error Then
+			#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
+			Return SetError(7, 0, False)
+		ElseIf StringLeft($sReadyState, 6) == "ERROR:" Then
+			#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
+			Return SetError(8, 0, False)
+		ELseIf $sReadyState = "complete" Then
+			; RULE 5: checking events messages
+			Local $iCurrentStatus = __NetWebView2_LastMessageReceived($oWebV2M)
+			ConsoleWrite("! TEST NAV_ERR: " & ($iCurrentStatus=$NETWEBVIEW2_MESSAGE__NAV_ERROR) & ' $sReadyState=' & $sReadyState & ' SLN=' & @ScriptLineNumber & @CRLF)
+			If $iCurrentStatus = $NETWEBVIEW2_MESSAGE__NAV_ERROR Or $iCurrentStatus = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED Or $iCurrentStatus = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
+				ConsoleWrite("! TEST NAV_ERR: " & $iCurrentStatus & ' ' & @ScriptLineNumber & @CRLF)
+				#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
+				Return SetError(3, $iCurrentStatus, False)
+			ElseIf $iCurrentStatus >= $iWaitMessage And $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then ; checking events
+				ConsoleWrite("! TEST NAV_ERR: " & $iCurrentStatus & ' ' & @ScriptLineNumber & @CRLF)
+				ConsoleWrite("! TEST NAV_ERR: " & ($iCurrentStatus=$NETWEBVIEW2_MESSAGE__NAV_ERROR) & ' ' & @ScriptLineNumber & @CRLF)
+				#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
 				Return True
 			EndIf
 		EndIf
+		ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessageReceived($oWebV2M)=" & __NetWebView2_LastMessageReceived($oWebV2M) & ' SLN=' & @ScriptLineNumber & @CRLF)
 
 		; RULE 6: finall Timeout check
 		If $iTimeOut_ms And TimerDiff($hTimer) > $iTimeOut_ms Then
-			Return SetError(7, $iCurrentStatus, False)
+			#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
+			Return SetError(9, $iCurrentStatus, False)
 		EndIf
 
 	WEnd
@@ -1417,6 +1432,7 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_ERROR)
 			$oWebV2M.Stop()
+			ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessageReceived($oWebV2M)=" & __NetWebView2_LastMessageReceived($oWebV2M) & ' SLN=' & @ScriptLineNumber & @CRLF)
 
 		Case "EXTENSION"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
@@ -1987,3 +2003,4 @@ Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hG
 	$oArgs = 0
 EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
