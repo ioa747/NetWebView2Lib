@@ -8,10 +8,15 @@
 #include <GuiListView.au3>
 #include <MsgBoxConstants.au3>
 #include <WindowsConstants.au3>
+#include "..\NetWebView2Lib.au3"
+
+Global $_g_s_ELEMENTs = ''
 
 _Cleaner()
 
 Func _Cleaner()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	; === Configuration ===
 	Local $sSearchTerm = "NetWebView2"
 	Local $aTargets[2] = ["HKEY_LOCAL_MACHINE64\SOFTWARE\Classes", "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Classes"]
@@ -50,6 +55,9 @@ Func _Cleaner()
 	Else
 		GUICtrlSetData($idStatus, "Scan complete. Found " & $iTotalFound & " keys.")
 	EndIf
+
+	ConsoleWrite($_g_s_ELEMENTs & @CRLF)
+
 
 	While 1
 		Switch GUIGetMsg()
@@ -96,7 +104,9 @@ Func __Registry_Scan_Recursive($sKey, $sSearch, $hLV, ByRef $iCount, $idStatus, 
 		If StringInStr($sSubKey, $sSearch) Or StringInStr($sData, $sSearch) Then
 			$iCount += 1
 			Local $sDisplayData = ($sData <> "" ? $sData : "Folder/Container")
-			GUICtrlCreateListViewItem($sFull & "|" & $sDisplayData, $hLV)
+			Local $s_ELEMENT = $sFull & "|" & $sDisplayData
+			$_g_s_ELEMENTs &= $sFull & "|" & $sDisplayData & @CRLF
+			GUICtrlCreateListViewItem($s_ELEMENT, $hLV)
 			_GUICtrlListView_SetItemChecked($hLV, _GUICtrlListView_GetItemCount($hLV) - 1)
 		EndIf
 
