@@ -50,7 +50,7 @@ Func _Example()
 	#EndRegion ; GUI CREATION
 
 	; Adds a JavaScript to be executed before any other script when a new page is loaded.
-	Local $sScriptId = New_NetWebView2_AddInitializationScript($oWeb, @ScriptDir & "\JS_Lib\PDF_Tools.js")
+	Local $sScriptId = New_NetWebView2_AddInitializationScript($oWeb, @ScriptDir & "\JS_Lib\NetWebView2Lib_pdfjs_Tools.js")
 	ConsoleWrite("$sScriptId=" & $sScriptId & @CRLF)
 
 	; navigate to the page
@@ -64,7 +64,6 @@ Func _Example()
 	Sleep(500)
 
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_ExtractToJSON();")
-
 
 	_NetWebView2_ExecuteScript($oWeb, "PDF_HighlightSpansContainingText('January 31, 2016', 'red', 'yellow');", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "after" & @CRLF & "PDF_HighlightSpansContainingText('January 31, 2016', 'red', 'yellow');")
@@ -215,47 +214,6 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 			"                     ' ::-webkit-scrollbar { display: none !important; }';" & _
 			"   document.head.appendChild(style);" & _
 			"});" & _
-			"/* 4. HighLight text */ " & _
-			"function highlightSpansContainingText(searchText, borderColor = 'red', backgroundColor = 'yellow') {" & _
-			"    if (!searchText || typeof searchText !== 'string') return;" & _
-			"    const normalize = str => str.replace(/\s+/g, ' ').trim().toLowerCase();" & _
-			"    const normalizedSearch = normalize(searchText);" & _
-			"    const spans = document.querySelectorAll('span');" & _
-			"    spans.forEach(span => {" & _
-			"        // Reset previous highlights in this SPAN" & _
-			"        if (!span.dataset.originalText) {" & _
-			"            span.dataset.originalText = span.innerHTML; // preserve original content" & _
-			"        } else {" & _
-			"            span.innerHTML = span.dataset.originalText; // restore previous state" & _
-			"        }" & _
-			"        const spanText = span.textContent;" & _
-			"        const spanTextNormalized = normalize(spanText);" & _
-			"        if (spanTextNormalized.includes(normalizedSearch)) {" & _
-			"            const regex = new RegExp(searchText, 'gi');" & _
-			"            span.innerHTML = spanText.replace(regex, match => {" & _
-			"                return `<span data-highlight-by-au3udf='true' style='border:1px solid ${borderColor}; background-color:${backgroundColor}; color:black; padding:1px;'>${match}</span>`;" & _
-			"            });" & _
-			"        }" & _
-			"    });" & _
-			"};" & _
-			"function removeHighlights(searchText) {" & _
-			"    if (!searchText || typeof searchText !== 'string') return;" & _
-			"    const normalize = str => str.replace(/\s+/g, ' ').trim().toLowerCase();" & _
-			"    const normalizedSearch = normalize(searchText);" & _
-			"    // Find all highlighted SPANs" & _
-			"    const highlightedSpans = document.querySelectorAll('span[data-highlight-by-au3udf=\'true\']');" & _
-			"    highlightedSpans.forEach(innerSpan => {" & _
-			"        const parentSpan = innerSpan.parentElement;" & _
-			"        if (!parentSpan || !parentSpan.dataset.originalText) return;" & _
-			"        // Check if the highlighted fragment contains searchText" & _
-			"        const spanText = innerSpan.textContent;" & _
-			"        if (normalize(spanText).includes(normalizedSearch)) {" & _
-			"            // Restore parent's original content" & _
-			"            parentSpan.innerHTML = parentSpan.dataset.originalText;" & _
-			"            delete parentSpan.dataset.originalText;" & _
-			"        }" & _
-			"    });" & _
-			"};" & _
 			""
 
 	$oWeb.AddInitializationScript($sCleanupJS)
@@ -277,40 +235,6 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $bBlockLinks = False, $bBlockSel
 	$oWeb.DisableBrowserFeatures()
 	$oWeb.LockWebView()
 EndFunc   ;==>__SetupStaticPDF
-
-
-; Polls the browser until the document.readyState reaches 'complete'.
-Func _NetWebView2_WaitForReadyState($oWebV2M, $iTimeout_ms = 5000)
-	Local Const $s_Prefix = ">>>[_NetWebView2_WaitForReadyState]:"
-
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(2, 0, False)
-	Local $hTimer = TimerInit()
-	Local $sReadyState = ""
-
-	While 1
-		; Execute JS via the Bridge (Mode 2)
-		$sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
-
-		; Check for the 'complete' state
-		If $sReadyState == "complete" Then
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " SUCCESS: Document is ready. Timeout_ms: " & Round(TimerDiff($hTimer), 0), 0)
-			Return True
-		EndIf
-
-		; Check for C# Bridge internal errors (Timeout/Init)
-		If StringLeft($sReadyState, 6) == "ERROR:" Then
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " BRIDGE " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
-			Return SetError(3, 0, False)
-		EndIf
-
-		; Check for AutoIt-side Timeout
-		If $iTimeout_ms > 0 And TimerDiff($hTimer) > $iTimeout_ms Then
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " TIMEOUT: Document state is " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
-			Return SetError(1, 0, False)
-		EndIf
-		Sleep(100)
-	WEnd
-EndFunc   ;==>_NetWebView2_WaitForReadyState
 
 ; New to replace _NetWebView2_AddInitializationScript in UDF
 Func New_NetWebView2_AddInitializationScript($oWebV2M, $vScript)
