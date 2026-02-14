@@ -36,6 +36,8 @@ Global $idLabelStatus
 _Example()
 
 Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
 
@@ -62,20 +64,21 @@ Func _Example()
 	Local $s_PDF_FileFullPath
 
 	#TIP: FitToPage: https://stackoverflow.com/questions/78820187/how-to-change-webview2-fit-to-page-button-on-pdf-toolbar-default-to-fit-to-width#comment138971950_78821231
-	_NetWebView2_NavigateToPDF($oWebV2M, "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", '#view=FitH', 1000, True)
+	_NetWebView2_NavigateToPDF($oWebV2M, "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", '#view=FitH', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5000, 1000, True)
+	MsgBox($MB_TOPMOST, " _NetWebView2_NavigateToPDF() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
 
 	#TIP: Open desired PAGE: https://stackoverflow.com/questions/68500164/cycle-pdf-pages-in-wpf-webview2#comment135402565_68566860
 	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_1.pdf'
-	_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#page=1', 1000, True)
-;~ 	MsgBox($MB_TOPMOST, " _NetWebView2_NavigateToPDF() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
+	_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#page=1', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5000, 1000, True)
+	MsgBox($MB_TOPMOST, " _NetWebView2_NavigateToPDF() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
 
 	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_2.pdf'
-	_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000, True)
-;~ 	MsgBox($MB_TOPMOST, " _NetWebView2_NavigateToPDF() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
+	_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5000, 1000, True)
+	MsgBox($MB_TOPMOST, " _NetWebView2_NavigateToPDF() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
 
 	$s_PDF_FileFullPath = "file:///" & @ScriptDir & '/FileViewerDemo_3.pdf'
-	_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000, True)
-;~ 	MsgBox($MB_TOPMOST, " _NetWebView2_NavigateToPDF() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
+	_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5000, 1000, True)
+	MsgBox($MB_TOPMOST, " _NetWebView2_NavigateToPDF() TEST #" & @ScriptLineNumber, $s_PDF_FileFullPath, 0, $hGUI)
 
 	; Main Loop
 	While 1
