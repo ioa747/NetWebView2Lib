@@ -5,10 +5,13 @@
 #Tidy_Parameters=/reel
 
 #include <MsgBoxConstants.au3>
+#include "..\NetWebView2Lib.au3"
 
 _Unregister()
 
 Func _Unregister()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	; === Configuration ===
 	Local $sDllName = "NetWebView2Lib.dll"
 	Local $sTlbName = "NetWebView2Lib.tlb"
