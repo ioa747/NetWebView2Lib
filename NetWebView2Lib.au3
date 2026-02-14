@@ -226,10 +226,10 @@ EndFunc   ;==>_NetWebView2_Initialize
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_WaitForReadyState
 ; Description ...: Polls the browser until the document.readyState reaches 'complete'.
-; Syntax ........: __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms)
+; Syntax ........: __NetWebView2_WaitForReadyState($oWebV2M, $hTimer[, $iTimeOut_ms = 5000])
 ; Parameters ....: $oWebV2M       - The WebView2 Manager object.
 ;                  $hTimer        - a handle to a caller TimerInit
-;                  $iTimeOut_ms   - Maximum time to wait in milliseconds. 0 for infinite.
+;                  $iTimeOut_ms   - Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
 ; Return values .: Success: True
 ;                  Failure: False, sets @error:
 ;                      1 - Timeout reached before document was complete.
@@ -239,7 +239,7 @@ EndFunc   ;==>_NetWebView2_Initialize
 ; Remarks .......: This function uses JavaScript execution to check the internal state of the page.
 ;                  Useful for tasks like PDF printing where 'complete' state is mandatory.
 ; ===============================================================================================================================
-Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms)
+Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms = 5000)
 	Local Const $s_Prefix = ">>>[_NetWebView2_WaitForReadyState]:"
 
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(2, 0, False)
@@ -476,8 +476,8 @@ EndFunc   ;==>_NetWebView2_GetVersion
 ;                  $iTimeOut_ms = 5000]]])
 ; Parameters.....: $oWebV2M             - The NetWebView2 Manager object.
 ;                  $iWaitMessage        - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
-;                  $sExpectedTitle      - [optional] a string value. Default is "".
-;                  $iTimeOut_ms         - Timeout in milliseconds (Default is 5000ms). Set to 0 for infinite.
+;                  $sExpectedTitle      - [optional] Expected title to LoadWait for, as StringRegExp() pattern
+;                  $iTimeOut_ms         - Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
 ; Return values..: Success      - True
 ;                  Failure      - False and sets @error:
 ;                                     3 - Navigation Error ($NETWEBVIEW2_MESSAGE__NAV_ERROR)
@@ -558,11 +558,11 @@ EndFunc   ;==>_NetWebView2_LoadWait
 ; Description....: Navigates to a URL and waits for a specific completion status.
 ; Syntax ........: _NetWebView2_Navigate($oWebV2M, $s_URL[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[,
 ;                  $sExpectedTitle = ""[, $iTimeOut_ms = 5000]]])
-; Parameters.....: $oWebV2M      - The NetWebView2 Manager object.
-;                  $s_URL        - The URL to navigate to.
-;                  $iWaitMessage - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
-;                  $sExpectedTitle      - [optional] a string value. Default is "".
-;                  $iTimeOut_ms  - Timeout in milliseconds (Default is 5000ms).
+; Parameters.....: $oWebV2M             - The NetWebView2 Manager object.
+;                  $s_URL               - The URL to navigate to.
+;                  $iWaitMessage        - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
+;                  $sExpectedTitle      - [optional] Expected title to LoadWait for, as StringRegExp() pattern
+;                  $iTimeOut_ms         - Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
 ; Return values..: Success       - True
 ;                  Failure       - False and sets @error:
 ;                                      1 - Invalid parameters
@@ -607,11 +607,12 @@ EndFunc   ;==>_NetWebView2_Navigate
 ; Name ..........: _NetWebView2_NavigateToString
 ; Description ...:
 ; Syntax ........: _NetWebView2_NavigateToString($oWebV2M, $s_HTML[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[,
-;                  $iTimeOut_ms = 5000]])
+;                  $sExpectedTitle = ""[, $iTimeOut_ms = 5000]]])
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $s_HTML              - a string value.
 ;                  $iWaitMessage        - [optional] an integer value. Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED.
-;                  $iTimeOut_ms         - [optional] an integer value. Default is 5000.
+;                  $sExpectedTitle      - [optional] Expected title to LoadWait for, as StringRegExp() pattern
+;                  $iTimeOut_ms         - Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
 ; Return values .: None
 ; Author ........: mLipok, ioa747
 ; Modified ......:
@@ -734,12 +735,14 @@ EndFunc   ;==>_NetWebView2_GetSource
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_NavigateToPDF
 ; Description ...: Navigate to a PDF (local PDF file or online URL)
-; Syntax ........: _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath[, $s_Parameters = ''[, $sExpectedTitle = ""[,
-;                  $iSleep_ms = 1000[, $bFreeze = True]]]])
+; Syntax ........: _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath[, $s_Parameters = ''[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[,
+;                  $sExpectedTitle = ""[, $iSleep_ms = 1000[, $bFreeze = True]]]]])
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $s_URL_or_FileFullPath- a string value.
 ;                  $s_Parameters        - [optional] a string value. Default is ''.
-;                  $sExpectedTitle      - [optional] a string value. Default is "".
+;                  $iWaitMessage        - [optional] an integer value. Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED.
+;                  $sExpectedTitle      - [optional] Expected title to LoadWait for, as StringRegExp() pattern
+;                  $iTimeOut_ms         - Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
 ;                  $iSleep_ms           - [optional] an integer value. Default is 1000.
 ;                  $bFreeze             - [optional] a boolean value. Default is True.
 ; Return values .: None
@@ -750,7 +753,9 @@ EndFunc   ;==>_NetWebView2_GetSource
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, Const $s_Parameters = '', $sExpectedTitle = "", Const $iSleep_ms = 1000, Const $bFreeze = True)
+Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, Const $s_Parameters = '', $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = "", $iTimeOut_ms = 5000, Const $iSleep_ms = 1000, Const $bFreeze = True)
+	Local Const $s_Prefix = "[_NetWebView2_NavigateToPDF]: URL_or_File:" & $s_URL_or_FileFullPath ; #TODO suplement
+
 	If FileExists($s_URL_or_FileFullPath) Then
 		$s_URL_or_FileFullPath = StringReplace($s_URL_or_FileFullPath, '\', '/')
 		$s_URL_or_FileFullPath = StringReplace($s_URL_or_FileFullPath, ' ', '%20')
@@ -765,8 +770,9 @@ Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, Const $s_Param
 
 	Local $idPic = 0
 	If $bFreeze Then __NetWebView2_freezer($oWebV2M, $idPic)
-	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FileFullPath, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle)
-	Sleep($iSleep_ms)
+	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FileFullPath, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
+	If Not @error Then Sleep($iSleep_ms)
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	If $bFreeze And $idPic Then __NetWebView2_freezer($oWebV2M, $idPic)
 EndFunc   ;==>_NetWebView2_NavigateToPDF
 
@@ -2039,3 +2045,4 @@ Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hG
 	$oArgs = 0
 EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
