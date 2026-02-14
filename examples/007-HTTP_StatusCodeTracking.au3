@@ -10,6 +10,8 @@ Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc") ; COM Error Handler
 _Example_HTTP_Tracking()
 
 Func _Example_HTTP_Tracking()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	Local $hGUI = GUICreate("WebView2 HTTP Status Tracker", 1000, 600)
 	ConsoleWrite("$hGUI=" & $hGUI & @CRLF)
 
@@ -31,7 +33,6 @@ Func _Example_HTTP_Tracking()
 	; Filtering only for the Main Document
 	; Very important to prevent the GUI from getting stuck by hundreds of requests (images, scripts, etc.)
 	$oWebV2M.HttpStatusCodeDocumentOnly = True
-
 
 	; Testing with a non-existent page to see the 404
 	_NetWebView2_Navigate($oWebV2M, "https://google.com/this-page-does-not-exist")
@@ -71,7 +72,9 @@ Func WebEvents_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	Local $iSplitPos = StringInStr($sMsg, "|")
 	Local $sCommand = $iSplitPos ? StringStripWS(StringLeft($sMsg, $iSplitPos - 1), 3) : $sMsg
 	Local $sData = $iSplitPos ? StringTrimLeft($sMsg, $iSplitPos) : ""
+	#forceref $sData
 	Local $aParts
+	#forceref $aParts
 
 	Switch $sCommand
 		Case "INIT_READY"
@@ -84,7 +87,7 @@ EndFunc   ;==>WebEvents_OnMessageReceived
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
 Func JavaScript_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
-	#forceref $oWebV2M
+	#forceref $oWebV2M, $hGUI
 	ConsoleWrite(">>> [JavaScript]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $sFirstChar = StringLeft($sMsg, 1)
 
@@ -126,6 +129,8 @@ EndFunc   ;==>JavaScript_OnMessageReceived
 
 ; OnWebResourceResponseReceived
 Func WebEvents_OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
+	#forceref $hGUI
+
 	Local $sLog = StringFormat("! [HTTP %d] | %s | URL: %s", $iStatusCode, $sReasonPhrase, $sRequestUrl)
 	ConsoleWrite($sLog & @CRLF)
 
