@@ -12,6 +12,7 @@
 #include <GUIConstantsEx.au3>
 #include <SendMessage.au3>
 #include <StaticConstants.au3>
+#include <StringConstants.au3>
 #include <MsgBoxConstants.au3>
 #include <WinAPIGdi.au3>
 #include <WinAPIShPath.au3>
@@ -26,6 +27,8 @@
 
 ; Global objects
 Global $_g_bNetWebView2_DebugInfo = True
+
+#Region ; ENUMS
 
 ;~ Global Enum _
 ;~ 		$NETWEBVIEW2_ERR__INIT_FAILED, _
@@ -469,10 +472,12 @@ EndFunc   ;==>_NetWebView2_GetVersion
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _NetWebView2_LoadWait
 ; Description....: Waits for a specific WebView2 status or event with a timeout.
-; Syntax.........: _NetWebView2_LoadWait($oWebV2M[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[, $iTimeOut_ms = 5000]])
-; Parameters.....: $oWebV2M      - The NetWebView2 Manager object.
-;                  $iWaitMessage - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
-;                  $iTimeOut_ms  - Timeout in milliseconds (Default is 5000ms). Set to 0 for infinite.
+; Syntax ........: _NetWebView2_LoadWait($oWebV2M[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[, $sExpectedTitle = ""[,
+;                  $iTimeOut_ms = 5000]]])
+; Parameters.....: $oWebV2M             - The NetWebView2 Manager object.
+;                  $iWaitMessage        - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
+;                  $sExpectedTitle      - [optional] a string value. Default is "".
+;                  $iTimeOut_ms         - Timeout in milliseconds (Default is 5000ms). Set to 0 for infinite.
 ; Return values..: Success      - True
 ;                  Failure      - False and sets @error:
 ;                                     3 - Navigation Error ($NETWEBVIEW2_MESSAGE__NAV_ERROR)
@@ -484,7 +489,7 @@ EndFunc   ;==>_NetWebView2_GetVersion
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $iTimeOut_ms = 5000)
+Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = "", $iTimeOut_ms = 5000)
 	Local $hTimer = TimerInit()
 
 	; RESET: Clear the status of this instance before starting the wait loop
@@ -512,24 +517,34 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 		ElseIf StringLeft($sReadyState, 6) == "ERROR:" Then
 			#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
 			Return SetError(8, 0, False)
-		ELseIf $sReadyState = "complete" Then
+		ElseIf $sReadyState = "complete" Then
 			; RULE 5: checking events messages
 			Local $iCurrentStatus = __NetWebView2_LastMessageReceived($oWebV2M)
-			ConsoleWrite("! TEST NAV_ERR: " & ($iCurrentStatus=$NETWEBVIEW2_MESSAGE__NAV_ERROR) & ' $sReadyState=' & $sReadyState & ' SLN=' & @ScriptLineNumber & @CRLF)
+			ConsoleWrite('! TEST NAV_ERR: ' & ($iCurrentStatus = $NETWEBVIEW2_MESSAGE__NAV_ERROR) & ' $sReadyState=' & $sReadyState & ' SLN=' & @ScriptLineNumber & @CRLF)
 			If $iCurrentStatus = $NETWEBVIEW2_MESSAGE__NAV_ERROR Or $iCurrentStatus = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED Or $iCurrentStatus = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
-				ConsoleWrite("! TEST NAV_ERR: " & $iCurrentStatus & ' ' & @ScriptLineNumber & @CRLF)
+				ConsoleWrite('! TEST NAV_ERR: ' & $iCurrentStatus & ' SLN=' & @ScriptLineNumber & @CRLF)
 				#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
 				Return SetError(3, $iCurrentStatus, False)
+;~ 			ElseIf $iCurrentStatus >= $iWaitMessage Then ; checking events
 			ElseIf $iCurrentStatus >= $iWaitMessage And $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then ; checking events
-				ConsoleWrite("! TEST NAV_ERR: " & $iCurrentStatus & ' ' & @ScriptLineNumber & @CRLF)
-				ConsoleWrite("! TEST NAV_ERR: " & ($iCurrentStatus=$NETWEBVIEW2_MESSAGE__NAV_ERROR) & ' ' & @ScriptLineNumber & @CRLF)
-				#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
-				Return True
+				; RULE 6: checking document title
+				If $sExpectedTitle Then
+					Local $sCurrentTitle = $oWebV2M.GetDocumentTitle()
+					Local $bTitleCheck = StringRegExp($sCurrentTitle, $sExpectedTitle, $STR_REGEXPMATCH)
+					ConsoleWrite('! TEST NAV_ERR: CurrentTitle="' & $sCurrentTitle & '" ExpectedTitle"' & $sExpectedTitle & '" TitleCheck=' & $bTitleCheck & ' SLN=' & @ScriptLineNumber & @CRLF)
+					#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
+					If $bTitleCheck Then Return
+				Else
+					ConsoleWrite('! TEST NAV_ERR: ' & $iCurrentStatus & ' SLN=' & @ScriptLineNumber & @CRLF)
+					ConsoleWrite('! TEST NAV_ERR: ' & ($iCurrentStatus = $NETWEBVIEW2_MESSAGE__NAV_ERROR) & ' SLN=' & @ScriptLineNumber & @CRLF)
+					#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
+					Return True
+				EndIf
 			EndIf
 		EndIf
 		ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessageReceived($oWebV2M)=" & __NetWebView2_LastMessageReceived($oWebV2M) & ' SLN=' & @ScriptLineNumber & @CRLF)
 
-		; RULE 6: finall Timeout check
+		; RULE 7: finall Timeout check
 		If $iTimeOut_ms And TimerDiff($hTimer) > $iTimeOut_ms Then
 			#TODO __NetWebView2_Log(@ScriptLineNumber, $s_Prefix , 1)
 			Return SetError(9, $iCurrentStatus, False)
@@ -541,10 +556,12 @@ EndFunc   ;==>_NetWebView2_LoadWait
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _NetWebView2_Navigate
 ; Description....: Navigates to a URL and waits for a specific completion status.
-; Syntax.........: _NetWebView2_Navigate($oWebV2M, $s_URL[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[, $iTimeOut_ms = 5000]])
+; Syntax ........: _NetWebView2_Navigate($oWebV2M, $s_URL[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[,
+;                  $sExpectedTitle = ""[, $iTimeOut_ms = 5000]]])
 ; Parameters.....: $oWebV2M      - The NetWebView2 Manager object.
 ;                  $s_URL        - The URL to navigate to.
 ;                  $iWaitMessage - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
+;                  $sExpectedTitle      - [optional] a string value. Default is "".
 ;                  $iTimeOut_ms  - Timeout in milliseconds (Default is 5000ms).
 ; Return values..: Success       - True
 ;                  Failure       - False and sets @error:
@@ -559,7 +576,7 @@ EndFunc   ;==>_NetWebView2_LoadWait
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_Navigate($oWebV2M, $s_URL, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $iTimeOut_ms = 5000)
+Func _NetWebView2_Navigate($oWebV2M, $s_URL, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = "", $iTimeOut_ms = 5000)
 	Local Const $s_Prefix = "[_NetWebView2_Navigate]: URL:" & $s_URL & " WAIT:" & $iWaitMessage & " TimeOut_ms=" & $iTimeOut_ms
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -575,12 +592,12 @@ Func _NetWebView2_Navigate($oWebV2M, $s_URL, $iWaitMessage = $NETWEBVIEW2_MESSAG
 	If @error Then Return SetError(2, @error, False)
 
 	; 3. Wait for status using the Bulletproof LoadWait logic
-	Local $bResult = _NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $iTimeOut_ms)
+	Local $bResult = _NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
 	Local $iErr = @error, $iExt = @extended
 
 	; If an error occurred (3: Nav Error, 4: Timeout), log the failure
 	If @error Then
-		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " -> FAILED (Err:" & $iErr & " Status:" & $iExt & ")", 1)
+		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " -> LOAD WAIT FAILED (Err:" & $iErr & " Ext:" & $iExt & ")", 1)
 	EndIf
 
 	Return SetError($iErr, $iExt, $bResult)
@@ -603,7 +620,7 @@ EndFunc   ;==>_NetWebView2_Navigate
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $iTimeOut_ms = 5000)
+Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = "", $iTimeOut_ms = 5000)
 	Local Const $s_Prefix = "[_NetWebView2_NavigateToString]:" & " HTML Size:" & StringLen($s_HTML) & " WaitMessage:" & $iWaitMessage & " TimeOut_ms=" & $iTimeOut_ms
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -616,7 +633,7 @@ Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIE
 		Local $iNavigation = $oWebV2M.NavigateToString($s_HTML)
 		If @error Then Return SetError(@error, @extended, $iNavigation)
 
-		_NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $iTimeOut_ms)
+		_NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
 		If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 		Return SetError(@error, @extended, '')
 	EndIf
@@ -714,7 +731,26 @@ Func _NetWebView2_GetSource($oWebV2M)
 	Return SetError(@error, @extended, $sSource)
 EndFunc   ;==>_NetWebView2_GetSource
 
-Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, Const $s_Parameters = '', Const $iSleep_ms = 1000, Const $bFreeze = True)
+; #FUNCTION# ====================================================================================================================
+; Name ..........: _NetWebView2_NavigateToPDF
+; Description ...: Navigate to a PDF (local PDF file or online URL)
+; Syntax ........: _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath[, $s_Parameters = ''[, $sExpectedTitle = ""[,
+;                  $iSleep_ms = 1000[, $bFreeze = True]]]])
+; Parameters ....: $oWebV2M             - an object.
+;                  $s_URL_or_FileFullPath- a string value.
+;                  $s_Parameters        - [optional] a string value. Default is ''.
+;                  $sExpectedTitle      - [optional] a string value. Default is "".
+;                  $iSleep_ms           - [optional] an integer value. Default is 1000.
+;                  $bFreeze             - [optional] a boolean value. Default is True.
+; Return values .: None
+; Author ........: mLipok
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........:
+; Example .......: No
+; ===============================================================================================================================
+Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, Const $s_Parameters = '', $sExpectedTitle = "", Const $iSleep_ms = 1000, Const $bFreeze = True)
 	If FileExists($s_URL_or_FileFullPath) Then
 		$s_URL_or_FileFullPath = StringReplace($s_URL_or_FileFullPath, '\', '/')
 		$s_URL_or_FileFullPath = StringReplace($s_URL_or_FileFullPath, ' ', '%20')
@@ -729,7 +765,7 @@ Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FileFullPath, Const $s_Param
 
 	Local $idPic = 0
 	If $bFreeze Then __NetWebView2_freezer($oWebV2M, $idPic)
-	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FileFullPath)
+	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FileFullPath, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle)
 	Sleep($iSleep_ms)
 	If $bFreeze And $idPic Then __NetWebView2_freezer($oWebV2M, $idPic)
 EndFunc   ;==>_NetWebView2_NavigateToPDF
@@ -1425,7 +1461,7 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_COMPLETED)
 
 		Case "TITLE_CHANGED"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand, 1)
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & ' COMMAND:' & $sCommand & ' >> ' & $oWebV2M.GetDocumentTitle(), 1)
 			__NetWebView2_LastMessageReceived($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 
 		Case "NAV_ERROR"
@@ -2003,4 +2039,3 @@ Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hG
 	$oArgs = 0
 EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
-
