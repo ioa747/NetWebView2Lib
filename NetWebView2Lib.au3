@@ -10,8 +10,12 @@
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
+#include <SendMessage.au3>
+#include <StaticConstants.au3>
 #include <MsgBoxConstants.au3>
+#include <WinAPIGdi.au3>
 #include <WinAPIShPath.au3>
+#include <WinAPISysWin.au3>
 #include <WindowsConstants.au3>
 
 #REMARK This UDF is marked as WorkInProgress - you may use them, but do not blame me if I do ScriptBreakingChange and as so far do not ask me for description or help till I remove this remark ; mLipok
