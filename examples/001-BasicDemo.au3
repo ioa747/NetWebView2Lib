@@ -35,12 +35,14 @@ Func Main()
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, 1.2, "0x2B2B2B", False)
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	__Example_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()")
+	__Example_Log(@ScriptLineNumber, "After: _NetWebView2_Initialize()" & @CRlf)
 
 	; navigate to HTML string - full fill the object with your own offline content - without downloading any content
+	ConsoleWrite(@CRLF)
+
 	__Example_Log(@ScriptLineNumber, "Before: _NetWebView2_NavigateToString()")
 	_NetWebView2_NavigateToString($oWebV2M, __GetDemoHTML())
-	__Example_Log(@ScriptLineNumber, "After: _NetWebView2_NavigateToString()")
+	__Example_Log(@ScriptLineNumber, "After: _NetWebView2_NavigateToString()" & @CRlf)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to string')
 
 	GUISetState(@SW_HIDE, $hGUI)
@@ -49,20 +51,20 @@ Func Main()
 	; navigate to a given URL - online content
 	__Example_Log(@ScriptLineNumber, "Before: https://www.microsoft.com")
 	_NetWebView2_Navigate($oWebV2M, 'https://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5 * 1000)
-	__Example_Log(@ScriptLineNumber, "After: https://www.microsoft.com")
+	__Example_Log(@ScriptLineNumber, "After: https://www.microsoft.com" & @CRlf)
 	GUISetState(@SW_SHOW, $hGUI)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to a given URL - online content')
 
 	; navigate to fake/broken url
 	__Example_Log(@ScriptLineNumber, "Before: htpppps://www.microsoft.com")
 	_NetWebView2_Navigate($oWebV2M, 'htpppps://www.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5 * 1000)
-	__Example_Log(@ScriptLineNumber, "After: htpppps://www.microsoft.com")
+	__Example_Log(@ScriptLineNumber, "After: htpppps://www.microsoft.com" & @CRlf)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to fake/broken url')
 
 	; navigate to fake not ex url
 	__Example_Log(@ScriptLineNumber, "Before: https://w2ww.microsoft.com")
 	_NetWebView2_Navigate($oWebV2M, 'https://w2ww.microsoft.com', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5 * 1000)
-	__Example_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com")
+	__Example_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com" & @CRlf)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to fake/broken url' & @CRLF & 'HostNameNotResolved')
 
 	; Main Loop
