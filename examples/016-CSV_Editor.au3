@@ -26,6 +26,8 @@ Global $hGUI
 _Example()
 
 Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	; Create GUI with resizing support
 	$hGUI = GUICreate("WebView2AutoIt CSV_editor", 1500, 650, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x2B2B2B, $hGUI)
