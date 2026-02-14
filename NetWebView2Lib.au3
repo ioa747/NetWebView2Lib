@@ -22,6 +22,8 @@
 ; Global objects
 Global $_g_bNetWebView2_DebugInfo = True
 
+#Region ; ENUMS
+
 ;~ Global Enum _
 ;~ 		$NETWEBVIEW2_ERR__INIT_FAILED, _
 ;~ 		$NETWEBVIEW2_ERR__PROFILE_NOT_READY, _
@@ -1830,4 +1832,46 @@ Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hG
 	; Note: User should handle $oArgs.UserName / $oArgs.Password and call $oArgs.Complete() in their script.
 	$oArgs = 0
 EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
+
+#Region ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
+
+
+#Region ; NetWebView2Lib UDF - === EVENT HANDLERS === FRAME RELATED
+Volatile Func __NetWebView2_Events__OnFrameCreated()
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#framecreated
+EndFunc   ;==>__NetWebView2_Events__OnFrameCreated
+
+Volatile Func __NetWebView2_Events__OnContentLoading()
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#contentloading
+EndFunc   ;==>__NetWebView2_Events__OnContentLoading
+
+Volatile Func __NetWebView2_Events__OnDOMContentLoaded()
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#domcontentloaded
+EndFunc   ;==>__NetWebView2_Events__OnDOMContentLoaded
+
+Volatile Func __NetWebView2_Events__OnDestroyed()
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#destroyed
+EndFunc   ;==>__NetWebView2_Events__OnDestroyed
+
+Volatile Func __NetWebView2_Events__OnNameChanged()
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#namechanged
+EndFunc   ;==>__NetWebView2_Events__OnNameChanged
+
+;~ is this followed navigationcompleted are the same as __NetWebView2_Events__OnNavigationCompleted() ?
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#navigationcompleted
+
+;~ is this followed navigationstarting are the same as __NetWebView2_Events__OnNavigationStarting() ?
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#navigationstarting
+
+Volatile Func __NetWebView2_Events__OnScreenCaptureStarting()
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#screencapturestarting
+EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
+
+;~ is this followed webmessagereceived are the same as __NetWebView2_Events__OnMessageReceived() ?
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#webmessagereceived
+
+#EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === FRAME RELATED
+
+#EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
+
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
