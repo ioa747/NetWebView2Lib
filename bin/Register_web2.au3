@@ -5,6 +5,7 @@
 #Tidy_Parameters=/reel
 
 #include <MsgBoxConstants.au3>
+#include <Misc.au3>
 #include "..\NetWebView2Lib.au3"
 
 _Register()
@@ -21,13 +22,21 @@ Func _Register()
 	Local $sLog = "Registration Report:" & @CRLF & "--------------------" & @CRLF
 
 	; === Check for WebView2 Runtime ===
+	Local $sMinReq = "128.0.2739.15" ; Updated for Full API Compatibility with SDK 1.0.2739.15
+	Local $bNeedUpdated = False
 	Local $sWV2Version = WebView2Exist()
 
 	If $sWV2Version <> "" Then
-		$sLog &= "[+] WebView2 Runtime: Found (" & $sWV2Version & ")" & @CRLF
-	Else
+		If _VersionCompare($sWV2Version, $sMinReq) < 0 Then
+			$bNeedUpdated = True
+		Else
+			$sLog &= "[+] WebView2 Runtime: Found (" & $sWV2Version & ")" & @CRLF
+		EndIf
+	EndIf
+
+	If $sWV2Version = "" Or $bNeedUpdated Then
 		Local $sUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
-		$sLog &= "[-] WebView2 Runtime: NOT FOUND" & @CRLF
+		$sLog &= ($bNeedUpdated ? "[!] WebView2 Runtime: Found (" & $sWV2Version & ") is too old. Requires " & $sMinReq : "[-] WebView2 Runtime: NOT FOUND") & @CRLF
 
 		; Ask the user to install
 		Local $iAnswer = MsgBox($MB_YESNO + $MB_ICONEXCLAMATION, "Runtime Missing", _
