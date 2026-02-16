@@ -25,16 +25,6 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 1. **.NET Framework 4.8** or higher.
 2. **Microsoft Edge WebView2 Runtime version 128.0.2739.15 or higher**.
 
-
-https://github.com/ioa747/NetWebView2Lib/blob/Version-v2.0.0-stable-dev1/src/packages.config
-```
-<?xml version="1.0" encoding="utf-8"?>
-<packages>
-  <package id="Microsoft.Web.WebView2" version="1.0.2739.15" targetFramework="net48" />
-  <package id="Newtonsoft.Json" version="13.0.4" targetFramework="net48" />
-</packages>
-```
-
    * *The registration script will check for this and provide a download link if missing.*
 
 ---
@@ -64,6 +54,7 @@ https://github.com/ioa747/NetWebView2Lib/blob/Version-v2.0.0-stable-dev1/src/pac
 
 
 ---
+
 ### ⚖️ License
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
@@ -72,6 +63,8 @@ This project is provided "as-is". You are free to use, modify, and distribute it
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
+
+
 ## 🚀 What's New in v2.0.0-stable - Professional Naming & Absolute Stability
 
 This stable release marks the transition to a professional, standardized COM architecture and introduces high-performance infrastructure for production-grade applications.
@@ -105,6 +98,7 @@ A redesigned diagnostic system for easier debugging of complex workflows.
 Bulk extraction methods (`GetFrameUrls`, `GetFrameNames`) allow for high-speed metadata retrieval from complex multi-frame layouts, essential for advanced web scraping.
 
 --- 
+
 #### 🖼️ IFrame HTML Extraction 
 
 We implemented a robust system to track and extract HTML from iframes, including cross-origin ones.
@@ -164,6 +158,7 @@ To ensure stability for existing scripts not using the UDF, the following legacy
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
+
 
 ## 📖 NetWebView2Lib Version 2.0.0-stable (Quick Reference)
 
