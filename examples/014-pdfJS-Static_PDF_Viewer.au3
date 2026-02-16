@@ -25,6 +25,8 @@
 _Example()
 
 Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
 
@@ -61,11 +63,11 @@ Func _Example()
 
 	#Region ; now we can call the script directly from the JavaScript library "NetWebView2Lib_pdfjs_Tools.js" - some pdfjs magic stuff ;)
 	Local $s_JavaScript_snipp = ''
+	Local $s_PDF_TEXT = ''
 
 	$s_JavaScript_snipp = "PDF_ExtractToJSON();"
-	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-	Sleep(500) ; mLipok #TODO we should avoid Sleep() here
-	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
+	$s_PDF_TEXT = _NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp & @CRLF & $s_PDF_TEXT)
 
 	$s_JavaScript_snipp = "PDF_HighlightSpansContainingText('2016', 'blue', 'pink');"
 	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
@@ -236,7 +238,6 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $sExpectedTitle, $bBlockLinks = 
 	ConsoleWrite("- $s_Viewer_URL= " & $s_Viewer_URL & @CRLF)
 
 	_NetWebView2_Navigate($oWeb, $s_Viewer_URL, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle, 5000)
-	#Region ; mLipok #TODO this should be fixed by better LoadWait, I mean adding a check if the desired title appears
 	ConsoleWrite("! we're done with navigation, but check how many more messages there are below. SLN=" & @ScriptLineNumber & @CRLF)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Wait for all messages to full loading PDF by pdf.js')
 	#EndRegion ; mLipok #TODO this should be fixed by better LoadWait, I mean adding a check if the desired title appears

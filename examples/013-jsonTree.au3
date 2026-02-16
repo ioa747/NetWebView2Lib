@@ -18,6 +18,8 @@ _Example()
 
 #Region ; UDF TESTING EXAMPLE
 Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
 
@@ -101,7 +103,7 @@ Func _Example()
 	WEnd
 
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
-EndFunc   ;==>Main
+EndFunc   ;==>_Example
 
 #Region ; === UTILS ===
 
@@ -159,7 +161,7 @@ Func _Web_jsonTree(ByRef $oWebV2M, $sJavaScripton)
 			"</script></body></html>"
 
 	; 4. Navigate to the generated HTML
-	$oWebV2M.NavigateToString($sHTML)
+	_NetWebView2_NavigateToString($oWebV2M, $sHTML)
 	__NetWebView2_Log(@ScriptLineNumber, "+ JSON Tree Rendered & Listeners Active")
 EndFunc   ;==>_Web_jsonTree
 

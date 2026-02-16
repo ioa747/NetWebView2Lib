@@ -75,7 +75,7 @@ EndFunc   ;==>_GetDemoHTML
 #Region ; USER DEFINED EVENTS HANDLER FUNCTION
 ; BROWSER 1 - Manager Events
 Func __UserEventHandler_Web1__Manager__OnMessageReceived($oWebView, $hWindow, $sMsg)
-	#forceref $hWindow
+	$hWindow = WinGetHandle($hWindow)
 	ConsoleWrite(">> [Browser 1]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
 		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));', $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
@@ -84,6 +84,8 @@ EndFunc   ;==>__UserEventHandler_Web1__Manager__OnMessageReceived
 
 ; BROWSER 1 - JavaScript Bridge Events
 Func __UserEventHandler_Web1__Bridge__OnMessageReceived($oWebView, $hWindow, $sMsg)
+	$hWindow = WinGetHandle($hWindow)
+
 	Local Static $iMsgCnt = -1
 	ConsoleWrite(">> [JS 1]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 
@@ -107,7 +109,7 @@ EndFunc   ;==>__UserEventHandler_Web1__Bridge__OnMessageReceived
 
 ; BROWSER 2 - Manager Events
 Func __UserEventHandler_Web2__Manager__OnMessageReceived($oWebView, $hWindow, $sMsg)
-	#forceref $hWindow
+	$hWindow = WinGetHandle($hWindow)
 	ConsoleWrite(">> [Browser 2]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	If $sMsg = "INIT_READY" Then
 		_NetWebView2_ExecuteScript($oWebView, 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));', $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
@@ -116,6 +118,7 @@ EndFunc   ;==>__UserEventHandler_Web2__Manager__OnMessageReceived
 
 ; BROWSER 2 - JavaScript Bridge Events
 Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView, $hWindow, $sMsg)
+	$hWindow = WinGetHandle($hWindow)
 	Local Static $iMsgCnt = -1
 	ConsoleWrite(">> [JS 2]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 

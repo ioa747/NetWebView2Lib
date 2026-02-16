@@ -12,6 +12,8 @@ Global $oWebV2M, $oBridge
 _Example_Console_Redirect()
 
 Func _Example_Console_Redirect()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	Local $hGUI = GUICreate("Console Redirect Test", 400, 300)
 
 	; 1. Initialize WebView2

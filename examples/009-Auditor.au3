@@ -21,6 +21,8 @@ _Example()
 Exit
 
 Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	#Region ; === GUI ===
 	Local $hGUI = GUICreate("AutoIt Auditor", 1100, 850, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x1E1E1E, $hGUI)
@@ -149,8 +151,8 @@ Func _Example()
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
 	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 420, 45, 670, 795, True, True, 1.2, "0x1E1E1E")
 
-	_NetWebView2_Navigate($oWebV2M, $sURL, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
-
+	_NetWebView2_Navigate($oWebV2M, $sURL)
+	WinSetState($hGUI, "", @SW_MAXIMIZE)
 	GUISetState(@SW_SHOW)
 
 	#EndRegion ; === GUI ===

@@ -6,6 +6,7 @@
 #include <Array.au3>
 #include <GuiEdit.au3>
 #include <Misc.au3>
+#include "..\NetWebView2Lib.au3"
 
 _VersionChecker("1.2.0.0") ; DLL Version Check
 
@@ -22,9 +23,11 @@ Global $hGUI, $idURL, $idStatusLabel
 Global $g_bURLFullSelected = False
 Global $g_bAutoRestoreSession = False
 
-Main()
+_Example()
 
-Func Main()
+Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	#Region ; === Gui AutoIt ===
 	$hGUI = GUICreate("AutoIt", 1285, 850, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x1E1E1E, $hGUI)
@@ -120,7 +123,7 @@ Func Main()
 				$oManager.GetCookies(GUICtrlRead($idURL))
 
 			Case $idBtnRestoreSession
-				Local $sURL = GUICtrlRead($idURL)
+				$sURL = GUICtrlRead($idURL)
 				Local $sDomainOnly = StringRegExpReplace($sURL, "https?://([^/]+).*", "$1")
 				_RestoreSession($sDomainOnly)
 
@@ -147,7 +150,7 @@ Func Main()
 				GUICtrlSetData($idStatusLabel, "Reload")
 
 			Case $idURL
-				$oManager.Navigate(GUICtrlRead($idURL))
+				_NetWebView2_Navigate($oManager, GUICtrlRead($idURL))
 				GUICtrlSetData($idStatusLabel, "Navigate: " & GUICtrlRead($idURL))
 
 		EndSwitch
@@ -159,7 +162,7 @@ Func Main()
 
 	WEnd
 
-EndFunc   ;==>Main
+EndFunc   ;==>_Example
 ;---------------------------------------------------------------------------------------
 Func _CleanExit() ; CleanExit
 	; Check if the object exists before calling methods to avoid COM errors during crash
@@ -170,8 +173,8 @@ Func _CleanExit() ; CleanExit
 	; Release the event sinks
 	$oManager = 0
 	$oBridge = 0
-	$oEvtManager = 0
-	$oEvtBridge = 0
+;~ 	$oEvtManager = 0
+;~ 	$oEvtBridge = 0
 	$oMyError = 0
 
 	ConsoleWrite("--> Application exited cleanly." & @CRLF)
@@ -199,7 +202,7 @@ EndFunc   ;==>Bridge_OnMessageReceived
 ;---------------------------------------------------------------------------------------
 Func WebView_OnMessageReceived($sMessage)
 	ConsoleWrite("+> [CORE EVENT]: " & $sMessage & @CRLF)
-	Local Static $bIsInitialized, $sCurentURL = "", $sLastRestoredDomain = ""
+	Local Static $sCurentURL = "", $sLastRestoredDomain = ""
 	Local $sDomain
 
 	; Separating messages that have parameters (e.g. TITLE_CHANGED|...)
@@ -208,8 +211,7 @@ Func WebView_OnMessageReceived($sMessage)
 
 	Switch $sCommand
 		Case "INIT_READY"
-			$bIsInitialized = True ; We note that we are finished.
-			$oManager.Navigate(GUICtrlRead($idURL))
+			_NetWebView2_Navigate($oManager, GUICtrlRead($idURL))
 			GUISetState(@SW_SHOW, $hGUI)
 
 		Case "NAV_STARTING"
@@ -368,8 +370,11 @@ Func ShowWebNotification($sMessage, $sBgColor = "#4CAF50", $iDuration = 3000) ; 
 
 	$oManager.ExecuteScript($sJS)
 EndFunc   ;==>ShowWebNotification
+
 ;---------------------------------------------------------------------------------------
 Func WM_SIZE($hWnd, $iMsg, $wParam, $lParam) ; Synchronizes WebView size with the GUI window
+	#forceref $hWnd, $iMsg
+
 	If $wParam = 1 Then Return $GUI_RUNDEFMSG ; 1 = SIZE_MINIMIZED
 
 	Local $iNewWidth = BitAND($lParam, 0xFFFF)

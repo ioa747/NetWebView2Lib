@@ -31,6 +31,8 @@ Global $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
 _Example()
 
 Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	Local $hDLL = DllOpen("user32.dll")
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
@@ -57,7 +59,7 @@ Func _Example()
 	GUISetState(@SW_SHOW)
 
 	; navigate to the page
-	_NetWebView2_Navigate($oWebV2M, "https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population", $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
+	_NetWebView2_Navigate($oWebV2M, "https://en.wikipedia.org/wiki/List_of_countries_and_dependencies_by_population")
 	ConsoleWrite("navigate to the page" & @CRLF)
 
 	; Main Loop
@@ -99,8 +101,6 @@ Func _Example()
 		EndIf
 
 	WEnd
-
-	__NetWebView2_LastMessageReceived($oWebV2M, -1000)
 
 	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 	GUIDelete($hGUI)
@@ -269,7 +269,7 @@ Func _Web_GoTo($oWebV2M, $sURL) ; Navigates to a URL or performs a Google search
 
 	; Execution
 	ConsoleWrite("-> Web_GoTo: " & $sFinalURL & @CRLF)
-	$oWebV2M.Navigate($sFinalURL)
+	_NetWebView2_Navigate($oWebV2M, $sFinalURL)
 	Return True
 EndFunc   ;==>_Web_GoTo
 

@@ -36,7 +36,9 @@
 _Example()
 
 Func _Example()
-	; Create the UI
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
+	; Create the GUI
 	Local $iHeight = 800
 	Local $hMainGUIWindow = GUICreate("WebView2 .NET Manager - Demo: " & @ScriptName, 1100, $iHeight, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	Local $idLabelStatus = GUICtrlCreateLabel("Status: Initializing Engine...", 10, $iHeight - 20, 1080, 20)
@@ -76,7 +78,7 @@ Func _Example()
 
 			$s_PDF_FileFullPath = $a_Files[$IDX_File]
 			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation started: ' & $s_PDF_FileFullPath)
-			_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', 1000, True)
+			_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5000, 1000, True)
 			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation completed: ' & $s_PDF_FileFullPath)
 			ConsoleWrite("! =Example= @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
 			If $bSleep_UserReaction Then Sleep(2000) ; simulates user reaction on PDF

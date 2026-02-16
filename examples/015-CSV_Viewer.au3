@@ -13,8 +13,9 @@
 
 _Example()
 
-#Region ; UDF TESTING EXAMPLE
 Func _Example()
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc)
 	#forceref $oMyError
 
@@ -116,4 +117,3 @@ Func _Web_CSVViewer(ByRef $oWeb, $sFileData = "")
 
 EndFunc   ;==>_Web_CSVViewer
 #EndRegion ; === UTILS ===
-#EndRegion ; UDF TESTING EXAMPLE

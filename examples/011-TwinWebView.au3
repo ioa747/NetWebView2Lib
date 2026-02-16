@@ -37,6 +37,8 @@ _MainGUI()
 
 ;--------------------------------------------------------------------------------------------------------------------------------
 Func _MainGUI() ; Creates the primary application window and starts the message loop
+	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
+
 	; Use $WS_CLIPCHILDREN to prevent flickering when resizing child windows
 	$hMainGUI = GUICreate("Multi-WebView2 v1.4.0", 1000, 600, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 
@@ -85,13 +87,13 @@ Func _MainGUI() ; Creates the primary application window and starts the message 
 			Case $Bar1.GlobalNavButton
 				MouseClick("right")
 			Case $Bar1.ctx_Google
-				If IsObj($oWeb1) Then $oWeb1.Navigate("https://www.google.com")
+				If IsObj($oWeb1) Then _NetWebView2_Navigate($oWeb1, "https://www.google.com")
 			Case $Bar1.ctx_AutoIt
-				If IsObj($oWeb1) Then $oWeb1.Navigate("https://www.autoitscript.com/forum")
+				If IsObj($oWeb1) Then _NetWebView2_Navigate($oWeb1, "https://www.autoitscript.com/forum")
 			Case $Bar1.ctx_Ghostery
-				If IsObj($oWeb1) Then $oWeb1.Navigate("extension://mlomiejdfkolichcflejclcbmpeaniij/pages/panel/index.html")
+				If IsObj($oWeb1) Then _NetWebView2_Navigate($oWeb1, "extension://mlomiejdfkolichcflejclcbmpeaniij/pages/panel/index.html")
 			Case $Bar1.ctx_DarkReader
-				If IsObj($oWeb1) Then $oWeb1.Navigate("extension://eimadpbcbfnmbkopoojfekhnkhdbieeh/ui/popup/index.html")
+				If IsObj($oWeb1) Then _NetWebView2_Navigate($oWeb1, "extension://eimadpbcbfnmbkopoojfekhnkhdbieeh/ui/popup/index.html")
 			Case $Bar1.ctx_Extensions_Manager
 				_WV2_ShowExtensionPicker(500, 600, $hMainGUI, @ScriptDir & "\Extensions_Lib", $Bar1.Web_ProfilePath)
 			Case $Bar1.ctx_EnableCustomMenu
@@ -188,7 +190,7 @@ Func _InitBrowsers() ; Creates child window containers and initializes WebView2 
 		Sleep(10)
 	Until $oWeb1.IsReady And $oWeb2.IsReady
 
-	$oWeb1.Navigate("https://www.google.com/search?q=web1")
+	_NetWebView2_Navigate($oWeb1, "https://www.google.com/search?q=web1")
 	GUISetState(@SW_SHOWNOACTIVATE, $hID1)
 
 	$oWeb2.Navigate("https://www.google.com/search?q=web2")
@@ -272,7 +274,7 @@ Func Bridge2_OnMessageReceived($sMsg) ; [Bridge2 JS]
 				Local $sURL = "https://www.google.com/search?q=" & $sSearchText & "+site:" & $sDomain2
 
 				; Update Browser 1 with the results
-				$oWeb1.Navigate($sURL)
+				_NetWebView2_Navigate($oWeb1, $sURL)
 			EndIf
 	EndSwitch
 EndFunc   ;==>Bridge2_OnMessageReceived
