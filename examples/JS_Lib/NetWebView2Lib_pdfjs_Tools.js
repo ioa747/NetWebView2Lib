@@ -1,33 +1,64 @@
 /**
- * PDF_Tools.js - Final Combined Library
+ * PDF_Tools.js - Final Combined Library (v1.4.2)
  */
 
+// NetWebView2Lib_pdfjs_Tools.js
 async function PDF_ExtractToJSON() {
-    try {
-        const pdfUrl = window.PDFViewerApplication.url;
-        const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-        const meta = await pdf.getMetadata();
-        let pdfData = {
-            type: 'PDF_DATA_PACKAGE',
-            metadata: {
-                title: meta.info.Title || 'N/A',
-                author: meta.info.Author || 'N/A',
-                pagesCount: pdf.numPages
-            },
-            pages: []
-        };
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const content = await page.getTextContent();
-            pdfData.pages.push({
-                pageIndex: i,
-                text: content.items.map(item => item.str).join(' ')
-            });
+    if (typeof PDFViewerApplication === 'undefined') return;
+    
+    const pdf = PDFViewerApplication.pdfDocument;
+    const pdfData = {
+        type: 'PDF_DATA_PACKAGE',
+        metadata: (await pdf.getMetadata()).info,
+        pagesCount: pdf.numPages, // Explicitly send page count for AutoIt
+        pages: []
+    };
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        
+        // Map items and include the actual width provided by PDF.js
+        // Then sort by Y (top to bottom) and X (left to right)
+        let items = textContent.items.map(item => ({
+            str: item.str,
+            x: item.transform[4],
+            y: item.transform[5],
+            width: item.width 
+        })).sort((a, b) => Math.abs(b.y - a.y) > 5 ? b.y - a.y : a.x - b.x);
+
+        let pageText = "";
+        let lastY = -1;
+        let lastX = 0;
+        const charWidth = 5; // Standard multiplier for visual spacing
+
+        for (const item of items) {
+            // Check for line change based on Y coordinate threshold
+            if (lastY !== -1 && Math.abs(lastY - item.y) > 5) {
+                pageText = pageText.trimEnd() + "\n"; 
+                lastX = 0;
+            }
+
+            // Calculate horizontal spacing based on distance from last item
+            let distance = item.x - lastX;
+            let spaces = Math.floor(distance / charWidth);
+            
+            pageText += " ".repeat(Math.max(0, spaces)) + item.str;
+            
+            // Update lastX using the actual width of the current text element
+            lastX = item.x + item.width; 
+            lastY = item.y;
         }
-        window.chrome.webview.postMessage(JSON.stringify(pdfData));
-    } catch (e) {
-        window.chrome.webview.postMessage(JSON.stringify({type: 'error', message: e.message}));
+        
+        // Push processed page data to the package
+        pdfData.pages.push({ 
+            pageIndex: i, 
+            text: pageText.trim() 
+        });
     }
+    
+    // Send the final JSON package back to AutoIt
+    window.chrome.webview.postMessage(JSON.stringify(pdfData));
 }
 
 async function PDF_ExtractLegacy() {
