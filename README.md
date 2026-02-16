@@ -23,7 +23,17 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 ### 🛠 Prerequisites
 
 1. **.NET Framework 4.8** or higher.
-2. **Microsoft Edge WebView2 Runtime**.
+2. **Microsoft Edge WebView2 Runtime version 128.0.2739.15 or higher**.
+
+
+https://github.com/ioa747/NetWebView2Lib/blob/Version-v2.0.0-stable-dev1/src/packages.config
+```
+<?xml version="1.0" encoding="utf-8"?>
+<packages>
+  <package id="Microsoft.Web.WebView2" version="1.0.2739.15" targetFramework="net48" />
+  <package id="Newtonsoft.Json" version="13.0.4" targetFramework="net48" />
+</packages>
+```
 
    * *The registration script will check for this and provide a download link if missing.*
 
@@ -62,54 +72,102 @@ This project is provided "as-is". You are free to use, modify, and distribute it
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
+## 🚀 What's New in v2.0.0-stable - Professional Naming & Absolute Stability
 
-## 🚀 What's New in v2.0.0-beta.3 - AcceleratorKey Detail & Refactoring
-
-This update focuses on deep keyboard interception and code modularity.
-
-### ⚡ Key Features & Enhancements
-
-#### **1. PhysicalKeyStatus Expansion**
-The `OnAcceleratorKeyPressed` event now provides 1:1 access to the underlying Windows keyboard state.
-- **New Properties**: `RepeatCount`, `ScanCode`, `IsExtendedKey`, `IsMenuKeyDown`, `WasKeyDown`, and `IsKeyReleased`.
-- **Use Case**: Detect held keys, distinguish between left/right Alt/Ctrl, and implement complex hotkey logic without Win32 API calls.
-
-#### **2. Performance & Modularity**
-- **Standalone Argument Logic**: Argument wrappers have been moved to dedicated files (e.g., `WebView2AcceleratorKeyPressedEventArgs.cs`).
-- **Lean Core**: Reduced `WebViewManager.cs` complexity by outsourcing event data structures.
-
-#### **3. Process Stability & Authentication**
-- **Robust Crash Handling**: `OnProcessFailed` provides deep insights into process crashes, allowing for automated recovery or logging.
-- **Crash Dump Management**: `FailureReportFolderPath` allows redirection of diagnostic files.
-- **Native Authentication**: `OnBasicAuthenticationRequested` brings support for server-level auth prompts, including asynchronous credential entry via the `.Complete()` method.
-
----
-
-## 🚀 What's New in v2.0.0-beta.2 - COM Versioning & Handle Alignment
-
-This update introduces the ability to query the DLL version directly and aligns window handles with AutoIt's native format.
+This stable release marks the transition to a professional, standardized COM architecture and introduces high-performance infrastructure for production-grade applications.
 
 ### ⚡ Key Features & Enhancements
 
-#### **1. Advanced Handle Formatting (`[HANDLE:0x...]`)**
-All window handles returned by the library (via properties or events) are now formatted as strings compatible with AutoIt's Advanced Window Descriptions.
-- **Direct Compatibility**: Handles like `[HANDLE:0x00010203]` can be passed directly to `WinExists`, `WinSetTitle`, etc., without `HWnd()` conversion.
+#### **1. COM Standardizing (NetWebView2Lib)**
+The library has transitioned to a consistent naming convention for all subsystems, improving discoverability and professional alignment.
+- **New ProgIDs**: `NetWebView2Lib.WebView2Manager`, `NetWebView2Lib.WebView2Bridge`, and `NetWebView2Lib.WebView2Parser`.
+- **Full Backward Compatibility**: Legacy ProgIDs (e.g., `NetWebView2.Manager`) continue to function via an inheritance-based compatibility layer.
 
-#### **2. COM Version Exposure**
-You can now access the `.version` property on all primary COM objects.
-- **`Manager.version`**, **`Bridge.version`**, **`Parser.version`**.
+#### **2. Threading & Stability Mastery**
+Identified and resolved complex threading deadlocks in asynchronous handlers. 
+- **UI-Thread Marshalling**: Explicit synchronization ensure that events like Context Menus, Downloads, and IFrame HTML extraction always safely interact with the AutoIt UI thread.
+- **SDK Resilience**: Reflection-based URI retrieval for IFrames ensures compatibility across different versions of the WebView2 SDK.
 
-#### **3. Stabilized Infrastructure**
-- **GUID Collision Resolution**: Fixed internal interface IDs that caused registration issues in v2.0.0-beta.1.
-- **`ParentWindowHandle`**: New property to retrieve the handle passed during initialization.
+#### **3. Standardized SDK Locking (v1.0.2739.15)**
+To ensure maximum reliability across the broadest possible range of Windows installations, we have standardized the core engine on a specific, high-stability SDK version.
+- **Fixed Version**: Locked to **WebView2 SDK 1.0.2739.15** (Released August 26, 2024).
+- **Runtime Requirement**: Requires **WebView2 Runtime 128.0.2739.15** or newer.
+- **Strategic Choice**: This version provides a "Sweet Spot" of features—including full support for IFrame scraping, Basic Authentication, and Process Failure events—while maintaining compatibility with the vast majority of current "Evergreen" browser installations.
+- **Strict Validation**: The registration utility (`Register_web2.au3`) has been updated to perform a mandatory check for this minimum runtime version, preventing obscure startup errors.
+
+#### **4. Enriched Verbose Logging**
+A redesigned diagnostic system for easier debugging of complex workflows.
+- **Branded & Traceable**: Every log line now includes the `+++[NetWebView2Lib]` prefix and the instance-specific `[HANDLE:0x...]`.
+- **Comprehensive Event Tracing**: Detailed logs for Navigation, Resource Requests (with HTTP codes), Focus changes, and Web Messages.
+- **Default Folder Sync**: Renamed the default crash folder to `FailureReportFolder` for better parity with internal WebView2 parameters.
+
+####  **4. High-Performance IFrame Scraping**
+Bulk extraction methods (`GetFrameUrls`, `GetFrameNames`) allow for high-speed metadata retrieval from complex multi-frame layouts, essential for advanced web scraping.
+
+--- 
+#### 🖼️ IFrame HTML Extraction 
+
+We implemented a robust system to track and extract HTML from iframes, including cross-origin ones.
+
+##### 1. Frame Tracking System
+
+A dynamic registration system was added to 
+
+WebView2Manager.cs to track the lifecycle of all iframes.
+
+- **Initialization**: Automatically subscribes to `CoreWebView2.FrameCreated`.
+- **Lifecycle Management**: Tracks `CoreWebView2Frame` objects in a thread-safe list and automatically removes them on `Destroyed`.
+
+##### 2. New IFrame API
+
+Six new COM methods were added to the 
+
+IWebViewActions interface (Standardized & Compatibility Layers):
+
+|Method|Description|
+|---|---|
+|GetFrameCount()|Returns the number of tracked iframes.|
+|GetFrameUrl(index)|Returns the URL of a specific iframe.|
+|GetFrameName(index)|Returns the Name of a specific iframe.|
+|GetFrameUrls()|Returns the **entire array** of frame URLs as a pipe-separated string.|
+|GetFrameNames()|Returns the **entire array** of frame names as a pipe-separated string.|
+|GetFrameHtmlSource(index)|Asynchronously initiates HTML extraction for a frame.|
+
+#### 🩺Verbose Diagnostic Mode
+
+A new `Verbose` property was added to allow real-time diagnostic logging to the SciTE console (or any stdout listener).
+
+```autoit
+$oWebV2M.Verbose = True ; Enable diagnostic logging
+```
+
+When enabled, the console will show entries like: 
+`[NetWebView2Lib][14:20:33.456] Initialize request: parent=[HANDLE:0x...], x=0, y=0, w=1024, h=768` 
+`[NetWebView2Lib][14:20:34.123] WebView2 Initialized successfully.` 
+`[NetWebView2Lib][14:20:35.789] Navigate: https://www.google.com`
+
+#### 🔄 Backward Compatibility (Legacy ProgIDs)
+
+To ensure stability for existing scripts not using the UDF, the following legacy ProgIDs are still supported through a compatibility layer:
+
+| Legacy Object | Legacy ProgID | v2.0 Standardized ProgID |
+| :--- | :--- | :--- |
+| `WebViewManager` | `NetWebView2.Manager` | `NetWebView2Lib.WebView2Manager` |
+| `WebViewBridge` | `NetWebView2Lib.WebViewBridge` | `NetWebView2Lib.WebView2Bridge` |
+| `JsonParser` | `NetJson.Parser` | `NetWebView2Lib.WebView2Parser` |
+
+> [!NOTE]
+> Objects created with legacy ProgIDs will function exactly the same but will report their legacy class names via `ObjName()`.
+
+
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 📖 NetWebView2Lib Version 2.0.0-beta.3 (2026-02-11) (Quick Reference)
+## 📖 NetWebView2Lib Version 2.0.0-stable (Quick Reference)
 
-### NetWebView2Lib (ProgId: NetWebView2.Manager)
+### WebView2Manager (ProgId: NetWebView2Lib.WebView2Manager)
 
 #### ===Properties===
 
@@ -181,6 +239,10 @@ Enables or disables the `OnWebResourceResponseReceived` event entirely.
 Determines whether `OnWebResourceResponseReceived` triggers for all resources (False) or only for the main document (True). Essential for preventing GUI deadlocks in AutoIt.
 `object.HttpStatusCodeDocumentOnly = Value`
 
+##### Verbose
+Enable diagnostic logging to console.  (before `$object.Initialize()`)
+`object.Verbose = Value`
+
 ##### IsDownloadHandled
 Determines whether the download is handled by the application. If set to **True** during `OnDownloadStarting`, the internal Edge download is cancelled.
 `object.IsDownloadHandled = Value`
@@ -211,14 +273,14 @@ A comma-separated list of Virtual Key codes to be blocked synchronously (e.g., "
 
 ##### FailureReportFolderPath
 Sets or gets the path where the WebView2 browser stores crash reports (dump files).
-- **Default**: If NOT set by the user, the system automatically uses the `Crashes` subfolder within the `UserDataFolder` (assigned during `.Initialize`).
+- **Default**: If NOT set by the user, the system automatically uses the `FailureReportFolderPath` subfolder within the `UserDataFolder` (assigned during `.Initialize`).
 - **Manual Override**: You can set a custom path **before** calling `.Initialize`.
 - **Example (Custom Path)**: `object.FailureReportFolderPath = "C:\MyCustomCrashDumps"`
 - **Example (Read current)**: `$sPath = object.FailureReportFolderPath`
 
 ##### Version
- Allows AutoIt to verify the DLL version at runtime for compatibility checks.
-`object.version
+Allows AutoIt to verify the DLL version at runtime for compatibility checks.
+`object.Version`
 
 #### ===Method===
 
@@ -315,6 +377,30 @@ Clears all active ad block rules.
 ##### GetHtmlSource
 Asynchronously retrieves the full HTML source (sent via OnMessageReceived with 'HTML_SOURCE|').
 `object.GetHtmlSource()`
+
+##### GetFrameCount
+Returns the number of currently tracked iframes.
+`object.GetFrameCount()`
+
+##### GetFrameUrl
+Returns the URL of the specified frame index.
+`object.GetFrameUrl(Index As Integer)`
+
+##### GetFrameName
+Returns the Name attribute of the specified frame index.
+`object.GetFrameName(Index As Integer)`
+
+##### GetFrameUrls
+Returns a pipe-separated string of all tracked iframe URLs.
+`object.GetFrameUrls()`
+
+##### GetFrameNames
+Returns a pipe-separated string of all tracked iframe names.
+`object.GetFrameNames()`
+
+##### GetFrameHtmlSource
+Asynchronously retrieves the HTML of the frame at the specified index (sent via OnMessageReceived with 'FRAME_HTML_SOURCE|Index|').
+`object.GetFrameHtmlSource(Index As Integer)`
 
 ##### GetSelectedText
 Asynchronously retrieves the currently selected text (sent via OnMessageReceived with 'SELECTED_TEXT|').
@@ -622,12 +708,12 @@ Fired when the browser requires basic authentication credentials for a URI.
 
 ---
 
-### JsonParser (ProgId: NetJson.Parser)
+### WebView2Parser (ProgId: NetWebView2Lib.WebView2Parser)
 
 #### ===Properties===
 ##### Version
- Allows AutoIt to verify the DLL version at runtime for compatibility checks.
-`object.version
+Allows AutoIt to verify the DLL version at runtime for compatibility checks.
+`object.Version`
 
 #### ===Methods===
 
@@ -751,3 +837,4 @@ Sorts a JSON array by a specific key.
 Removes duplicate objects from a JSON array based on a key's value.
 `bool SelectUnique(ArrayPath As String, Key As String)`
 
+---
