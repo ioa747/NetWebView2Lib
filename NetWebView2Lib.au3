@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2026.2.16.3 🚩
+; NetWebView2Lib.au3 - Script Version: 2026.2.16.20 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -822,7 +822,7 @@ EndFunc   ;==>_NetWebView2_PrintToPdfStream
 ; Description ...: Adds a JavaScript to be executed before any other script when a new page is loaded.
 ; Syntax.........: _NetWebView2_AddInitializationScript($oWeb, $sScript)
 ; Parameters ....: $oWeb    - The NetWebView2 Manager object.
-;                  $sScript - The JavaScript code to inject.
+;                  $vScript - The JavaScript code to inject (String) OR the full path to a JavaScript file.
 ; Return values .: Success  - Returns a Script ID (string).
 ;                  Failure  - Returns the error message and sets @error.
 ; Author ........: ioa747, mLipok
@@ -832,12 +832,16 @@ EndFunc   ;==>_NetWebView2_PrintToPdfStream
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_AddInitializationScript($oWebV2M, $sScript)
+Func _NetWebView2_AddInitializationScript($oWebV2M, $vScript)
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, "ERROR: Invalid Object")
-	Local $sScriptId = $oWebV2M.AddInitializationScript($sScript)
+
+	; Smart Detection
+	If FileExists($vScript) Then $vScript = FileRead($vScript)
+
+	Local $sScriptId = $oWebV2M.AddInitializationScript($vScript)
 	If StringInStr($sScriptId, "ERROR:") Then Return SetError(2, 0, $sScriptId)
 	Return SetError(0, 0, $sScriptId)
-EndFunc   ;==>_NetWebView2_AddInitializationScript
+EndFunc   ;==>New_NetWebView2_AddInitializationScript
 
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _NetWebView2_RemoveInitializationScript
@@ -2147,5 +2151,6 @@ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
 
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
 
 
