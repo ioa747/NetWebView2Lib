@@ -37,7 +37,7 @@ namespace NetWebView2Lib
     public class WebView2AcceleratorKeyPressedEventArgs : IWebView2AcceleratorKeyPressedEventArgs
     {
         private readonly CoreWebView2AcceleratorKeyPressedEventArgs _args;
-        private readonly WebViewManager _manager;
+        private readonly WebView2Manager _manager;
 
         public uint VirtualKey { get; }
         public int KeyEventLParam { get; }
@@ -71,7 +71,7 @@ namespace NetWebView2Lib
             try { _args.Handled = true; } catch { }
         }
 
-        public WebView2AcceleratorKeyPressedEventArgs(CoreWebView2AcceleratorKeyPressedEventArgs args, WebViewManager manager)
+        public WebView2AcceleratorKeyPressedEventArgs(CoreWebView2AcceleratorKeyPressedEventArgs args, WebView2Manager manager)
         {
             _args = args;
             _manager = manager;
