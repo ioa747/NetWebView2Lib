@@ -52,7 +52,7 @@ Func _Example()
 	#EndRegion ; GUI CREATION
 
 	; Adds a JavaScript library to be executed before any other script when a new page is loaded.
-	Local $sScriptId = New_NetWebView2_AddInitializationScript($oWeb, @ScriptDir & "\JS_Lib\NetWebView2Lib_pdfjs_Tools.js")
+	Local $sScriptId = _NetWebView2_AddInitializationScript($oWeb, @ScriptDir & "\JS_Lib\NetWebView2Lib_pdfjs_Tools.js")
 	ConsoleWrite("$sScriptId=" & $sScriptId & @CRLF)
 
 	; navigate to the page
@@ -306,15 +306,3 @@ Func __SetupStaticPDF(ByRef $oWeb, $s_PDF_Path, $sExpectedTitle, $bBlockLinks = 
 	$oWeb.DisableBrowserFeatures()
 	$oWeb.LockWebView()
 EndFunc   ;==>__SetupStaticPDF
-
-; New to replace _NetWebView2_AddInitializationScript in UDF
-Func New_NetWebView2_AddInitializationScript($oWebV2M, $vScript)
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, "ERROR: Invalid Object")
-
-	; Smart Detection
-	If FileExists($vScript) Then $vScript = FileRead($vScript)
-
-	Local $sScriptId = $oWebV2M.AddInitializationScript($vScript)
-	If StringInStr($sScriptId, "ERROR:") Then Return SetError(2, 0, $sScriptId)
-	Return SetError(0, 0, $sScriptId)
-EndFunc   ;==>New_NetWebView2_AddInitializationScript
