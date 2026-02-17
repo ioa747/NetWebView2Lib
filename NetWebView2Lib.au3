@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2026.2.16.20 🚩
+; NetWebView2Lib.au3 - Script Version: 2026.2.17.5 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -136,7 +136,7 @@ Func _NetWebView2_CreateManager($sUserAgent = '', $s_fnEventPrefix = "", $s_AddB
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	Local $oWebV2M = ObjCreate("NetWebView2.Manager") ; REGISTERED VERSION
+	Local $oWebV2M = ObjCreate("NetWebView2Lib.WebView2Manager") ; REGISTERED VERSION
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Manager Creation ERROR", 1)
 	If @error Then Return SetError(@error, @extended, 0)
 
@@ -245,7 +245,7 @@ EndFunc   ;==>_NetWebView2_Initialize
 Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms = 5000)
 	Local Const $s_Prefix = ">>>[_NetWebView2_WaitForReadyState]:"
 
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(2, 0, False)
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(2, 0, False)
 	Local $sReadyState = ""
 
 	While 1
@@ -291,10 +291,10 @@ Func _NetWebView2_IsRegisteredCOMObject()
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_fake_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	ObjCreate("NetWebView2.Manager")
+	ObjCreate("NetWebView2Lib.WebView2Manager")
 	If @error Then Return SetError(1, 0, False)
 
-	ObjCreate("NetJson.Parser")
+	ObjCreate("NetWebView2Lib.WebView2Parser")
 	If @error Then Return SetError(2, 0, False)
 
 	Return True
@@ -360,7 +360,7 @@ Func _NetWebView2_CleanUp(ByRef $oWebV2M, ByRef $oJSBridge)
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! Object not found", 1))
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! Object not found", 1))
 
 	; Update Static Map to delete Handle
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, -1)
@@ -833,7 +833,7 @@ EndFunc   ;==>_NetWebView2_PrintToPdfStream
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_AddInitializationScript($oWebV2M, $vScript)
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, "ERROR: Invalid Object")
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, "ERROR: Invalid Object")
 
 	; Smart Detection
 	If FileExists($vScript) Then $vScript = FileRead($vScript)
@@ -841,7 +841,7 @@ Func _NetWebView2_AddInitializationScript($oWebV2M, $vScript)
 	Local $sScriptId = $oWebV2M.AddInitializationScript($vScript)
 	If StringInStr($sScriptId, "ERROR:") Then Return SetError(2, 0, $sScriptId)
 	Return SetError(0, 0, $sScriptId)
-EndFunc   ;==>New_NetWebView2_AddInitializationScript
+EndFunc   ;==>_NetWebView2_AddInitializationScript
 
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _NetWebView2_RemoveInitializationScript
@@ -859,7 +859,7 @@ EndFunc   ;==>New_NetWebView2_AddInitializationScript
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_RemoveInitializationScript($oWebV2M, $sScriptId)
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, False) ; Error 1: Not an object
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, False) ; Error 1: Not an object
 	$oWebV2M.RemoveInitializationScript($sScriptId)
 	Return SetError(@error, 0, (@error ? False : True))
 EndFunc   ;==>_NetWebView2_RemoveInitializationScript
@@ -882,7 +882,7 @@ EndFunc   ;==>_NetWebView2_RemoveInitializationScript
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_SetVirtualHostNameToFolderMapping($oWebV2M, $sHostName, $sFolderPath, $iAccessKind = 0)
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, False)
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, False)
 	$oWebV2M.SetVirtualHostNameToFolderMapping($sHostName, $sFolderPath, $iAccessKind)
 	Return SetError(@error, 0, (@error ? False : True))
 EndFunc   ;==>_NetWebView2_SetVirtualHostNameToFolderMapping
@@ -903,7 +903,7 @@ EndFunc   ;==>_NetWebView2_SetVirtualHostNameToFolderMapping
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_SetLockState($oWebV2M, $bLockState)
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, False)
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, False)
 	$oWebV2M.SetLockState($bLockState)
 	Return SetError(@error, 0, (@error ? False : True))
 EndFunc   ;==>_NetWebView2_SetLockState
@@ -924,7 +924,7 @@ EndFunc   ;==>_NetWebView2_SetLockState
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_EncodeBinaryToB64($oWebV2M, ByRef $dBinary)
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, "")
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, "")
 	Local $sResult = $oWebV2M.EncodeBinaryToB64($dBinary)
 	If @error Then Return SetError(@error, 0, "")
 	Return SetError(0, 0, $sResult)
@@ -946,7 +946,7 @@ EndFunc   ;==>_NetWebView2_EncodeBinaryToB64
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_DecodeB64ToBinary($oWebV2M, ByRef $sB64)
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, Binary(""))
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, Binary(""))
 	Local $dResult = $oWebV2M.DecodeB64ToBinary($sB64)
 	If @error Then Return SetError(@error, 0, Binary(""))
 	Return SetError(0, 0, $dResult)
@@ -968,7 +968,7 @@ EndFunc   ;==>_NetWebView2_DecodeB64ToBinary
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_SetBuiltInErrorPageEnabled($oWebV2M, $bEnabled)
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2.Manager' Then Return SetError(1, 0, False)
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, False)
 	$oWebV2M.IsBuiltInErrorPageEnabled = $bEnabled
 	Return SetError(@error, 0, (@error ? False : True))
 EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
@@ -1011,7 +1011,7 @@ Func _NetJson_CreateParser($sInitialJson = "{}")
 	#forceref $oMyError
 
 	If $sInitialJson = "" Or $sInitialJson = Default Then $sInitialJson = "{}"
-	Local $oParser = ObjCreate("NetJson.Parser") ; REGISTERED VERSION
+	Local $oParser = ObjCreate("NetWebView2Lib.WebView2Parser") ; REGISTERED VERSION
 ;~ 	If $_g_bNetWebView2_DebugDev Then __NetWebView2_ObjName_FlagsValue($oParser) ; FOR DEV TESTING ONLY
 	If Not IsObj($oParser) Then Return SetError(1, 0, 0)
 	If @error Then Return SetError(@error, @extended, 0)
@@ -2151,6 +2151,3 @@ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
 
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
-
-
-
