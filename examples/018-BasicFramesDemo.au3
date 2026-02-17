@@ -54,27 +54,40 @@ Func Main()
 ;~ 	_Demo_NavigateCheckBanner($sSession, "https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_iframe", '//*[@id="snigel-cmp-framework" and @class="snigel-cmp-framework"]')
 	If @error Then Return SetError(@error, @extended)
 
-	#Region ; testing NetWebView2Lib new methodes
+	#Region ; Example part 1 - testing NetWebView2Lib new methodes: .GetFrameCount() .GetFrameUrl($IDX_Frame) .GetFrameName($IDX_Frame)
 	Local $iFrameCount = $oWebV2M.GetFrameCount()
 	ConsoleWrite(@CRLF)
 	ConsoleWrite("! " & @ScriptLineNumber & " : Frames=" & $iFrameCount & @CRLF)
-	For $IDX_Frame = 0 To $iFrameCount -1
+	For $IDX_Frame = 0 To $iFrameCount - 1
 		ConsoleWrite("- IDX=" & $IDX_Frame & @CRLF)
 		ConsoleWrite("- URL=" & $oWebV2M.GetFrameUrl($IDX_Frame) & @CRLF)
 		ConsoleWrite("- NAME=" & $oWebV2M.GetFrameName($IDX_Frame) & @CRLF)
 		ConsoleWrite(@CRLF)
 	Next
+	#EndRegion ; Example part 1 - testing NetWebView2Lib new methodes: .GetFrameCount() .GetFrameUrl($IDX_Frame) .GetFrameName($IDX_Frame)
 
+	#Region ; Example part 2 - testing NetWebView2Lib new methodes .GetFrameUrls() .GetFrameNames()
 	ConsoleWrite("! " & @ScriptLineNumber & " : GetFrameUrls() :" & @CRLF & $oWebV2M.GetFrameUrls() & @CRLF)
 	ConsoleWrite("! " & @ScriptLineNumber & " : GetFrameNames() :" & @CRLF & $oWebV2M.GetFrameNames() & @CRLF)
-	For $IDX_Frame = 0 To $iFrameCount -1
+	#EndRegion ; Example part 2 - testing NetWebView2Lib new methodes .GetFrameUrls() .GetFrameNames()
+
+	#Region ; Example part 3 - testing NetWebView2Lib new methodes .GetFrameHtmlSource($IDX_Frame)
+	For $IDX_Frame = 0 To $iFrameCount - 1
 		ConsoleWrite(@CRLF & "======================================================" & @CRLF)
-		ConsoleWrite("! " & @ScriptLineNumber & " : GetFrameHtmlSource("&$IDX_Frame&") :" & @CRLF & $oWebV2M.GetFrameHtmlSource($IDX_Frame) & @CRLF)
+		ConsoleWrite("! " & @ScriptLineNumber & " : GetFrameHtmlSource(" & $IDX_Frame & ") :" & @CRLF & $oWebV2M.GetFrameHtmlSource($IDX_Frame) & @CRLF)
 	Next
 	ConsoleWrite(@CRLF & "======================================================" & @CRLF)
 	ConsoleWrite(@CRLF)
 	ConsoleWrite(@CRLF)
-	#EndRegion ; testing NetWebView2Lib new methodes
+	#Region ; Example part 1 - testing NetWebView2Lib new methodes
+
+#cs NOT SUPPORTED YET
+	Local $oFrame0 = $oWebV2M.GetFrame(0)
+	Local $oFrame1 = $oWebV2M.GetFrame(1)
+	Local $oFrame2 = $oWebV2M.GetFrame(2)
+	Local $oFrame3 = $oWebV2M.GetFrame(3)
+#CE NOT SUPPORTED YET
+
 
 #CS
 	; just after navigate current context should be on top level Window
@@ -107,7 +120,7 @@ Func Main()
 	If @error Then Return SetError(@error, @extended)
 #CE
 
-	#EndRegion - Testing how to manage frames
+	#EndRegion ; Example part 1 - testing NetWebView2Lib new methodes
 
 #CS
 
