@@ -78,9 +78,9 @@ Func _Example()
 
 			$s_PDF_FileFullPath = $a_Files[$IDX_File]
 			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation started: ' & $s_PDF_FileFullPath)
-			_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5000, 1000, True)
+			_NetWebView2_NavigateToPDF($oWebV2M, $s_PDF_FileFullPath, '#view=FitH', $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, Default, 5000, 1000, True)
 			GUICtrlSetData($idLabelStatus, $sProgress & ' - Navigation completed: ' & $s_PDF_FileFullPath)
-			ConsoleWrite("! =Example= @SLN=" & @ScriptLineNumber & ' ' & $s_PDF_FileFullPath & @CRLF)
+			ConsoleWrite("! =Example= @SLN=" & @ScriptLineNumber & ' NAVIGATION COMPLETED FOR: ' & $s_PDF_FileFullPath & @CRLF)
 			If $bSleep_UserReaction Then Sleep(2000) ; simulates user reaction on PDF
 		Next
 	EndIf
