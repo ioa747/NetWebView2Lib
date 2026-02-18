@@ -655,7 +655,8 @@ Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIE
 			Return SetError($iErr, $iExt, $iNavigation)
 		Else
 			_NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
-			$iErr = @error, $iExt = @extended
+			$iErr = @error
+			$iExt = @extended
 			$oWebV2M.UnLockWebView()
 			If $iErr Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1, $iErr, $iExt)
 			Return SetError($iErr, $iExt, $iNavigation)
