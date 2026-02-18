@@ -1419,7 +1419,9 @@ Func __NetWebView2_freezer($oWebV2M, ByRef $idPic)
 	Local $hDestination_DC = _WinAPI_CreateCompatibleDC($hPictureDC) ; Creates a memory device context compatible with the specified device
 	Local $hDestination_Bitmap = _WinAPI_CreateCompatibleBitmap($hPictureDC, $aPos[2], $aPos[3]) ; Creates a bitmap compatible with the specified device context
 	Local $hDestination_Sv = _WinAPI_SelectObject($hDestination_DC, $hDestination_Bitmap) ; Selects an object into the specified device context
-	_WinAPI_PrintWindow($hWindow_WebView2, $hDestination_DC, 2)
+
+	Local Const $PW_RENDERFULLCONTENT = 0x2 ; this will go to where it should  =)
+	_WinAPI_PrintWindow($hWindow_WebView2, $hDestination_DC, $PW_RENDERFULLCONTENT) ; print window to destination Window DC ; https://www.autoitscript.com/forum/topic/153782-help-filedocumentation-issues-discussion-only/page/40/#findComment-1549380
 
 	_WinAPI_ReleaseDC($hPic, $hPictureDC)
 	_WinAPI_SelectObject($hDestination_DC, $hDestination_Sv)
@@ -2175,5 +2177,6 @@ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
 
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
 
 
