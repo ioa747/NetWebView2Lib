@@ -19,6 +19,7 @@ Func _Register()
 	Local $sNet4_x64 = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"
 
 	Local $bSuccess = False
+	Local $bAbort = False
 	Local $sLog = "Registration Report:" & @CRLF & "--------------------" & @CRLF
 
 	; === Check for WebView2 Runtime ===
@@ -51,43 +52,51 @@ Func _Register()
 		Else
 			$sLog &= "[!] User skipped WebView2 installation. Aborting." & @CRLF
 			MsgBox($MB_ICONSTOP, "Aborted", "Registration cannot continue without WebView2 Runtime.")
-			Exit ; Stop the script
+			$bAbort = True
 		EndIf
 	EndIf
 
-	; === Registration 'NetWebView2Lib.dll' COM ===
-	Local $iExitCode
+	If Not $bAbort Then
+		; === Registration 'NetWebView2Lib.dll' COM ===
+		Local $iExitCode
 
-	; Registration for x86 (32-bit)
-	If FileExists($sNet4_x86) Then
-		$iExitCode = RunWait('"' & $sNet4_x86 & '" "' & @ScriptDir & '\' & $sDllName & '" /codebase /tlb', @ScriptDir, @SW_HIDE)
-		If $iExitCode = 0 Then
-			$sLog &= "[+] x86 Registration: SUCCESS" & @CRLF
-			$bSuccess = True
+		; Registration for x86 (32-bit)
+		If FileExists($sNet4_x86) Then
+			$iExitCode = RunWait('"' & $sNet4_x86 & '" "' & @ScriptDir & '\' & $sDllName & '" /codebase /tlb', @ScriptDir, @SW_HIDE)
+			If $iExitCode = 0 Then
+				$sLog &= "[+] x86 Registration: SUCCESS" & @CRLF
+				$bSuccess = True
+			Else
+				$sLog &= "[-] x86 Registration: FAILED (Code: " & $iExitCode & ")" & @CRLF
+			EndIf
 		Else
-			$sLog &= "[-] x86 Registration: FAILED (Code: " & $iExitCode & ")" & @CRLF
+			$sLog &= "[!] x86 RegAsm not found" & @CRLF
 		EndIf
-	Else
-		$sLog &= "[!] x86 RegAsm not found" & @CRLF
-	EndIf
 
-	; Registration for x64 (64-bit)
-	If FileExists($sNet4_x64) Then
-		$iExitCode = RunWait('"' & $sNet4_x64 & '" "' & @ScriptDir & '\' & $sDllName & '" /codebase /tlb', @ScriptDir, @SW_HIDE)
-		If $iExitCode = 0 Then
-			$sLog &= "[+] x64 Registration: SUCCESS" & @CRLF
-			$bSuccess = True
+		; Registration for x64 (64-bit)
+		If FileExists($sNet4_x64) Then
+			$iExitCode = RunWait('"' & $sNet4_x64 & '" "' & @ScriptDir & '\' & $sDllName & '" /codebase /tlb', @ScriptDir, @SW_HIDE)
+			If $iExitCode = 0 Then
+				$sLog &= "[+] x64 Registration: SUCCESS" & @CRLF
+				$bSuccess = True
+			Else
+				$sLog &= "[-] x64 Registration: FAILED (Code: " & $iExitCode & ")" & @CRLF
+			EndIf
 		Else
-			$sLog &= "[-] x64 Registration: FAILED (Code: " & $iExitCode & ")" & @CRLF
+			$sLog &= "[!] x64 RegAsm not found" & @CRLF
 		EndIf
-	Else
-		$sLog &= "[!] x64 RegAsm not found" & @CRLF
 	EndIf
 
 	; === Final Message ===
 	If $bSuccess Then
+		ConsoleWrite("+ Registration Complete" & @CRLF)
+		ConsoleWrite($sLog & @CRLF)
+
 		MsgBox($MB_ICONINFORMATION, "Registration Complete", $sLog)
 	Else
+		ConsoleWrite("! Registration Error" & @CRLF)
+		ConsoleWrite($sLog & @CRLF)
+
 		MsgBox($MB_ICONERROR, "Registration Error", "Library registration failed." & @CRLF & @CRLF & $sLog)
 	EndIf
 
@@ -95,6 +104,7 @@ EndFunc   ;==>_Register
 
 ;---------------------------------------------------------------------------------------
 Func WebView2Exist()
+;~ HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}
 	Local $aKeys[3] = [ _
 			"HKLM\SOFTWARE\Microsoft\EdgeUpdate\Clients", _
 			"HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients", _
@@ -107,7 +117,9 @@ Func WebView2Exist()
 			$sSubKey = RegEnumKey($sRootKey, $iIndex)
 			If @error Then ExitLoop ; No more keys
 			$sName = RegRead($sRootKey & "\" & $sSubKey, "name")
-			If $sName = "Microsoft Edge WebView2 Runtime" Then
+			ConsoleWrite("- Checking:" & $sRootKey & "\" & $sSubKey & "\name = " & $sName & @CRLF)
+			If StringInStr($sName, "Microsoft Edge WebView2") Then
+				ConsoleWrite("+ Found:" & $sRootKey & "\" & $sSubKey & "\name = " & $sName & @CRLF)
 				$sPv = RegRead($sRootKey & "\" & $sSubKey, "pv")
 				If $sPv <> "" Then Return $sPv ; Found it
 			EndIf
