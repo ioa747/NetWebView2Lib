@@ -1395,8 +1395,7 @@ Func __NetWebView2_freezer($oWebV2M, ByRef $idPic)
 	Local $hWindow_WebView2 = WinGetHandle($oWebV2M.BrowserWindowHandle)
 	#Region ; if $idPic is given then it means you already have it and want to delete it - unfreeze - show WebView2 content
 	If $idPic Then
-		_SendMessage($hWindow_WebView2, $WM_SETREDRAW, True, 0) ; Enables
-		_WinAPI_RedrawWindow($hWindow_WebView2, 0, 0, BitOR($RDW_FRAME, $RDW_INVALIDATE, $RDW_ALLCHILDREN))  ; Repaints
+		WinSetState($hWindow_WebView2, '', @SW_SHOW)
 		GUICtrlDelete($idPic)
 		$idPic = 0
 		Return
@@ -1408,39 +1407,31 @@ Func __NetWebView2_freezer($oWebV2M, ByRef $idPic)
 	#Region ; add PIC to parent window
 	Local $hWindow_Parent = WinGetHandle($oWebV2M.ParentWindowHandle)
 	Local $aPos = WinGetPos($hWindow_WebView2)
-;~ 	_ArrayDisplay($aPos, '$aPos ' & @ScriptLineNumber)
 	Local $hPrev = GUISwitch($hWindow_Parent)
 	$idPic = GUICtrlCreatePic('', 0, 0, $aPos[2], $aPos[3])
 	Local $hPic = GUICtrlGetHandle($idPic)
 	GUISwitch($hPrev)
 	#EndRegion ; add PIC to parent window
 
-	; Create bitmap
-	Local $hDC = _WinAPI_GetDC($hPic)
-	Local $hDestDC = _WinAPI_CreateCompatibleDC($hDC)
-	Local $hBitmap = _WinAPI_CreateCompatibleBitmap($hDC, $aPos[2], $aPos[3])
-	Local $hDestSv = _WinAPI_SelectObject($hDestDC, $hBitmap)
-	Local $hSrcDC = _WinAPI_CreateCompatibleDC($hDC)
-	Local $hBmp = _WinAPI_CreateCompatibleBitmap($hDC, $aPos[2], $aPos[3])
-	Local $hSrcSv = _WinAPI_SelectObject($hSrcDC, $hBmp)
-	_WinAPI_PrintWindow($hWindow_WebView2, $hSrcDC, 2)
-	_WinAPI_BitBlt($hDestDC, 0, 0, $aPos[2], $aPos[3], $hSrcDC, 0, 0, $MERGECOPY)
+	Local $hPictureDC = _WinAPI_GetDC($hPic)
 
-	_WinAPI_ReleaseDC($hPic, $hDC)
-	_WinAPI_SelectObject($hDestDC, $hDestSv)
-	_WinAPI_SelectObject($hSrcDC, $hSrcSv)
-	_WinAPI_DeleteDC($hDestDC)
-	_WinAPI_DeleteDC($hSrcDC)
-	_WinAPI_DeleteObject($hBmp)
+	; Create Dest bitmap
+	Local $hDestination_DC = _WinAPI_CreateCompatibleDC($hPictureDC) ; Creates a memory device context compatible with the specified device
+	Local $hDestination_Bitmap = _WinAPI_CreateCompatibleBitmap($hPictureDC, $aPos[2], $aPos[3]) ; Creates a bitmap compatible with the specified device context
+	Local $hDestination_Sv = _WinAPI_SelectObject($hDestination_DC, $hDestination_Bitmap) ; Selects an object into the specified device context
+
+	Local Const $PW_RENDERFULLCONTENT = 0x2 ; this will go to where it should  =)
+	_WinAPI_PrintWindow($hWindow_WebView2, $hDestination_DC, $PW_RENDERFULLCONTENT) ; print window to destination Window DC ; https://www.autoitscript.com/forum/topic/153782-help-filedocumentation-issues-discussion-only/page/40/#findComment-1549380
+
+	_WinAPI_ReleaseDC($hPic, $hPictureDC)
+	_WinAPI_SelectObject($hDestination_DC, $hDestination_Sv)
+	_WinAPI_DeleteDC($hDestination_DC)
 
 	; Set bitmap to control
-	_SendMessage($hPic, $STM_SETIMAGE, 0, $hBitmap)
-	Local $hObj = _SendMessage($hPic, $STM_GETIMAGE)
-	If $hObj <> $hBitmap Then
-		_WinAPI_DeleteObject($hBitmap)
-	EndIf
+	_SendMessage($hPic, $STM_SETIMAGE, 0, $hDestination_Bitmap)
+	_WinAPI_DeleteObject($hDestination_Bitmap)
 
-	_SendMessage($hWindow_WebView2, $WM_SETREDRAW, False, 0) ; Disables ; https://www.autoitscript.com/forum/topic/199172-disable-gui-updating-repainting/
+	WinSetState($hWindow_WebView2, '', @SW_HIDE)
 	Return $idPic
 	#EndRegion ; freeze $hWindow_WebView2
 EndFunc   ;==>__NetWebView2_freezer
@@ -2186,3 +2177,6 @@ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
 
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
+
+
