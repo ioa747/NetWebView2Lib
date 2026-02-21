@@ -78,6 +78,9 @@ Func _Register()
 			$iExitCode = RunWait('"' & $sNet4_x64 & '" "' & @ScriptDir & '\' & $sDllName & '" /codebase /tlb', @ScriptDir, @SW_HIDE)
 			If $iExitCode = 0 Then
 				$sLog &= "[+] x64 Registration: SUCCESS" & @CRLF
+				$sLog &= @CRLF
+				$sLog &= "Validation:" & @CRLF
+				$sLog &= "  _NetWebView2_IsRegisteredCOMObject() =" & _NetWebView2_IsRegisteredCOMObject() & @CRLF
 				$bSuccess = True
 			Else
 				$sLog &= "[-] x64 Registration: FAILED (Code: " & $iExitCode & ")" & @CRLF
