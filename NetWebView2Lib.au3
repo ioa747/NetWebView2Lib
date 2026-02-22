@@ -136,6 +136,11 @@ Func _NetWebView2_CreateManager($sUserAgent = '', $s_fnEventPrefix = "", $s_AddB
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
+	; Check for Runtimes dependencies depending on the #AutoIt3Wrapper_UseX64 architecture
+	__NetWebView2_InitRuntimesLoader()
+	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Runtimes files 'WebView2Loader.dll' NOT FOUND", 1)
+	If @error Then	Return SetError(@error, @extended, 0)
+
 	Local $oWebV2M = ObjCreate("NetWebView2Lib.WebView2Manager") ; REGISTERED VERSION
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Manager Creation ERROR", 1)
 	If @error Then Return SetError(@error, @extended, 0)
@@ -1436,6 +1441,40 @@ Func __NetWebView2_freezer($oWebV2M, ByRef $idPic)
 	#EndRegion ; freeze $hWindow_WebView2
 EndFunc   ;==>__NetWebView2_freezer
 
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name...........: __NetWebView2_InitRuntimesLoader
+; Description....: Initializes the Webview2 runtimes loader by setting the DLL directory.
+; Syntax.........: __NetWebView2_InitRuntimesLoader()
+; Parameters.....: None
+; Return values .: Success: Sets the DLL directory and returns True if successful.
+;                  Failure: Sets @error to 1 and returns False.
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Link ..........:
+; Example .......: No
+; ===============================================================================================================================
+Func __NetWebView2_InitRuntimesLoader()
+    Local Static $bInitialized = False
+    If $bInitialized Then Return True
+
+    ; Get the RuntimesPath DLL from RegRead
+	Local $sBaseDir = RegRead("HKCU\Software\NetWebView2Lib", "RuntimesPath")
+
+    ; We choose the correct subfolder based on the AutoIt architecture
+    Local $sArch = @AutoItX64 ? "win-x64" : "win-x86"
+    Local $sLoaderPath = $sBaseDir & "\runtimes\" & $sArch & "\native"
+
+    If FileExists($sLoaderPath & "\WebView2Loader.dll") Then
+        ; We say to Windows: "Don't look anywhere else, the DLL is HERE"
+        _WinAPI_SetDllDirectory($sLoaderPath)
+        $bInitialized = True
+        Return True
+    EndIf
+
+    Return SetError(1, 0, False)
+EndFunc
+
 #EndRegion ; NetWebView2Lib UDF - #INTERNAL_USE_ONLY#
 
 #Region ; NetWebView2Lib UDF - === EVENT HANDLERS ===
@@ -2177,6 +2216,7 @@ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
 
 #EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+
 
 
 
