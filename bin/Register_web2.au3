@@ -8,12 +8,24 @@
 #include <Misc.au3>
 #include "..\NetWebView2Lib.au3"
 
+; Register_web2.au3
+
 _Register()
 
 Func _Register()
 	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
 
 	; === Configuration ===
+	Local $sBaseDir = @ScriptDir
+
+	Local $iRegCreated = RegWrite("HKCU\Software\NetWebView2Lib", "RuntimesPath", "REG_SZ", $sBaseDir)
+
+	Local $sAddPaths = $sBaseDir & "\runtimes\win-x64\native;" & $sBaseDir & "\runtimes\win-x86\native"
+	EnvSet("PATH", $sAddPaths & ";" & EnvGet("PATH"))
+
+	; We also call InitLoader for Validation
+	__NetWebView2_InitRuntimesLoader()
+
 	Local $sDllName = "NetWebView2Lib.dll"
 	Local $sNet4_x86 = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe"
 	Local $sNet4_x64 = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"
@@ -21,6 +33,12 @@ Func _Register()
 	Local $bSuccess = False
 	Local $bAbort = False
 	Local $sLog = "Registration Report:" & @CRLF & "--------------------" & @CRLF
+
+	If $iRegCreated Then
+		$sLog &= "[+] Registry 'NetWebView2Lib' CREATED: 'RuntimesPath' = " & $sBaseDir & @CRLF
+	Else
+		$sLog &= "[!] Registry 'NetWebView2Lib' NOT CREATED" & @CRLF
+	EndIf
 
 	; === Check for WebView2 Runtime ===
 	Local $sMinReq = "128.0.2739.15" ; Updated for Full API Compatibility with SDK 1.0.2739.15
@@ -56,8 +74,9 @@ Func _Register()
 		EndIf
 	EndIf
 
+	; === Registration 'NetWebView2Lib.dll' COM ===
 	If Not $bAbort Then
-		; === Registration 'NetWebView2Lib.dll' COM ===
+
 		Local $iExitCode
 
 		; Registration for x86 (32-bit)
@@ -78,9 +97,6 @@ Func _Register()
 			$iExitCode = RunWait('"' & $sNet4_x64 & '" "' & @ScriptDir & '\' & $sDllName & '" /codebase /tlb', @ScriptDir, @SW_HIDE)
 			If $iExitCode = 0 Then
 				$sLog &= "[+] x64 Registration: SUCCESS" & @CRLF
-				$sLog &= @CRLF
-				$sLog &= "Validation:" & @CRLF
-				$sLog &= "  _NetWebView2_IsRegisteredCOMObject() =" & _NetWebView2_IsRegisteredCOMObject() & @CRLF
 				$bSuccess = True
 			Else
 				$sLog &= "[-] x64 Registration: FAILED (Code: " & $iExitCode & ")" & @CRLF
@@ -93,6 +109,10 @@ Func _Register()
 	; === Final Message ===
 	If $bSuccess Then
 		ConsoleWrite("+ Registration Complete" & @CRLF)
+		$sLog &= @CRLF
+		$sLog &= "Validation:" & @CRLF
+		$sLog &= "  _NetWebView2_IsRegisteredCOMObject() =" & _NetWebView2_IsRegisteredCOMObject() & @CRLF
+
 		ConsoleWrite($sLog & @CRLF)
 
 		MsgBox($MB_ICONINFORMATION, "Registration Complete", $sLog)

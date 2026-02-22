@@ -7,6 +7,8 @@
 #include <MsgBoxConstants.au3>
 #include "..\NetWebView2Lib.au3"
 
+; Unregister.au3
+
 _Unregister()
 
 Func _Unregister()
@@ -34,6 +36,9 @@ Func _Unregister()
 		$iExitCode = RunWait('"' & $sNet4_x64 & '" /u "' & @ScriptDir & '\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
 		$sLog &= ($iExitCode = 0 ? "[+] x64 Unregistration: SUCCESS" : "[-] x64 Unregistration: FAILED") & @CRLF
 	EndIf
+
+	Local $iRegCleaned = RegDelete("HKCU\Software\NetWebView2Lib")
+	$sLog &= ($iRegCleaned ? "[+] Registry Entry 'NetWebView2Lib' : CLEANED" : "[-] Registry Entry 'NetWebView2Lib' : FAILED") & @CRLF
 
 	MsgBox($MB_ICONINFORMATION, "Unregistration process completed", $sLog)
 EndFunc   ;==>_Unregister
