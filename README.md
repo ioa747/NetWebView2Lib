@@ -55,6 +55,7 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 
 
 ---
+
 ### ⚖️ License
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
@@ -63,6 +64,7 @@ This project is provided "as-is". You are free to use, modify, and distribute it
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
+
 ## 🚀 What's New in v2.1.0-alpha - Frame Support & Event Isolation
 
 This patch introduces first-class support for `iframe` interaction, allowing developers to target specific frames for script execution, messaging, and host object binding.
