@@ -6,6 +6,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-component-com-interop
 
 ---
+
 ### 🚀 Key Features
 
 * **Chromium Engine**: Leverage the speed and security of modern Microsoft Edge.
