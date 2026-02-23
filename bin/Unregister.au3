@@ -7,6 +7,8 @@
 #include <MsgBoxConstants.au3>
 #include "..\NetWebView2Lib.au3"
 
+; Unregister.au3
+
 _Unregister()
 
 Func _Unregister()
@@ -25,13 +27,13 @@ Func _Unregister()
 
 	; === Unregister x86 ===
 	If FileExists($sNet4_x86) Then
-		$iExitCode = RunWait('"' & $sNet4_x86 & '" /u "' & @ScriptDir & '\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
+		$iExitCode = RunWait('"' & $sNet4_x86 & '" /u "' & @ScriptDir & '\x86\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
 		$sLog &= ($iExitCode = 0 ? "[+] x86 Unregistration: SUCCESS" : "[-] x86 Unregistration: FAILED") & @CRLF
 	EndIf
 
 	; === Unregister x64 ===
 	If FileExists($sNet4_x64) Then
-		$iExitCode = RunWait('"' & $sNet4_x64 & '" /u "' & @ScriptDir & '\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
+		$iExitCode = RunWait('"' & $sNet4_x64 & '" /u "' & @ScriptDir & '\x64\' & $sDllName & '"', @ScriptDir, @SW_HIDE)
 		$sLog &= ($iExitCode = 0 ? "[+] x64 Unregistration: SUCCESS" : "[-] x64 Unregistration: FAILED") & @CRLF
 	EndIf
 

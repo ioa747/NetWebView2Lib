@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2026.2.17.5 🚩
+; NetWebView2Lib.au3 - Script Version: 2026.2.23.9 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -29,6 +29,7 @@
 Global $_g_bNetWebView2_DebugInfo = True
 ;~ Global $_g_bNetWebView2_DebugDev = False
 Global $_g_bNetWebView2_DebugDev = (@Compiled = 1)
+
 #Region ; ENUMS
 
 ;~ Global Enum _
@@ -47,6 +48,12 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by mainly by __NetWebView2_Event
 		$NETWEBVIEW2_MESSAGE__SOURCE_CHANGED, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/get-started/wpf#step-7---navigation-events
 		$NETWEBVIEW2_MESSAGE__CONTENT_LOADING, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/get-started/wpf#step-7---navigation-events
 		$NETWEBVIEW2_MESSAGE__BASIC_AUTHENTICATION_REQUESTED, _ ; #TODO WHERE THIS SHOULD be Lower/Higher ?
+		$NETWEBVIEW2_MESSAGE__FRAME_NAV_STARTING, _
+		$NETWEBVIEW2_MESSAGE__FRAME_NAV_COMPLETED, _
+		$NETWEBVIEW2_MESSAGE__FRAME_CONTENT_LOADING, _
+		$NETWEBVIEW2_MESSAGE__FRAME_DOM_CONTENT_LOADED, _
+		$NETWEBVIEW2_MESSAGE__FRAME_WEB_MESSAGE_RECEIVED, _
+		$NETWEBVIEW2_MESSAGE__FRAME_HTML_SOURCE, _
 		$NETWEBVIEW2_MESSAGE__CRITICAL_ERROR, _
 		$NETWEBVIEW2_MESSAGE__DOM_CONTENT_LOADED, _ ; #TODO https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events
 		$NETWEBVIEW2_MESSAGE__NAV_ERROR, _
@@ -1008,7 +1015,6 @@ Func _NetWebView2_SetBuiltInErrorPageEnabled($oWebV2M, $bEnabled)
 	Return SetError(@error, 0, (@error ? False : True))
 EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
 
-
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _NetWebView2_SilentErrorHandler
 ; Description....: A generic COM Error Handler that silences errors.
@@ -1438,7 +1444,9 @@ EndFunc   ;==>__NetWebView2_freezer
 
 #EndRegion ; NetWebView2Lib UDF - #INTERNAL_USE_ONLY#
 
-#Region ; NetWebView2Lib UDF - === EVENT HANDLERS ===
+#Region ; === NetWebView2Lib UDF === EVENT HANDLERS ===
+
+#Region ; === EVENT HANDLERS === Error Handler ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_COMErrFunc
 ; Description ...:
@@ -1474,8 +1482,9 @@ Volatile Func __NetWebView2_fake_COMErrFunc($oError) ; COM Error Function used b
 	; this is only to silently handle _NetWebView2_IsRegisteredCOMObject()
 	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_fake_COMErrFunc
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Error Handler ===
 
-
+#Region ; === EVENT HANDLERS === MessageReceived ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnMessageReceived
 ; Description ...: Handles native WebView2 events
@@ -1663,6 +1672,10 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand, 1)
 			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_LOST_FOCUS)
 
+		Case "FRAME_HTML_SOURCE"
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand, 1)
+			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_HTML_SOURCE)
+
 		Case "ERROR"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ! CRITICAL ERROR:" & $sData, 1)
 			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR)
@@ -1752,7 +1765,9 @@ Volatile Func __NetWebView2_JSEvents__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	EndIf
 
 EndFunc   ;==>__NetWebView2_JSEvents__OnMessageReceived
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === MessageReceived ===
 
+#Region ; === EVENT HANDLERS === Browser ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnBrowserGotFocus
 ; Description ...:
@@ -2134,49 +2149,207 @@ Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hG
 	; Note: User should handle $oArgs.UserName / $oArgs.Password and call $oArgs.Complete() in their script.
 	$oArgs = 0
 EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Browser ===
 
-#Region ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
+#Region ; === EVENT HANDLERS === Frame Related ===
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: _NetWebView2_GetFrame
+; Description ...: Returns a Frame Object (IWebView2Frame) for the specified index.
+; Syntax ........: _NetWebView2_GetFrame($oWebV2M, $iIndex)
+; Parameters ....: $oWebV2M             - an object.
+;                  $iIndex              - an int value.
+; Return values .: Frame Object or Null
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........:
+; Example .......: Yes
+; ===============================================================================================================================
+Func _NetWebView2_GetFrame($oWebV2M, $iIndex)
+	Local $oFrame = $oWebV2M.GetFrame($iIndex)
+	Return SetError(@error, @extended, $oFrame)
+EndFunc   ;==>_NetWebView2_GetFrame
 
-
-#Region ; NetWebView2Lib UDF - === EVENT HANDLERS === FRAME RELATED
-Volatile Func __NetWebView2_Events__OnFrameCreated()
-;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#framecreated
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Events__OnFrameCreated
+; Description ...: FrameCreated is raised when a new iframe is created. Handle this event to get access to CoreWebView2Frame objects.
+; Syntax ........: __NetWebView2_Events__OnFrameCreated($oWebV2M, $hGUI, $oFrame)
+; Parameters ....: $oWebV2M             - an WebV2M object.
+;                  $hGUI                - a handle value.
+;                  $oFrame              - an Frame object.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.framecreated
+; Example .......: No
+; ===============================================================================================================================
+Volatile Func __NetWebView2_Events__OnFrameCreated($oWebV2M, $hGUI, $oFrame)
+	Local Const $s_Prefix = "[EVENT: OnFrameCreated]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 EndFunc   ;==>__NetWebView2_Events__OnFrameCreated
 
-Volatile Func __NetWebView2_Events__OnContentLoading()
-;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#contentloading
-EndFunc   ;==>__NetWebView2_Events__OnContentLoading
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Events__OnFrameDestroyed
+; Description ...: Destroyed event is raised when the iframe corresponding to this CoreWebView2Frame object is removed or the document containing that iframe is destroyed.
+; Syntax ........: __NetWebView2_Events__OnFrameDestroyed($oWebV2M, $hGUI, $oFrame)
+; Parameters ....: $oWebV2M             - an object.
+;                  $hGUI                - a handle value.
+;                  $oFrame              - an Frame object.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.destroyed
+; Example .......: No
+; ===============================================================================================================================
+Volatile Func __NetWebView2_Events__OnFrameDestroyed($oWebV2M, $hGUI, $oFrame)
+	Local Const $s_Prefix = "[EVENT: OnFrameDestroyed]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+EndFunc   ;==>__NetWebView2_Events__OnFrameDestroyed
 
-Volatile Func __NetWebView2_Events__OnDOMContentLoaded()
-;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#domcontentloaded
-EndFunc   ;==>__NetWebView2_Events__OnDOMContentLoaded
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Events__OnFrameNameChanged
+; Description ...: NameChanged is raised when the iframe changes its window.name property.
+; Syntax ........: __NetWebView2_Events__OnFrameNameChanged($oWebV2M, $hGUI, $oFrame)
+; Parameters ....: $oWebV2M             - an object.
+;                  $hGUI                - a handle value.
+;                  $oFrame              - an Frame object.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.namechanged
+; Example .......: No
+; ===============================================================================================================================
+Volatile Func __NetWebView2_Events__OnFrameNameChanged($oWebV2M, $hGUI, $oFrame)
+	Local Const $s_Prefix = "[EVENT: OnFrameNameChanged]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
 
-Volatile Func __NetWebView2_Events__OnDestroyed()
-;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#destroyed
-EndFunc   ;==>__NetWebView2_Events__OnDestroyed
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Events__OnFrameNavigationStarting
+; Description ...: Handles Frame NavigationStarting event
+; Syntax ........: __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $sUri)
+; Parameters ....: $oWebV2M             - an object.
+;                  $hGUI                - a handle value.
+;                  $oFrame              - an Frame object.
+;                  $sUri                - a string value.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.navigationstarting
+; Example .......: No
+; ===============================================================================================================================
+Volatile Func __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $sUri)
+	Local Const $s_Prefix = "[EVENT: OnFrameNavigationStarting]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Uri:" & $sUri
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_NAV_STARTING) ; Optional: Update status if needed
+EndFunc   ;==>__NetWebView2_Events__OnFrameNavigationStarting
 
-Volatile Func __NetWebView2_Events__OnNameChanged()
-;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#namechanged
-EndFunc   ;==>__NetWebView2_Events__OnNameChanged
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Events__OnFrameNavigationCompleted
+; Description ...: Handles Frame NavigationCompleted event
+; Syntax ........: __NetWebView2_Events__OnFrameNavigationCompleted($oWebV2M, $hGUI, $oFrame, $bIsSuccess, $iWebErrorStatus)
+; Parameters ....: $oWebV2M             - an object.
+;                  $hGUI                - a handle value.
+;                  $oFrame              - an Frame object.
+;                  $bIsSuccess          - a boolean value.
+;                  $iWebErrorStatus     - an integer value.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.navigationcompleted
+; Example .......: No
+; ===============================================================================================================================
+Volatile Func __NetWebView2_Events__OnFrameNavigationCompleted($oWebV2M, $hGUI, $oFrame, $bIsSuccess, $iWebErrorStatus)
+	Local Const $s_Prefix = "[EVENT: OnFrameNavigationCompleted]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Success:" & $bIsSuccess & " Status:" & $iWebErrorStatus
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_NAV_COMPLETED)
+EndFunc   ;==>__NetWebView2_Events__OnFrameNavigationCompleted
 
-;~ is this followed navigationcompleted are the same as __NetWebView2_Events__OnNavigationCompleted() ?
-;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#navigationcompleted
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Events__OnFrameContentLoading
+; Description ...: Handles Frame ContentLoading event
+; Syntax ........: __NetWebView2_Events__OnFrameContentLoading($oWebV2M, $hGUI, $oFrame, $iNavigationId)
+; Parameters ....: $oWebV2M             - an object.
+;                  $hGUI                - a handle value.
+;                  $oFrame              - an Frame object.
+;                  $iNavigationId       - an integer value.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.contentloading
+; Example .......: No
+; ===============================================================================================================================
+Volatile Func __NetWebView2_Events__OnFrameContentLoading($oWebV2M, $hGUI, $oFrame, $iNavigationId)
+	Local Const $s_Prefix = "[EVENT: OnFrameContentLoading]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_CONTENT_LOADING)
+EndFunc   ;==>__NetWebView2_Events__OnFrameContentLoading
 
-;~ is this followed navigationstarting are the same as __NetWebView2_Events__OnNavigationStarting() ?
-;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#navigationstarting
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Events__OnFrameDOMContentLoaded
+; Description ...: Handles Frame DOMContentLoaded event
+; Syntax ........: __NetWebView2_Events__OnFrameDOMContentLoaded($oWebV2M, $hGUI, $oFrame, $iNavigationId)
+; Parameters ....: $oWebV2M             - an object.
+;                  $hGUI                - a handle value.
+;                  $oFrame              - an Frame object.
+;                  $iNavigationId       - an integer value.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.domcontentloaded
+; Example .......: No
+; ===============================================================================================================================
+Volatile Func __NetWebView2_Events__OnFrameDOMContentLoaded($oWebV2M, $hGUI, $oFrame, $iNavigationId)
+	Local Const $s_Prefix = "[EVENT: OnFrameDOMContentLoaded]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_DOM_CONTENT_LOADED)
+EndFunc   ;==>__NetWebView2_Events__OnFrameDOMContentLoaded
 
-Volatile Func __NetWebView2_Events__OnScreenCaptureStarting()
-;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#screencapturestarting
-EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Events__OnFrameWebMessageReceived
+; Description ...: Handles Frame WebMessageReceived event
+; Syntax ........: __NetWebView2_Events__OnFrameWebMessageReceived($oWebV2M, $hGUI, $oFrame, $sMessage)
+; Parameters ....: $oWebV2M             - an object.
+;                  $hGUI                - a handle value.
+;                  $oFrame              - an Frame object.
+;                  $sMessage            - a string value.
+; Return values .: None
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.webmessagereceived
+; Example .......: No
+; ===============================================================================================================================
+Volatile Func __NetWebView2_Events__OnFrameWebMessageReceived($oWebV2M, $hGUI, $oFrame, $sMessage)
+	Local Const $s_Prefix = "[EVENT: OnFrameWebMessageReceived]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Message:" & $sMessage
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_WEB_MESSAGE_RECEIVED)
+EndFunc   ;==>__NetWebView2_Events__OnFrameWebMessageReceived
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Frame Related ===
 
+#Region ; === EVENT HANDLERS * #TODO ===
 ;~ is this followed webmessagereceived are the same as __NetWebView2_Events__OnMessageReceived() ?
 ;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#webmessagereceived
 
-#EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === FRAME RELATED
+;~ Volatile Func __NetWebView2_Events__OnScreenCaptureStarting()
+;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#screencapturestarting
+;~ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
 
-#EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS === #TODO
-
-#EndRegion ; NetWebView2Lib UDF - === EVENT HANDLERS ===
-
-
-
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS ===

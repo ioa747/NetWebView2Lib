@@ -1,6 +1,6 @@
-using Microsoft.Web.WebView2.Core;
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Web.WebView2.Core;
 
 namespace NetWebView2Lib
 {
@@ -11,7 +11,7 @@ namespace NetWebView2Lib
     [Guid("F3A4B5C6-D7E8-4F9A-0B1C-2D3E4F5A6B7C")]
     [InterfaceType(ComInterfaceType.InterfaceIsDual)]
     [ComVisible(true)]
-    public interface IProcessFailedEventArgs
+    public interface IProcessFailedEventArgs : IBaseWebViewEventArgs
     {
         [DispId(1)] int ProcessFailedKind { get; }
         [DispId(2)] int Reason { get; }
@@ -25,7 +25,7 @@ namespace NetWebView2Lib
     [Guid("E2F3A4B5-C6D7-4E8F-9A0B-1C2D3E4F5A6B")]
     [ClassInterface(ClassInterfaceType.None)]
     [ComVisible(true)]
-    public class ProcessFailedEventArgsWrapper : IProcessFailedEventArgs
+    public class ProcessFailedEventArgsWrapper : BaseWebViewEventArgs, IProcessFailedEventArgs
     {
         public int ProcessFailedKind { get; }
         public int Reason { get; }
@@ -37,8 +37,9 @@ namespace NetWebView2Lib
         /// </summary>
         public ProcessFailedEventArgsWrapper() { }
 
-        public ProcessFailedEventArgsWrapper(CoreWebView2ProcessFailedEventArgs args)
+        public ProcessFailedEventArgsWrapper(CoreWebView2ProcessFailedEventArgs args, IntPtr senderHandle)
         {
+            InitializeSender(senderHandle);
             ProcessFailedKind = (int)args.ProcessFailedKind;
             Reason = (int)args.Reason;
             ExitCode = args.ExitCode;

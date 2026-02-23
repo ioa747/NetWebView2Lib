@@ -1,6 +1,6 @@
-using Microsoft.Web.WebView2.Core;
 using System.Runtime.InteropServices;
 using System;
+using Microsoft.Web.WebView2.Core;
 
 namespace NetWebView2Lib
 {
@@ -10,7 +10,7 @@ namespace NetWebView2Lib
     [Guid("A1B2C3D4-E5F6-4A5B-9C8D-7E6F5A4B3C2D")]
     [InterfaceType(ComInterfaceType.InterfaceIsDual)]
     [ComVisible(true)]
-    public interface IBasicAuthenticationRequestedEventArgs
+    public interface IBasicAuthenticationRequestedEventArgs : IBaseWebViewEventArgs
     {
         [DispId(1)] string Uri { get; }
         [DispId(2)] string Challenge { get; }
@@ -27,7 +27,7 @@ namespace NetWebView2Lib
     [Guid("B1C2D3E4-F5A6-4B7C-8D9E-0F1A2B3C4D5E")]
     [ClassInterface(ClassInterfaceType.None)]
     [ComVisible(true)]
-    public class BasicAuthenticationRequestedEventArgsWrapper : IBasicAuthenticationRequestedEventArgs
+    public class BasicAuthenticationRequestedEventArgsWrapper : BaseWebViewEventArgs, IBasicAuthenticationRequestedEventArgs
     {
         private readonly CoreWebView2BasicAuthenticationRequestedEventArgs _args;
         private readonly CoreWebView2Deferral _deferral;
@@ -58,8 +58,9 @@ namespace NetWebView2Lib
         /// </summary>
         public BasicAuthenticationRequestedEventArgsWrapper() { }
 
-        public BasicAuthenticationRequestedEventArgsWrapper(CoreWebView2BasicAuthenticationRequestedEventArgs args)
+        public BasicAuthenticationRequestedEventArgsWrapper(CoreWebView2BasicAuthenticationRequestedEventArgs args, IntPtr senderHandle)
         {
+            InitializeSender(senderHandle);
             _args = args;
             _deferral = args.GetDeferral();
         }

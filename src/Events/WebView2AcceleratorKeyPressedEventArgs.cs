@@ -1,6 +1,6 @@
-using Microsoft.Web.WebView2.Core;
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Web.WebView2.Core;
 
 namespace NetWebView2Lib
 {
@@ -11,7 +11,7 @@ namespace NetWebView2Lib
     [Guid("9A8B7C6D-5E4F-3A2B-1C0D-9E8F7A6B5C4D")]
     [InterfaceType(ComInterfaceType.InterfaceIsDual)]
     [ComVisible(true)]
-    public interface IWebView2AcceleratorKeyPressedEventArgs
+    public interface IWebView2AcceleratorKeyPressedEventArgs : IBaseWebViewEventArgs
     {
         [DispId(1)] uint VirtualKey { get; }
         [DispId(2)] int KeyEventLParam { get; }
@@ -34,7 +34,7 @@ namespace NetWebView2Lib
     [Guid("E1F2A3B4-C5D6-4E7F-8A9B-0C1D2E3F4A5B")]
     [ClassInterface(ClassInterfaceType.None)]
     [ComVisible(true)]
-    public class WebView2AcceleratorKeyPressedEventArgs : IWebView2AcceleratorKeyPressedEventArgs
+    public class WebView2AcceleratorKeyPressedEventArgs : BaseWebViewEventArgs, IWebView2AcceleratorKeyPressedEventArgs
     {
         private readonly CoreWebView2AcceleratorKeyPressedEventArgs _args;
         private readonly WebView2Manager _manager;
@@ -71,10 +71,14 @@ namespace NetWebView2Lib
             try { _args.Handled = true; } catch { }
         }
 
+        public WebView2AcceleratorKeyPressedEventArgs() { }
+
         public WebView2AcceleratorKeyPressedEventArgs(CoreWebView2AcceleratorKeyPressedEventArgs args, WebView2Manager manager)
         {
             _args = args;
             _manager = manager;
+            InitializeSender(manager.ParentHandleIntPtr);
+            
             VirtualKey = args.VirtualKey;
             KeyEventLParam = args.KeyEventLParam;
             KeyEventKind = (int)args.KeyEventKind;

@@ -10,6 +10,8 @@
 #include <WindowsConstants.au3>
 #include "..\NetWebView2Lib.au3"
 
+; RegCleaner.au3
+
 Global $_g_s_ELEMENTs = ''
 
 _Cleaner()
@@ -18,7 +20,7 @@ Func _Cleaner()
 	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
 
 	; === Configuration ===
-	Local $sSearchTerm = "NetWebView2"
+	Local $sSearchTerm = "NetWebView2Lib" ; NetWebView2Lib
 	Local $aTargets[2] = ["HKEY_LOCAL_MACHINE64\SOFTWARE\Classes", "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Classes"]
 
 	; GUICreate
