@@ -140,7 +140,7 @@ Func _Example()
 	; WebView2 Setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 	; Initialize WebView2 Manager and register events
-	Local $oWebV2M = _NetWebView2_CreateManager("", "WebView_", "")
+	Local $oWebV2M = _NetWebView2_CreateManager("", "WebView_", "", False)
 	If @error Then Exit ConsoleWrite("@@(" & @ScriptLineNumber & ") :: @error:" & @error & ", @extended:" & @extended & @CRLF)
 
 	; create JavaScript Bridge object
@@ -311,7 +311,7 @@ Func _WebView_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
 			EndIf
 
 		Case "PDF_SUCCESS"
-			MsgBox(64, "Success", "PDF Report saved successfully!")
+			MsgBox($MB_ICONINFORMATION, "Success", "PDF Report saved successfully!")
 
 		Case "PDF_ERROR"
 			MsgBox(16, "Error", "PDF Export failed: " & $sMessage)
