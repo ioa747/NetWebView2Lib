@@ -10,6 +10,8 @@
 #include <WindowsConstants.au3>
 #include "..\NetWebView2Lib.au3"
 
+; RegCleaner.au3
+
 Global $_g_s_ELEMENTs = ''
 
 _Cleaner()
@@ -18,7 +20,7 @@ Func _Cleaner()
 	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
 
 	; === Configuration ===
-	Local $sSearchTerm = "NetWebView2"
+	Local $sSearchTerm = "NetWebView2Lib" ; NetWebView2Lib
 	Local $aTargets[2] = ["HKEY_LOCAL_MACHINE64\SOFTWARE\Classes", "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Classes"]
 
 	; GUICreate
@@ -88,14 +90,16 @@ EndFunc   ;==>_Cleaner
 
 ;---------------------------------------------------------------------------------------
 Func __Registry_Scan_Recursive($sKey, $sSearch, $hLV, ByRef $iCount, $idStatus, $idBtnCancel)
-	Local $iIndex = 1
+	Local $iIndex = 1, $idMsg
 	While 1
 		Local $sSubKey = RegEnumKey($sKey, $iIndex)
 		If @error Then ExitLoop
 
 		If Mod($iIndex, 100) = 0 Then
 			GUICtrlSetData($idStatus, "Scanning: " & $iIndex & " keys in " & StringLeft($sKey, 40) & "...")
-			If GUIGetMsg() = $idBtnCancel Then Return SetError(1)
+			$idMsg = GUIGetMsg()
+			If $idMsg  = $idBtnCancel Then Return SetError(1)
+			If $idMsg = $GUI_EVENT_CLOSE Then Return SetError(2)
 		EndIf
 
 		Local $sFull = $sKey & "\" & $sSubKey

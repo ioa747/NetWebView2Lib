@@ -41,7 +41,7 @@ Func _Example()
 
 	; initialize browser - put it on the GUI
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
-	_NetWebView2_Initialize($oWeb, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, False, False, 0.7)
+	_NetWebView2_Initialize($oWeb, $hGUI, $sProfileDirectory, 0, 0, 0, 0, True, True, 0.7)
 
 	; Get the bridge object and register events
 	Local $oBridge = _NetWebView2_GetBridge($oWeb, "__UserEventHandler__Bridge_")
@@ -127,6 +127,17 @@ Func _Example()
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
 	$s_JavaScript_snipp = "PDF_RemoveHighlights('January 31, 2016');"
+	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
+
+	$s_JavaScript_snipp = 'PDFViewerApplication.open({ url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" });'
+	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
+
+;~ 	$s_JavaScript_snipp = FileRead(@ScriptDir & '\JS_Lib\PDFViewerApplicationEvents.js')
+;~ 	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
+
+	$s_JavaScript_snipp = 'PDFViewerApplication.open({ url: "https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf" });'
 	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 

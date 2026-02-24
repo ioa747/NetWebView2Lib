@@ -108,7 +108,7 @@ Func _BridgeMyEventsHandler_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
 	If $sMessage = "CLOSE_APP" Then
 		If MsgBox(36, "Confirm", "Exit Application?", 0, $hGUI) = 6 Then Exit
 	Else
-		MsgBox(64, "JS Notification", "Message from Browser: " & $sMessage)
+		MsgBox($MB_ICONINFORMATION, "JS Notification", "Message from Browser: " & $sMessage)
 		$iMsgCnt += 1
 		UpdateWebUI($oWebV2M, "mainTitle", $iMsgCnt & " Hello from AutoIt!")
 	EndIf

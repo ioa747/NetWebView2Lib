@@ -188,7 +188,7 @@ Func _NetWebView2_GetAllFrames_AsArray($oWebV2M)
 		$aFrames[$IDX_Frame][$FRAME_NAME] = $oWebV2M.Name
 		$aFrames[$IDX_Frame][$FRAME_URL] = $oWebV2M.GetFrameUrl($IDX_Frame)
 		$aFrames[$IDX_Frame][$FRAME_DESTROYED] = $oFrame.IsDestroyed()
-;~ 		$aFrames[$IDX_Frame][$FRAME_HTML] = $oWebV2M.GetFrameHtmlSource($IDX_Frame)
+		$aFrames[$IDX_Frame][$FRAME_HTML] = $oWebV2M.GetFrameHtmlSource($IDX_Frame)
 	Next
 	Return $aFrames
 EndFunc   ;==>_NetWebView2_GetAllFrames_AsArray
