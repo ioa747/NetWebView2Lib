@@ -6,7 +6,6 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-component-com-interop
 
 ---
-
 ### 🚀 Key Features
 
 * **Chromium Engine**: Leverage the speed and security of modern Microsoft Edge.
@@ -55,7 +54,6 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 
 
 ---
-
 ### ⚖️ License
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
@@ -64,7 +62,6 @@ This project is provided "as-is". You are free to use, modify, and distribute it
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
-
 ## 🚀 What's New in v2.1.0-alpha - Frame Support & Event Isolation
 
 This patch introduces first-class support for `iframe` interaction, allowing developers to target specific frames for script execution, messaging, and host object binding.
@@ -356,6 +353,14 @@ Returns a pipe-separated string of all tracked iframe names.
 ##### ⚡ GetFrameHtmlSource
 Asynchronously retrieves the HTML of the frame at the specified index (sent via OnMessageReceived with 'FRAME_HTML_SOURCE|Index|').
 `object.GetFrameHtmlSource(Index As Integer)`
+
+##### ⚡ GetFrame
+Returns a `WebView2Frame` COM object for the frame at the specified index. Returns `Null` if the index is invalid.
+`object.GetFrame(Index As Integer)`
+
+##### ⚡ GetFrameById
+Returns a `WebView2Frame` COM object for the frame matching the specified FrameId. Returns `Null` if not found.
+`object.GetFrameById(FrameId As UInt)`
 
 ##### ⚡ GetSelectedText
 Asynchronously retrieves the currently selected text (sent via OnMessageReceived with 'SELECTED_TEXT|').
@@ -661,51 +666,57 @@ Fired when the browser requires basic authentication credentials for a URI.
         Complete(): Notifies the browser that credentials have been set (supports asynchronous data gathering).*
 
 
+##### 🔔 OnPermissionRequested
+Fired when the page requests a permission (e.g. Geolocation, Camera, Microphone).
+`object_OnPermissionRequested(Sender As Object, ParentHandle As String, Args As Object)`
+    *Args properties:
+        Handled (bool): Set to True to indicate the event is handled.
+        IsUserInitiated (bool): Whether the request was triggered by user interaction.
+        PermissionKind (int): The type of permission requested.
+        State (int): Get/Set the permission state (0=Default, 1=Allow, 2=Deny).
+        Uri (string): The URI of the page requesting the permission.
+    *Args methods:
+        GetDeferral(): Acquires an async deferral for out-of-band decision making.
+        Complete(): Completes the deferral and notifies the browser of the decision.*
+
 #### ===🔔Frame Events===
 
 ##### 🔔 OnFrameCreated
 Fired when a new iframe is created in the document.
-`object_OnFrameCreated(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame)`
+`object_OnFrameCreated(Sender As Object, ParentHandle As String, Frame As Object)`
 
 ##### 🔔 OnFrameDestroyed
 Fired when an iframe is removed from the document.
-`object_OnFrameDestroyed(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame)`
+`object_OnFrameDestroyed(Sender As Object, ParentHandle As String, Frame As Object)`
 
 ##### 🔔 OnFrameNameChanged
 Fired when an iframe's name attribute changes.
-`object_OnFrameNameChanged(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame)`
+`object_OnFrameNameChanged(Sender As Object, ParentHandle As String, Frame As Object)`
 
 ##### 🔔 OnFrameNavigationStarting
 Fired when a frame starts navigating to a new URL.
-`object_OnFrameNavigationStarting(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame, Url As String)`
+`object_OnFrameNavigationStarting(Sender As Object, ParentHandle As String, Frame As Object, Url As String)`
 
 ##### 🔔 OnFrameNavigationCompleted
 Fired when a frame navigation has finished.
-`object_OnFrameNavigationCompleted(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame, IsSuccess As Boolean, WebErrorStatus As Integer)`
+`object_OnFrameNavigationCompleted(Sender As Object, ParentHandle As String, Frame As Object, IsSuccess As Boolean, WebErrorStatus As Integer)`
 
 ##### 🔔 OnFrameContentLoading
 Fired when a frame starts loading content.
-`object_OnFrameContentLoading(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame, NavigationId As Long)`
+`object_OnFrameContentLoading(Sender As Object, ParentHandle As String, Frame As Object, NavigationId As Long)`
 
 ##### 🔔 OnFrameDOMContentLoaded
 Fired when a frame's DOM content is fully loaded.
-`object_OnFrameDOMContentLoaded(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame, NavigationId As Long)`
+`object_OnFrameDOMContentLoaded(Sender As Object, ParentHandle As String, Frame As Object, NavigationId As Long)`
 
 ##### 🔔 OnFrameWebMessageReceived
 Fired when a frame receives a message via `window.chrome.webview.postMessage`.
-`object_OnFrameWebMessageReceived(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame, Message As String)`
-
-##### 🔔 OnFrameProcessFailed 🚧
-Fired when a frame renderer or other process fails.
-`object_OnFrameProcessFailed(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame, Args As Object)`
+`object_OnFrameWebMessageReceived(Sender As Object, ParentHandle As String, Frame As Object, Message As String)`
 
 ##### 🔔 OnFramePermissionRequested
 Fired when a frame requests permission (e.g. Geolocation).
-`object_OnFramePermissionRequested(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame, Args As Object)`
-
-##### 🔔 OnFrameScreenCaptureStarting
-Fired when a frame starts a screen capture session.
-`object_OnFrameScreenCaptureStarting(Sender As Object, ParentHandle As HWND, Frame As IWebView2Frame, Args As Object)`
+`object_OnFramePermissionRequested(Sender As Object, ParentHandle As String, Frame As Object, Args As Object)`
+    *See `OnPermissionRequested` Args for property details.*
 
 
 ---
@@ -713,45 +724,49 @@ Fired when a frame starts a screen capture session.
 
 #### ===🏷️Properties===
 
-##### 🏷️Name
+##### 🏷️ Name
 Returns the name attribute of the frame.
 `string object.Name`
 
 ##### 🏷️ IsDestroyed
 Checks if the frame is still valid and attached to the page.
-`bool object.IsDestroyed()`
+`bool object.IsDestroyed`
+
+##### 🏷️ FrameId
+Returns the unique identifier of the frame (assigned by the browser).
+`uint object.FrameId`
+
+##### 🏷️ Source
+Returns the current URL of the frame. Uses reflection-based SDK-independent retrieval.
+`string object.Source`
 
 #### ===⚡Methods===
 
-##### ⚡ExecuteScript (DispId 2)
+##### ⚡ExecuteScript
 **Type**: void (Fire-and-Forget)
 **Description**: Executes JavaScript within the context of the frame.
 `object.ExecuteScript(Script As String)`
 
-##### ⚡ExecuteScriptWithResult (DispId 6)
+##### ⚡ExecuteScriptWithResult
 **Type**: string (Synchronous/Blocking)
 **Description**: Executes JavaScript in the frame and waits for the result (Thread-Safe).
 `object.ExecuteScriptWithResult(Script As String)`
 
-##### ⚡PostWebMessageAsJson (DispId 3)
+##### ⚡PostWebMessageAsJson
 Sends a JSON message to the frame content.
 `object.PostWebMessageAsJson(Json As String)`
 
-##### ⚡PostWebMessageAsString (DispId 4)
+##### ⚡PostWebMessageAsString
 Sends a plain text message to the frame content.
 `object.PostWebMessageAsString(Text As String)`
 
-##### ⚡AddHostObjectToScript (DispId 7)
+##### ⚡AddHostObjectToScript
 Adds a host object (AutoIt object) to the frame's script environment.
 `object.AddHostObjectToScript(Name As String, RawObject As Object)`
 
-##### ⚡RemoveHostObjectFromScript (DispId 8)
+##### ⚡RemoveHostObjectFromScript
 Removes a host object from the frame's script environment.
 `object.RemoveHostObjectFromScript(Name As String)`
-
-##### ⚡IsDestroyed (DispId 5)
-Checks if the frame is valid.
-`bool object.IsDestroyed()`
 
 ---
 
