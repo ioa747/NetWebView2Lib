@@ -19,9 +19,10 @@
 #include <WindowsConstants.au3>
 #include <StaticConstants.au3>
 #include <EditConstants.au3>
+#include "..\NetWebView2Lib.au3"
 #include "_WV2_ExtensionPicker.au3"
 
-OnAutoItExitRegister("_ExitApp")
+OnAutoItExitRegister(_ExitApp)
 
 ; Global Objects & Handles
 Global $oWeb1, $oWeb2
@@ -50,7 +51,7 @@ Func _MainGUI() ; Creates the primary application window and starts the message 
 	GUICtrlSetResizing(-1, $GUI_DOCKALL)
 
 	; Register the WM_SIZE message to handle window resizing dynamically
-	GUIRegisterMsg($WM_SIZE, "WM_SIZE")
+	GUIRegisterMsg($WM_SIZE, WM_SIZE)
 
 	; Initialize Browsers and their child window containers
 	_InitBrowsers()
@@ -168,32 +169,22 @@ Func _InitBrowsers() ; Creates child window containers and initializes WebView2 
 	; Instance 1 - "Profile_1" folder
 	$hID1 = GUICreate("", 485, 580, 10, 10, BitOR($WS_CHILD, $WS_CLIPCHILDREN), -1, $hMainGUI)
 	$Bar1 = _Web_MakeBar($hID1, $sExtras)
-	$oWeb1 = ObjCreate("NetWebView2.Manager")
-	ObjEvent($oWeb1, "Web1_", "IWebViewEvents")
-	$oBridge1 = $oWeb1.GetBridge()
-	ObjEvent($oBridge1, "Bridge1_", "IBridgeEvents")
+	$oWeb1 = _NetWebView2_CreateManager("", "Web1_")
+	$oBridge1 = _NetWebView2_GetBridge($oWeb1, "Bridge1_")
 	$Bar1.Web_ProfilePath = $sProfileDirectory
-	$oWeb1.Initialize($hID1, $sProfileDirectory, 0, 25, 485, 555)
+	_NetWebView2_Initialize($oWeb1, $hID1, $sProfileDirectory, 0, 25, 485, 555, True, True, 1.2, "0x2B2B2B", False)
+	_NetWebView2_Navigate($oWeb1, "https://www.google.com/search?q=web1")
 
 	; Instance 2 - "Profile_2" folder
 	$hID2 = GUICreate("", 485, 580, 505, 10, BitOR($WS_CHILD, $WS_CLIPCHILDREN), -1, $hMainGUI)
 	$Bar2 = _Web_MakeBar($hID2, $sExtras)
-	$oWeb2 = ObjCreate("NetWebView2.Manager")
-	ObjEvent($oWeb2, "Web2_", "IWebViewEvents")
-	$oBridge2 = $oWeb2.GetBridge()
-	ObjEvent($oBridge2, "Bridge2_", "IBridgeEvents")
+	$oWeb2 = _NetWebView2_CreateManager("", "Web2_")
+	$oBridge2 = _NetWebView2_GetBridge($oWeb2, "Bridge2_")
 	$Bar2.Web_ProfilePath = @ScriptDir & "\Profile_2"
-	$oWeb2.Initialize($hID2, @ScriptDir & "\Profile_2", 0, 25, 485, 555)
+	_NetWebView2_Initialize($oWeb2, $hID2, $sProfileDirectory, 0, 25, 485, 555, True, True, 1.2, "0x2B2B2B", False)
+	_NetWebView2_Navigate($oWeb2, "https://www.google.com/search?q=web2")
 
-	; Wait until both instances are ready
-	Do
-		Sleep(10)
-	Until $oWeb1.IsReady And $oWeb2.IsReady
-
-	_NetWebView2_Navigate($oWeb1, "https://www.google.com/search?q=web1")
 	GUISetState(@SW_SHOWNOACTIVATE, $hID1)
-
-	$oWeb2.Navigate("https://www.google.com/search?q=web2")
 	GUISetState(@SW_SHOWNOACTIVATE, $hID2)
 
 EndFunc   ;==>_InitBrowsers
