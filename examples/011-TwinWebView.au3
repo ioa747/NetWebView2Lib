@@ -1,17 +1,9 @@
-#WIP - this Example is imported from 1.5.0 UDF - and is in "WORK IN PROGRESS" state
-
 ;----------------------------------------------------------------------------------------
-; Title...........: Active_Help.au3
-; Description.....: Multi-WebView2 interface for synchronized side-by-side search.
-; AutoIt Version..: 3.3.18.0    Author: ioa747            Script Version: 0.1
-; Note............: Tested in Windows 11 Pro 25H2        Date: 25/12/2025
-;
 ; USAGE INSTRUCTIONS:
-; 1. The Right Browser (Web2) loads the AutoIt Forum.
-; 2. Use your mouse to select (highlight) any text or keyword on the Right Browser.
-; 3. A floating button "🔍 Search Google" will appear near your selection.
-; 4. Click the button to automatically perform a Google Search on the Left Browser (Web1).
-; 5. The search is automatically restricted to the current domain (site:domain.com).
+; 1. In the Right Browser (Web2) Use your mouse to select (highlight) any text or keyword on the Right Browser.
+; 2. A floating button "🔍 Search Google" will appear near your selection.
+; 3. Click the button to automatically perform a Google Search on the Left Browser (Web1).
+; 4. The search is automatically restricted to the current domain (site:domain.com).
 ;----------------------------------------------------------------------------------------
 #AutoIt3Wrapper_Au3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #AutoIt3Wrapper_UseX64=y
@@ -21,6 +13,8 @@
 #include <EditConstants.au3>
 #include "..\NetWebView2Lib.au3"
 #include "_WV2_ExtensionPicker.au3"
+
+; 011-TwinWebView.au3
 
 OnAutoItExitRegister(_ExitApp)
 
@@ -67,7 +61,7 @@ Func _MainGUI() ; Creates the primary application window and starts the message 
 			Case $GUI_EVENT_CLOSE
 				Exit
 
-				; ~~~ Web1 Controls ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+			; ~~~ Web1 Controls ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 			Case $Bar1.ClearBrowserData
 				If MsgBox(36, "Confirm", "Do you want to clear your browsing data for Web1?") = 6 Then
 					If IsObj($oWeb1) Then $oWeb1.ClearBrowserData()
@@ -107,7 +101,7 @@ Func _MainGUI() ; Creates the primary application window and starts the message 
 			Case $Bar1.ctx_About
 				_Web_Status($oWeb1)
 
-				; ~~~ Web2 Controls ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+			; ~~~ Web2 Controls ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 			Case $Bar2.ClearBrowserData
 				If MsgBox(36, "Confirm", "Do you want to clear your browsing data for Web2?") = 6 Then
 					If IsObj($oWeb2) Then $oWeb2.ClearBrowserData()
@@ -147,7 +141,7 @@ Func _MainGUI() ; Creates the primary application window and starts the message 
 			Case $Bar2.ctx_About
 				_Web_Status($oWeb2)
 
-				; ~~~ Dragging Handler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+			; ~~~ Dragging Handler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 			Case $GUI_EVENT_PRIMARYDOWN
 				_DragAdjust()
 
@@ -192,15 +186,16 @@ EndFunc   ;==>_InitBrowsers
 ;--------------------------------------------------------------------------------------------------------------------------------
 ; BROWSER 1 EVENTS (Search Results Engine)
 ;--------------------------------------------------------------------------------------------------------------------------------
-Func Web1_OnMessageReceived($sMsg)    ; [Web1]
-	ConsoleWrite("+> [Web1]: " & $sMsg & @CRLF)
+Func Web1_OnMessageReceived($oWebV2M, $hGUI, $sMsg)    ; [Web1]
+	#forceref $oWebV2M, $hGUI
+	ConsoleWrite("> [Web1]: " & $sMsg & @CRLF)
 	Local $aParts = StringSplit($sMsg, "|")
 	Local $sCommand = StringStripWS($aParts[1], 3)
 	Switch $sCommand
 		Case "INIT_READY"
-			$oWeb1.SetContextMenuEnabled(True)
+			$oWebV2M.SetContextMenuEnabled(True)
 			;COM_TEST
-			$oWeb1.ExecuteScript('window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
+			$oWebV2M.ExecuteScript('window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
 
 		Case "NAV_COMPLETED"
 			; Responsive tweaks could be applied here if needed
@@ -209,21 +204,23 @@ Func Web1_OnMessageReceived($sMsg)    ; [Web1]
 			If $aParts[0] > 1 Then
 				GUICtrlSetData($Bar1.Address, $aParts[2])
 				GUICtrlSendMsg($Bar1.Address, $EM_SETSEL, 0, 0)
-				$oWeb1.WebViewSetFocus() ; We give focus to the browser
+				$oWebV2M.WebViewSetFocus() ; We give focus to the browser
 			EndIf
 
 	EndSwitch
 EndFunc   ;==>Web1_OnMessageReceived
 
-Func Bridge1_OnMessageReceived($sMsg) ; [Bridge1 JS]
-	ConsoleWrite("+> [Bridge1 JS]: " & $sMsg & @CRLF)
+Func Bridge1_OnMessageReceived($oWebV2M, $hGUI, $sMsg) ; [Bridge1 JS]
+	#forceref $oWebV2M, $hGUI
+	ConsoleWrite("> [Bridge1 JS]: " & $sMsg & @CRLF)
 EndFunc   ;==>Bridge1_OnMessageReceived
 
 ;--------------------------------------------------------------------------------------------------------------------------------
 ; BROWSER 2 EVENTS (Main Navigation & Selection Source)
 ;--------------------------------------------------------------------------------------------------------------------------------
-Func Web2_OnMessageReceived($sMsg)    ; [Web2]
-	ConsoleWrite("+> [Web2]: " & $sMsg & @CRLF)
+Func Web2_OnMessageReceived($oWebV2M, $hGUI, $sMsg)    ; [Web2]
+	#forceref $oWebV2M, $hGUI
+	ConsoleWrite("> [Web2]: " & $sMsg & @CRLF)
 	Local $aParts = StringSplit($sMsg, "|")
 	Local $sCommand = StringStripWS($aParts[1], 3)
 	Switch $sCommand
@@ -234,7 +231,7 @@ Func Web2_OnMessageReceived($sMsg)    ; [Web2]
 
 		Case "NAV_COMPLETED"
 			; Re-inject the selection script every time a new page is loaded
-			ConsoleWrite("> Web2 Navigation Completed. Injecting Selection Script..." & @CRLF)
+			ConsoleWrite(">>> Web2 Navigation Completed. Injecting Selection Script..." & @CRLF)
 			$oWeb2.ExecuteScript(JS_getSelection())
 
 		Case "URL_CHANGED"
@@ -246,8 +243,9 @@ Func Web2_OnMessageReceived($sMsg)    ; [Web2]
 	EndSwitch
 EndFunc   ;==>Web2_OnMessageReceived
 
-Func Bridge2_OnMessageReceived($sMsg) ; [Bridge2 JS]
-	ConsoleWrite("+> [Bridge2 JS]: " & $sMsg & @CRLF)
+Func Bridge2_OnMessageReceived($oWebV2M, $hGUI, $sMsg) ; [Bridge2 JS]
+	#forceref $oWebV2M, $hGUI
+	ConsoleWrite("> [Bridge2 JS]: " & $sMsg & @CRLF)
 
 	Local $aParts = StringSplit($sMsg, "|")
 	If $aParts[0] < 2 Then Return
@@ -259,7 +257,7 @@ Func Bridge2_OnMessageReceived($sMsg) ; [Bridge2 JS]
 			If IsObj($oWeb1) Then
 				Local $sSearchText = StringReplace(StringStripWS($aParts[2], 3), " ", "+")
 				Local $sDomain2 = StringStripWS($aParts[3], 3)
-				ConsoleWrite("!> Performing search on Web1: " & $sSearchText & " @ " & $sDomain2 & @CRLF)
+				ConsoleWrite(">>> Performing search on Web1: " & $sSearchText & " @ " & $sDomain2 & @CRLF)
 
 				; Construct Google search URL with 'site:' operator
 				Local $sURL = "https://www.google.com/search?q=" & $sSearchText & "+site:" & $sDomain2
