@@ -746,6 +746,10 @@ Returns the current URL of the frame. Uses reflection-based SDK-independent retr
 
 #### ===⚡Methods===
 
+##### ⚡IsDestroyed
+**Description**: Checks if the frame is still valid and attached to the page.
+`object.IsDestroyed()`
+
 ##### ⚡ExecuteScript
 **Type**: void (Fire-and-Forget)
 **Description**: Executes JavaScript within the context of the frame.
