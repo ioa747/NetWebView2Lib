@@ -8,15 +8,13 @@
 #include <Misc.au3>
 #include "..\NetWebView2Lib.au3"
 
+; 012-GetCookies.au3
+
 _VersionChecker("1.2.0.0") ; DLL Version Check
 
-; Register the exit function
-OnAutoItExitRegister(_CleanExit)
-
 ; Global objects handler for COM objects
-Global $oManager, $oBridge
-Global $oMyError = ObjEvent("AutoIt.Error", "_ErrFunc")
-Global $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
+Global $oWebV2M, $oJSBridge
+Global $oMyError = ObjEvent("AutoIt.Error", _ErrFunc)
 
 ; Global variables for data management
 Global $hGUI, $idURL, $idStatusLabel
@@ -69,7 +67,6 @@ Func _Example()
 	GUICtrlSetResizing(-1, $GUI_DOCKALL)
 	GUICtrlSetTip(-1, "SetZoom")
 
-
 	; Button GoBack
 	Local $idBtnGoBack = GUICtrlCreateButton(ChrW(59179), 185, 10, 25, 25)
 	GUICtrlSetFont(-1, 10, 400, 0, "Segoe Fluent Icons")
@@ -96,10 +93,18 @@ Func _Example()
 	GUICtrlSetColor(-1, 0xFFFFFF)
 	GUICtrlSetResizing(-1, $GUI_DOCKSIZE + $GUI_DOCKBOTTOM)
 
-	_WebView2(0, 45, 1285, 800) ; Get the WebView2 Manager object
+	; Initialize WebView2 Manager and register events
+	$oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", _
+	"WebView_", "--mute-audio")
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; Register the WM_SIZE message to handle window resizing
-	GUIRegisterMsg($WM_SIZE, "WM_SIZE")
+	; create JavaScript Bridge object
+	$oJSBridge = _NetWebView2_GetBridge($oWebV2M, "Bridge_")
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
+
+	; initialize browser - put it on the GUI
+	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 45, 1285, 800, True, True, 1, "0x2B2B2B")
 
 	; Register the WM_COMMAND message to handle ...
 	GUIRegisterMsg($WM_COMMAND, "WM_COMMAND")
@@ -115,12 +120,12 @@ Func _Example()
 
 			Case $idBtnClearBrowserData
 				If MsgBox(36, "Confirm", "Do you want to clear your browsing data?") = 6 Then
-					$oManager.ClearBrowserData()
+					$oWebV2M.ClearBrowserData()
 					ShowWebNotification("Browser history & cookies cleared!", "#f44336")
 				EndIf
 
 			Case $idBtnSaveSession
-				$oManager.GetCookies(GUICtrlRead($idURL))
+				$oWebV2M.GetCookies(GUICtrlRead($idURL))
 
 			Case $idBtnRestoreSession
 				$sURL = GUICtrlRead($idURL)
@@ -128,29 +133,29 @@ Func _Example()
 				_RestoreSession($sDomainOnly)
 
 			Case $idBtnSetZoom
-				$oManager.SetZoom(1.5) ; Zoom to 150%
+				$oWebV2M.SetZoom(1.5) ; Zoom to 150%
 				ShowWebNotification("Zoom: 150%", "#2196F3")
 
 			Case $idBtnResetZoom
-				$oManager.ResetZoom() ; Reset to 100%
+				$oWebV2M.ResetZoom() ; Reset to 100%
 				ShowWebNotification("Zoom: 100%", "#4CAF50")
 
 			Case $idBtnGoBack
-				$oManager.GoBack()
+				$oWebV2M.GoBack()
 
 			Case $idBtnGoForward
-				$oManager.GoForward()
+				$oWebV2M.GoForward()
 
 			Case $idBtnStop
-				$oManager.Stop()
+				$oWebV2M.Stop()
 				GUICtrlSetData($idStatusLabel, "Stop")
 
 			Case $idReload
-				$oManager.Reload()
+				$oWebV2M.Reload()
 				GUICtrlSetData($idStatusLabel, "Reload")
 
 			Case $idURL
-				_NetWebView2_Navigate($oManager, GUICtrlRead($idURL))
+				_NetWebView2_Navigate($oWebV2M, GUICtrlRead($idURL))
 				GUICtrlSetData($idStatusLabel, "Navigate: " & GUICtrlRead($idURL))
 
 		EndSwitch
@@ -162,46 +167,20 @@ Func _Example()
 
 	WEnd
 
+	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
+	ConsoleWrite("--> Application exited cleanly." & @CRLF)
+
 EndFunc   ;==>_Example
 ;---------------------------------------------------------------------------------------
-Func _CleanExit() ; CleanExit
-	; Check if the object exists before calling methods to avoid COM errors during crash
-	If IsObj($oManager) Then
-		$oManager.Cleanup()
-	EndIf
-
-	; Release the event sinks
-	$oManager = 0
-	$oBridge = 0
-;~ 	$oEvtManager = 0
-;~ 	$oEvtBridge = 0
-	$oMyError = 0
-
-	ConsoleWrite("--> Application exited cleanly." & @CRLF)
-EndFunc   ;==>_CleanExit
-;---------------------------------------------------------------------------------------
-Func _WebView2($iLeft = 0, $iTop = 0, $iWidth = 0, $iHeight = 0)
-
-	; Get the WebView2 Manager object and register events
-	$oManager = ObjCreate("NetWebView2.Manager")
-	ObjEvent($oManager, "WebView_", "IWebViewEvents")
-
-	; Get the bridge object and register events
-	$oBridge = $oManager.GetBridge()
-	ObjEvent($oBridge, "Bridge_", "IBridgeEvents")
-
-	; ⚠️ Important: Enclose ($hGUI) in parentheses to force "Pass-by-Value".
-	; This prevents the COM layer from changing the AutoIt variable type from Ptr to Int64.
-	$oManager.Initialize(($hGUI), $sProfileDirectory, $iLeft, $iTop, $iWidth, $iHeight)
-EndFunc   ;==>_WebView2
-;---------------------------------------------------------------------------------------
-Func Bridge_OnMessageReceived($sMessage)
+Func Bridge_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
+	#forceref $oWebV2M, $hGUI
 	; Handles data received from the JavaScript 'postMessage'
-	ConsoleWrite("+> [JS MESSAGE]: " & $sMessage & @CRLF)
+	ConsoleWrite("> [JS MESSAGE]: " & $sMessage & @CRLF)
 EndFunc   ;==>Bridge_OnMessageReceived
 ;---------------------------------------------------------------------------------------
-Func WebView_OnMessageReceived($sMessage)
-	ConsoleWrite("+> [CORE EVENT]: " & $sMessage & @CRLF)
+Func WebView_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
+	#forceref $oWebV2M, $hGUI
+	ConsoleWrite("> [CORE EVENT]: " & $sMessage & @CRLF)
 	Local Static $sCurentURL = "", $sLastRestoredDomain = ""
 	Local $sDomain
 
@@ -211,7 +190,7 @@ Func WebView_OnMessageReceived($sMessage)
 
 	Switch $sCommand
 		Case "INIT_READY"
-			_NetWebView2_Navigate($oManager, GUICtrlRead($idURL))
+			_NetWebView2_Navigate($oWebV2M, GUICtrlRead($idURL))
 			GUISetState(@SW_SHOW, $hGUI)
 
 		Case "NAV_STARTING"
@@ -219,7 +198,7 @@ Func WebView_OnMessageReceived($sMessage)
 			$sDomain = StringRegExpReplace($sCurentURL, "https?://([^/]+).*", "$1")
 
 			If $g_bAutoRestoreSession And $sDomain <> $sLastRestoredDomain Then
-				ConsoleWrite("> Auto-Restore: Initializing for " & $sDomain & @CRLF)
+				ConsoleWrite(">>> Auto-Restore: Initializing for " & $sDomain & @CRLF)
 				_RestoreSession($sDomain)
 				$sLastRestoredDomain = $sDomain ; Remember that we already restored this domain
 			EndIf
@@ -237,7 +216,7 @@ Func WebView_OnMessageReceived($sMessage)
 				$sCurentURL = $aParts[2]
 				GUICtrlSetData($idURL, $sCurentURL)
 				GUICtrlSendMsg($idURL, $EM_SETSEL, 0, 0)
-				$oManager.WebViewSetFocus() ; We give focus to the browser
+				$oWebV2M.WebViewSetFocus() ; We give focus to the browser
 			EndIf
 
 		Case "COOKIES_B64"
@@ -259,11 +238,11 @@ Func WebView_OnMessageReceived($sMessage)
 EndFunc   ;==>WebView_OnMessageReceived
 ;---------------------------------------------------------------------------------------
 Func _ProcessCookies($sURL, $sBase64)
-	Local $oJson = ObjCreate("NetJson.Parser")
-	If Not IsObj($oJson) Then Return
+	Local $oJson = _NetJson_CreateParser()
+	If @error Then Return ConsoleWrite("!!! Erorr CreateParser" & @CRLF)
 
 	Local $sDomainOnly = StringRegExpReplace($sURL, "https?://([^/]+).*", "$1")
-	Local $sDecodedJson = $oManager.DecodeB64($sBase64)  ; _Base64Decode($sBase64)
+	Local $sDecodedJson = $oWebV2M.DecodeB64($sBase64)  ; _Base64Decode($sBase64)
 	$oJson.Parse($sDecodedJson)
 
 	Local $iTotal = $oJson.GetArrayLength("")
@@ -307,7 +286,7 @@ Func _ProcessCookies($sURL, $sBase64)
 		If Not FileExists(@ScriptDir & "\Session") Then DirCreate(@ScriptDir & "\Session")
 		Local $sLogFile = @ScriptDir & "\Session\cookies_" & $sDomainOnly & ".json"
 		$oJson.SaveToFile($sLogFile)
-		ConsoleWrite("> Clean session saved (" & $iFoundCount & " cookies) to: " & $sLogFile & @CRLF)
+		ConsoleWrite(">>> Clean session saved (" & $iFoundCount & " cookies) to: " & $sLogFile & @CRLF)
 	EndIf
 EndFunc   ;==>_ProcessCookies
 ;---------------------------------------------------------------------------------------
@@ -321,7 +300,7 @@ Func _RestoreSession($sDomain)
 	EndIf
 
 	Local $iTotal = $oJson.GetArrayLength("")
-	ConsoleWrite("> Restoring " & $iTotal & " cookies for " & $sDomain & "..." & @CRLF)
+	ConsoleWrite(">>> Restoring " & $iTotal & " cookies for " & $sDomain & "..." & @CRLF)
 
 	Local $iInjected = 0
 
@@ -337,7 +316,7 @@ Func _RestoreSession($sDomain)
 		; Check if the cookie domain matches the target session domain
 		If StringInStr($sRawDom, $sDomain) Or StringInStr($sDomain, StringTrimLeft($sRawDom, 1)) Then
 			; Inject the cookie into the WebView2 manager
-			$oManager.AddCookie($sRawName, $sRawValue, $sRawDom, $sRawPath)
+			$oWebV2M.AddCookie($sRawName, $sRawValue, $sRawDom, $sRawPath)
 
 			ConsoleWrite(StringFormat("  [%d] %-15s | Domain: %-15s | Val: %s...\n", _
 					$i, $sRawName, $sDomain, StringLeft($sRawValue, 10)))
@@ -347,7 +326,7 @@ Func _RestoreSession($sDomain)
 
 	; Apply changes if cookies were injected
 	If $iInjected > 0 Then
-		$oManager.Reload()
+		$oWebV2M.Reload()
 		ShowWebNotification("Session Restored for " & $sDomain, "#2196F3")
 	EndIf
 EndFunc   ;==>_RestoreSession
@@ -368,28 +347,8 @@ Func ShowWebNotification($sMessage, $sBgColor = "#4CAF50", $iDuration = 3000) ; 
 			"   if(target) { target.style.opacity = '0'; setTimeout(() => target.remove(), 500); }" & _
 			"}, " & $iDuration & ");"
 
-	$oManager.ExecuteScript($sJS)
+	$oWebV2M.ExecuteScript($sJS)
 EndFunc   ;==>ShowWebNotification
-
-;---------------------------------------------------------------------------------------
-Func WM_SIZE($hWnd, $iMsg, $wParam, $lParam) ; Synchronizes WebView size with the GUI window
-	#forceref $hWnd, $iMsg
-
-	If $wParam = 1 Then Return $GUI_RUNDEFMSG ; 1 = SIZE_MINIMIZED
-
-	Local $iNewWidth = BitAND($lParam, 0xFFFF)
-	Local $iNewHeight = BitShift($lParam, 16)
-
-	If IsObj($oManager) Then
-		; Make sure the dimensions are positive
-		Local $iW = $iNewWidth - 0
-		Local $iH = $iNewHeight - 65
-		If $iW < 10 Then $iW = 10
-		If $iH < 10 Then $iH = 10
-		$oManager.Resize($iW, $iH)
-	EndIf
-	Return $GUI_RUNDEFMSG
-EndFunc   ;==>WM_SIZE
 ;---------------------------------------------------------------------------------------
 Func WM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
 	#forceref $hWnd, $iMsg
@@ -407,17 +366,7 @@ Func WM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
 EndFunc   ;==>WM_COMMAND
 ;---------------------------------------------------------------------------------------
 Func _ErrFunc($oError) ; User's COM error function. Will be called if COM error occurs
-	; Do anything here.
-	ConsoleWrite(@ScriptName & " (" & $oError.scriptline & ") : ==> COM Error intercepted !" & @CRLF & _
-			@TAB & "err.number is: " & @TAB & @TAB & "0x" & Hex($oError.number) & @CRLF & _
-			@TAB & "err.windescription:" & @TAB & $oError.windescription & @CRLF & _
-			@TAB & "err.description is: " & @TAB & $oError.description & @CRLF & _
-			@TAB & "err.source is: " & @TAB & @TAB & $oError.source & @CRLF & _
-			@TAB & "err.helpfile is: " & @TAB & $oError.helpfile & @CRLF & _
-			@TAB & "err.helpcontext is: " & @TAB & $oError.helpcontext & @CRLF & _
-			@TAB & "err.lastdllerror is: " & @TAB & $oError.lastdllerror & @CRLF & _
-			@TAB & "err.scriptline is: " & @TAB & $oError.scriptline & @CRLF & _
-			@TAB & "err.retcode is: " & @TAB & "0x" & Hex($oError.retcode) & @CRLF & @CRLF)
+	ConsoleWrite('@@ Line(' & $oError.scriptline & ') : COM Error Number: (0x' & Hex($oError.number, 8) & ') ' & $oError.windescription & @CRLF)
 EndFunc   ;==>_ErrFunc
 ;---------------------------------------------------------------------------------------
 Func _VersionChecker($sRequired = "1.0.0.0")
@@ -439,9 +388,9 @@ Func _VersionChecker($sRequired = "1.0.0.0")
 	; Get the version of the actual DLL
 	Local $sCurrent = FileGetVersion($sDllPath)
 
-	ConsoleWrite("+> Found TLB: " & $sTlbPath & @CRLF)
-	ConsoleWrite("+> Checking DLL: " & $sDllPath & @CRLF)
-	ConsoleWrite("+> Current Version: " & $sCurrent & @CRLF)
+	ConsoleWrite("++> Found TLB: " & $sTlbPath & @CRLF)
+	ConsoleWrite("++> Checking DLL: " & $sDllPath & @CRLF)
+	ConsoleWrite("++> Current Version: " & $sCurrent & @CRLF)
 
 	; Compare
 	If _VersionCompare($sCurrent, $sRequired) = -1 Then
