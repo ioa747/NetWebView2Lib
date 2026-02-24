@@ -247,7 +247,7 @@ Func WebView_OnMessageReceived($sMessage)
 			EndIf
 
 		Case "PDF_SUCCESS"
-			MsgBox(64, "Success", "PDF Report saved successfully!")
+			MsgBox($MB_ICONINFORMATION, "Success", "PDF Report saved successfully!")
 
 
 		Case "ERROR", "NAV_ERROR"

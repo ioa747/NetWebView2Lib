@@ -181,7 +181,7 @@ EndFunc   ;==>_NetWebView2_CreateManager
 ;                  $i_ZoomFactor        - [optional] an integer value. Default is 1.0.
 ;                  $s_BackColor         - [optional] a string value. Default is "0x2B2B2B".
 ;                  $b_InitConsole       - [optional] a boolean value. Default is False.
-; Return values .: None
+; Return values .: $iInit
 ; Author ........: mLipok, ioa747
 ; Modified ......:
 ; Remarks .......:
@@ -221,7 +221,7 @@ Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left =
 		EndIf
 		If TimerDiff($hTimer) >= $iTimeOut_ms Then Return SetError(1, 0, '')
 	Until $oWebV2M.IsReady Or $iMessage = $NETWEBVIEW2_MESSAGE__INIT_READY
-	If Not __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms) Then Return SetError(2, 0, '')
+;~ 	If Not __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms) Then Return SetError(2, 0, '')
 	#EndRegion ; After Initialization wait for the engine to be ready before navigating
 
 	; WebView2 Configuration
@@ -235,7 +235,7 @@ Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left =
 	EndIf
 
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " !!! Manager Creation ERROR", 1)
-	Return SetError(@error, $oWebV2M.GetBrowserProcessId(), '')
+	Return SetError(@error, $oWebV2M.GetBrowserProcessId(), $iInit)
 EndFunc   ;==>_NetWebView2_Initialize
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2353,3 +2353,4 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameWebMessageReceived
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
 
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS ===
+
