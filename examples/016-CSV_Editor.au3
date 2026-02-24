@@ -13,15 +13,7 @@
 #include <WindowsConstants.au3>
 #include "..\NetWebView2Lib.au3"
 
-; Register exit function to ensure clean WebView2 shutdown
-OnAutoItExitRegister(_ExitApp)
-
-; Global objects
-Global $oWeb, $oJS
 Global $oMyError = ObjEvent("AutoIt.Error", _ErrFunc) ; COM Error Handler
-Global $g_DebugInfo = True
-Global $sProfileDirectory = @ScriptDir & "\UserDataFolder"
-Global $hGUI
 
 _Example()
 
@@ -29,7 +21,7 @@ Func _Example()
 	ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
 
 	; Create GUI with resizing support
-	$hGUI = GUICreate("WebView2AutoIt CSV_editor", 1500, 650, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
+	Local $hGUI = GUICreate("WebView2AutoIt CSV_editor", 1500, 650, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetBkColor(0x2B2B2B, $hGUI)
 
 	; GUI Controls for CSV interaction
@@ -44,29 +36,20 @@ Func _Example()
 	GUICtrlSetColor(-1, 0x00CCFF) ; Light Blue
 
 	; Initialize WebView2 Manager and register events
-	$oWeb = ObjCreate("NetWebView2.Manager")
-	ObjEvent($oWeb, "WebEvents_", "IWebViewEvents")
+	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", _
+			"WebEvents_", "--mute-audio")
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; Important: Pass $hGUI in parentheses to maintain Pointer type for COM
-	$oWeb.Initialize(($hGUI), $sProfileDirectory, 0, 50, 1500, 600)
+	; create JavaScript Bridge object
+	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "JavaScript_")
+	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
-	; Initialize JavaScript Bridge
-	$oJS = $oWeb.GetBridge()
-	ObjEvent($oJS, "JavaScript_", "IBridgeEvents")
-
-	; Wait for WebView2 to be ready
-	Do
-		Sleep(50)
-	Until $oWeb.IsReady
-
-	; WebView2 Configuration
-	$oWeb.SetAutoResize(True) ; Using SetAutoResize(True) to skip WM_SIZE
-	$oWeb.BackColor = "0x2B2B2B"
-	$oWeb.AreDevToolsEnabled = True ; Allow F12
-	$oWeb.ZoomFactor = 1.2
+	; initialize browser - put it on the GUI
+	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
+	_NetWebView2_Initialize($oWebV2M, $hGUI, $sProfileDirectory, 0, 50, 1500, 600, True, True, 1.2, "0x2B2B2B")
 
 	; Initial CSV display
-	_Web_CSVViewer($oWeb) ; 🏆 https://stackblitz.com/edit/web-platform-3kkvy2?file=index.html
+	_Web_CSVViewer($oWebV2M) ; 🏆 https://stackblitz.com/edit/web-platform-3kkvy2?file=index.html
 
 	GUISetState(@SW_SHOW)
 
@@ -74,30 +57,34 @@ Func _Example()
 	While 1
 		Switch GUIGetMsg()
 			Case $GUI_EVENT_CLOSE
-				Exit
+				ExitLoop
 
 			Case $idSaveFile
-				$oWeb.ExecuteScript("sendDataToAutoIt();")
+				_NetWebView2_ExecuteScript($oWebV2M, "sendDataToAutoIt();", $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 
 			Case $idLoadFile
 				Local $sFilePath = FileOpenDialog("Select CSV File", @ScriptDir, "CSV Files (*.csv;*.txt)", 1)
 				If Not @error Then
 					Local $sFileData = FileRead($sFilePath)
 					If $sFileData <> "" Then
-						_Web_CSVViewer($oWeb, $sFileData) ; Re-render CSV with new data
-						__DW("+ Loaded CSV from: " & $sFilePath)
+						_Web_CSVViewer($oWebV2M, $sFileData) ; Re-render CSV with new data
+						ConsoleWrite(">>> Loaded CSV from: " & $sFilePath)
 					EndIf
 				EndIf
 
 		EndSwitch
 	WEnd
+
+	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
+
 EndFunc   ;==>_Example
 
 #Region ; === EVENT HANDLERS ===
 
 ; Handles native WebView2 events
-Func WebEvents_OnMessageReceived($sMsg)
-	__DW("+++ [WebEvents]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF, 0)
+Func WebEvents_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+	#forceref $oWebV2M, $hGUI
+	ConsoleWrite("> [WebEvents]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $iSplitPos = StringInStr($sMsg, "|")
 	Local $sCommand = $iSplitPos ? StringStripWS(StringLeft($sMsg, $iSplitPos - 1), 3) : $sMsg
 	Local $sData = $iSplitPos ? StringTrimLeft($sMsg, $iSplitPos) : ""
@@ -105,40 +92,42 @@ Func WebEvents_OnMessageReceived($sMsg)
 
 	Switch $sCommand
 		Case "INIT_READY"
-			$oWeb.ExecuteScript('window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));')
+			Local $sJavaScript = 'window.chrome.webview.postMessage(JSON.stringify({ "type": "COM_TEST", "status": "OK" }));'
+			_NetWebView2_ExecuteScript($oWebV2M, $sJavaScript, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 
 		Case "WINDOW_RESIZED"
 			$aParts = StringSplit($sData, "|")
 			If $aParts[0] >= 2 Then
 				Local $iW = Int($aParts[1]), $iH = Int($aParts[2])
 				; Filter minor resize glitches
-				If $iW > 50 And $iH > 50 Then __DW("WINDOW_RESIZED : " & $iW & "x" & $iH & @CRLF)
+				If $iW > 50 And $iH > 50 Then ConsoleWrite(">>WINDOW_RESIZED : " & $iW & "x" & $iH & @CRLF)
 			EndIf
 	EndSwitch
 EndFunc   ;==>WebEvents_OnMessageReceived
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
-Func JavaScript_OnMessageReceived($sMsg)
-	__DW(">>> [JavaScript]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF, 0)
+Func JavaScript_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+	#forceref $oWebV2M, $hGUI
+	ConsoleWrite("> [JavaScript]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $sFirstChar = StringLeft($sMsg, 1)
 
 	; 1. JSON Messaging
 	If $sFirstChar = "{" Or $sFirstChar = "[" Then
-		__DW("+> : Processing JSON Messaging..." & @CRLF)
-		Local $oJson = ObjCreate("NetJson.Parser")
-		If Not IsObj($oJson) Then Return ConsoleWrite("!> Error: Failed to create NetJson object." & @CRLF)
+		ConsoleWrite(">> : Processing JSON Messaging..." & @CRLF)
+		Local $oJSBridgeon = _NetJson_CreateParser()
+		If @error Then Return ConsoleWrite("!> Error: Failed to create NetJson object." & @CRLF)
 
-		$oJson.Parse($sMsg)
-		Local $sJobType = $oJson.GetTokenValue("type")
+		$oJSBridgeon.Parse($sMsg)
+		Local $sJobType = $oJSBridgeon.GetTokenValue("type")
 
 		Switch $sJobType
 			Case "COM_TEST"
-				__DW("- COM_TEST Confirmed: " & $oJson.GetTokenValue("status") & @CRLF)
+				ConsoleWrite(">>> COM_TEST Confirmed: " & $oJSBridgeon.GetTokenValue("status") & @CRLF)
 		EndSwitch
 
 	Else
 		; 2. Legacy / Native Pipe-Delimited Messaging
-		__DW("+> : Legacy / Native Pipe-Delimited Messaging..." & @CRLF, 0)
+		ConsoleWrite(">> : Legacy / Native Pipe-Delimited Messaging..." & @CRLF)
 		Local $sCommand, $sData, $iSplitPos
 		$iSplitPos = StringInStr($sMsg, "|") - 1
 
@@ -156,11 +145,11 @@ Func JavaScript_OnMessageReceived($sMsg)
 				If UBound($aClickData) >= 2 Then
 					Local $sKey = StringStripWS($aClickData[0], 3)
 					Local $sVal = StringStripWS($aClickData[1], 3)
-					__DW("+++ Property: " & $sKey & " | Value: " & $sVal & @CRLF)
+					ConsoleWrite(">>> Property: " & $sKey & " | Value: " & $sVal & @CRLF)
 				EndIf
 
 			Case "COM_TEST"
-				__DW("- Status: Legacy COM_TEST: " & $sData & @CRLF)
+				ConsoleWrite(">>> Status: Legacy COM_TEST: " & $sData & @CRLF)
 
 			Case "CSV_UPDATED"
 				; Clean up literal \n sent by JS to real @CRLF for AutoIt
@@ -172,24 +161,20 @@ Func JavaScript_OnMessageReceived($sMsg)
 				If $hFile <> -1 Then
 					FileWrite($hFile, $sCleanData)
 					FileClose($hFile)
-					__DW("- CSV saved to file successfully!")
+					ConsoleWrite(">>> CSV saved to file successfully!")
 				EndIf
 
 			Case "ERROR"
-				__DW("! Status: " & $sData & @CRLF)
+				ConsoleWrite("! Status: " & $sData & @CRLF)
 		EndSwitch
 	EndIf
 EndFunc   ;==>JavaScript_OnMessageReceived
-
-Func WebEvents_OnContextMenuRequested($sLink, $iX, $iY, $sSelection)
-	#forceref $sLink, $iX, $iY, $sSelection
-EndFunc   ;==>WebEvents_OnContextMenuRequested
 
 #EndRegion ; === EVENT HANDLERS ===
 
 #Region ; === UTILS ===
 
-Func _Web_CSVViewer(ByRef $oWeb, $sFileData = "")
+Func _Web_CSVViewer(ByRef $oWebV2M, $sFileData = "")
 	Local $sSafeData = StringReplace($sFileData, "\", "\\")
 	$sSafeData = StringReplace($sSafeData, "'", "\'")
 	$sSafeData = StringReplace($sSafeData, @CRLF, "\n")
@@ -235,41 +220,11 @@ Func _Web_CSVViewer(ByRef $oWeb, $sFileData = "")
 			"<div class='container'><table id='table'></table></div>" & _
 			"<script>" & $sJS & "</script></body></html>"
 
-	_NetWebView2_NavigateToString($oWeb, $sHTML)
+	_NetWebView2_NavigateToString($oWebV2M, $sHTML)
 EndFunc   ;==>_Web_CSVViewer
 
 Func _ErrFunc($oError) ; Global COM Error Handler
 	ConsoleWrite('@@ Line(' & $oError.scriptline & ') : COM Error Number: (0x' & Hex($oError.number, 8) & ') ' & $oError.windescription & @CRLF)
 EndFunc   ;==>_ErrFunc
-
-; Debug Write utility
-Func __DW($sString, $iErrorNoLineNo = 1, $iLine = @ScriptLineNumber, $iError = @error, $iExtended = @extended)
-	If Not $g_DebugInfo Then Return SetError($iError, $iExtended, 0)
-	Local $iReturn
-	If $iErrorNoLineNo = 1 Then
-		If $iError Then
-			$iReturn = ConsoleWrite("@@(" & $iLine & ") :: @error:" & $iError & ", @extended:" & $iExtended & ", " & $sString)
-		Else
-			$iReturn = ConsoleWrite("+>(" & $iLine & ") :: " & $sString)
-		EndIf
-	Else
-		$iReturn = ConsoleWrite($sString)
-	EndIf
-	Return SetError($iError, $iExtended, $iReturn)
-EndFunc   ;==>__DW
-
-Func _NetJson_New($sInitialJson = "{}")
-	Local $oParser = ObjCreate("NetJson.Parser")
-	If Not IsObj($oParser) Then Return SetError(1, 0, 0)
-	If $sInitialJson <> "" Then $oParser.Parse($sInitialJson)
-	Return $oParser
-EndFunc   ;==>_NetJson_New
-
-Func _ExitApp()
-	If IsObj($oWeb) Then $oWeb.Cleanup()
-	$oWeb = 0
-	$oJS = 0
-	Exit
-EndFunc   ;==>_ExitApp
 
 #EndRegion ; === UTILS ===
