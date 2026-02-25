@@ -82,10 +82,10 @@ Func Main()
 	ConsoleWrite("+ Example part 3 - testing NetWebView2Lib methodes .GetFrameHtmlSource($IDX_Frame)" & @CRLF)
 	Local $oFrame
 	For $IDX_Frame = 0 To $iFrameCount - 1
-		ConsoleWrite(@CRLF & "======================================================" & @CRLF)
 		$oFrame = $oWebV2M.GetFrame($IDX_Frame)
 		If Not IsObj($oFrame) Then ContinueLoop
 		Local $sHtmlSource = _WebView2_FrameGetHtmlSource($oFrame)
+		ConsoleWrite(@CRLF & "======================================================" & @CRLF)
 		ConsoleWrite("! " & @ScriptLineNumber & " : GetFrameHtmlSource(" & $IDX_Frame & ") :" & @CRLF & $sHtmlSource & @CRLF)
 	Next
 	ConsoleWrite(@CRLF & "======================================================" & @CRLF)
@@ -202,3 +202,4 @@ Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended =
 	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
 	Return SetError($iError, $iExtended, '')
 EndFunc   ;==>__Example_Log
+
