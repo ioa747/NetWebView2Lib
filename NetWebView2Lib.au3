@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2026.2.23.9 🚩
+; NetWebView2Lib.au3 - Script Version: 2026.2.25.11 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -2393,5 +2393,6 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameWebMessageReceived
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
 
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS ===
+
 
 
