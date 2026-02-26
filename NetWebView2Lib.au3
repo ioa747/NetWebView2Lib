@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2026.2.23.9 🚩
+; NetWebView2Lib.au3 - Script Version: 2026.2.25.11 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -1029,6 +1029,46 @@ Volatile Func _NetWebView2_SilentErrorHandler($oError)
 	; This prevents the "Object Disposed" fatal crash.
 	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>_NetWebView2_SilentErrorHandler
+
+; #FUNCTION# ====================================================================================================================
+; Name...........: _WebView2_FrameGetHtmlSource
+; Description....: Synchronously retrieves the full HTML source of a frame.
+; Syntax.........: _WebView2_FrameGetHtmlSource($oFrame)
+; Parameters.....: $oFrame - The WebView2Frame object.
+; Return values..: Success - Clean HTML string.
+;                  Failure - Sets @error and returns empty string.
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........:
+; Example .......: No
+; ===============================================================================================================================
+Func _WebView2_FrameGetHtmlSource($oFrame)
+	If Not IsObj($oFrame) Then Return SetError(1, 0, "")
+
+	; Execute script synchronously
+	Local $sRaw = $oFrame.ExecuteScriptWithResult("document.documentElement.outerHTML")
+
+	; Basic validation
+	If $sRaw = "null" Or $sRaw = "" Then Return ""
+	If StringLeft($sRaw, 6) = "ERROR:" Then Return SetError(2, 0, "")
+
+	; Pre-process: Strip the mandatory JSON quotes BEFORE unescaping.
+	; This prevents the C# Parser from "double-wrapping" the string.
+	If StringLeft($sRaw, 1) = '"' And StringRight($sRaw, 1) = '"' Then
+		$sRaw = StringMid($sRaw, 2, StringLen($sRaw) - 2)
+	EndIf
+
+	; Initialize Parser from the library
+	Local $oJson = _NetJson_CreateParser()
+	If @error Then Return SetError(3, 0, "")
+
+	; Use the Parser's UnescapeString to handle all escapes (\uXXXX, \n, \", etc.)
+	Local $sClean = $oJson.UnescapeString($sRaw)
+
+	Return $sClean
+EndFunc   ;==>_WebView2_FrameGetHtmlSource
 
 #EndRegion ; New Core Method Wrappers
 
@@ -2353,4 +2393,6 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameWebMessageReceived
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
 
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS ===
+
+
 

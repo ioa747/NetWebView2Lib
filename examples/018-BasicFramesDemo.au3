@@ -1,4 +1,3 @@
-#WIP - this Example is imported from 1.5.0 UDF - and is in "WORK IN PROGRESS" state
 #AutoIt3Wrapper_UseX64=y
 #AutoIt3Wrapper_Run_AU3Check=Y
 #AutoIt3Wrapper_AU3Check_Stop_OnWarning=y
@@ -28,11 +27,11 @@ Func Main()
 
 	; Initialize WebView2 Manager and register events
 	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", _
-			"MyHook_", "--disable-gpu, --mute-audio")
+			"", "--disable-gpu, --mute-audio")
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	; Initialize JavaScript Bridge
-	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "_BridgeMyEventsHandler_")
+	Local $oJSBridge = _NetWebView2_GetBridge($oWebV2M, "")
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	Local $sProfileDirectory = @ScriptDir & "\NetWebView2Lib-UserDataFolder"
@@ -81,9 +80,12 @@ Func Main()
 
 	#Region ; Example part 3 - testing NetWebView2Lib methodes .GetFrameHtmlSource($IDX_Frame)
 	ConsoleWrite("+ Example part 3 - testing NetWebView2Lib methodes .GetFrameHtmlSource($IDX_Frame)" & @CRLF)
+	Local $oFrame, $sHtmlSource
 	For $IDX_Frame = 0 To $iFrameCount - 1
+		$oFrame = $oWebV2M.GetFrame($IDX_Frame)
+		$sHtmlSource = _WebView2_FrameGetHtmlSource($oFrame)
+		If @error Then ContinueLoop
 		ConsoleWrite(@CRLF & "======================================================" & @CRLF)
-		Local $sHtmlSource = Fire_And_Wait($oWebV2M.GetFrameHtmlSource($IDX_Frame), 5000) ; pair with "FRAME_HTML_SOURCE"
 		ConsoleWrite("! " & @ScriptLineNumber & " : GetFrameHtmlSource(" & $IDX_Frame & ") :" & @CRLF & $sHtmlSource & @CRLF)
 	Next
 	ConsoleWrite(@CRLF & "======================================================" & @CRLF)
@@ -181,92 +183,24 @@ Func _NetWebView2_GetAllFrames_AsArray($oWebV2M)
 	Local $aFrames[$iFrameCount][$FRAME__COUNTER]
 	Local $oFrame
 	For $IDX_Frame = 0 To $iFrameCount - 1
+
 		$oFrame = $oWebV2M.GetFrame($IDX_Frame)
+		If Not IsObj($oFrame) Then ContinueLoop
+
 		$aFrames[$IDX_Frame][$FRAME_IDX] = $IDX_Frame
 		$aFrames[$IDX_Frame][$FRAME_OBJECT] = $oFrame
 		$aFrames[$IDX_Frame][$FRAME_ID] = $oFrame.FrameId
 		$aFrames[$IDX_Frame][$FRAME_NAME] = $oFrame.Name
 		$aFrames[$IDX_Frame][$FRAME_URL] = $oFrame.Source
-		$aFrames[$IDX_Frame][$FRAME_DESTROYED] = $oFrame.IsDestroyed()
-		$aFrames[$IDX_Frame][$FRAME_HTML] = Fire_And_Wait($oWebV2M.GetFrameHtmlSource($IDX_Frame), 5000)
+		$aFrames[$IDX_Frame][$FRAME_DESTROYED] = $oFrame.IsDestroyed ;()
+		$aFrames[$IDX_Frame][$FRAME_HTML] = _WebView2_FrameGetHtmlSource($oFrame)
 	Next
 	Return $aFrames
 EndFunc   ;==>_NetWebView2_GetAllFrames_AsArray
-
-; ==============================================================================
-; MyHook_ Events
-; ==============================================================================
-Func MyHook_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
-	#forceref $oWebV2M, $hGUI
-	ConsoleWrite("> [MyHook] OnMessageReceived: GUI:" & $hGUI & " Msg: " & (StringLen($sMsg) > 30 ? StringLeft($sMsg, 30) & "..." : $sMsg) & @CRLF)
-	Local $iSplitPos = StringInStr($sMsg, "|")
-	Local $sCommand = $iSplitPos ? StringStripWS(StringLeft($sMsg, $iSplitPos - 1), 3) : $sMsg
-	Local $sData = $iSplitPos ? StringTrimLeft($sMsg, $iSplitPos) : ""
-;~ 	Local $aParts
-
-	Switch $sCommand
-		Case "INIT_READY"
-
-		Case "FRAME_HTML_SOURCE"
-			$iSplitPos = StringInStr($sData, "|")
-			Local $sIDX = StringLeft($sData, $iSplitPos - 1)
-			ConsoleWrite(" >> $sIDX=" & $sIDX & @CRLF)
-			Local $sHtmlSource = StringTrimLeft($sData, $iSplitPos)
-			If $sHtmlSource = "null" Then $sHtmlSource = "!! <Inaccessible>"
-			Fire_And_Wait($sHtmlSource)
-	EndSwitch
-EndFunc   ;==>MyHook_OnMessageReceived
 
 Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
 	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
 	Return SetError($iError, $iExtended, '')
 EndFunc   ;==>__Example_Log
 
-; #FUNCTION# ====================================================================================================================
-; Name...........: Fire_And_Wait
-; Description....: Synchronizes asynchronous events by waiting for a response or a timeout.
-; Syntax.........: Fire_And_Wait([$sData = "" [, $iTimeout = 5000]])
-; Parameters.....: $sData     - [Optional] Data string.
-;                               If provided: Acts as a "Signal" (setter) from the Event Handler.
-;                               If empty: Acts as a "Listener" (getter) from the Main Script.
-;                  $iTimeout  - [Optional] Maximum wait time in milliseconds (Default is 5000ms).
-; Return values..: Success    - Returns the stored data string.
-;                               Sets @extended to the duration of the wait in ms.
-;                  Failure    - Returns an empty string and sets @error:
-;                               |1 - Timeout reached.
-; Author.........: YourName
-; Modified.......: 2026-02-23
-; Remarks........: This function uses static variables to bridge the gap between async COM events and sync script execution.
-;                  It effectively pauses the script execution until the WebView2 event fires back with data.
-; ===============================================================================================================================
 
-Func Fire_And_Wait($sData = "", $iTimeout = 5000)
-	Local Static $vStoredData = ""
-	Local Static $hJobTimer = 0
-
-	; === Part A: Response (From Event Handler) ===
-	If $sData <> "" Then
-		$vStoredData = $sData
-		Return True
-	EndIf
-
-	; === Part B: Fire and Wait (From Main Script) ===
-	$vStoredData = ""
-	$hJobTimer = TimerInit()
-
-	While $vStoredData = ""
-		If TimerDiff($hJobTimer) > $iTimeout Then
-			ConsoleWrite("! Fire_And_Wait | TIMEOUT after " & Round(TimerDiff($hJobTimer), 2) & " ms" & @CRLF)
-			Return SetError(1, 0, "")
-		EndIf
-		Sleep(10)
-	WEnd
-
-	Local $fDuration = TimerDiff($hJobTimer)
-	Local $vResult = $vStoredData
-	$vStoredData = "" ; Reset for next use
-
-	ConsoleWrite("> Fire_And_Wait | Duration: " & Round($fDuration, 0) & " ms | Status: SUCCESS" & @CRLF)
-
-	Return SetError(0, Int($fDuration), $vResult)
-EndFunc   ;==>Fire_And_Wait
