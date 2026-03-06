@@ -30,7 +30,7 @@ Global $_g_bNetWebView2_DebugInfo = True
 ;~ Global $_g_bNetWebView2_DebugDev = False
 Global $_g_bNetWebView2_DebugDev = (@Compiled = 1)
 
-#Region ; ENUMS
+#Region ; === NetWebView2Lib UDF === ENUMS
 
 ;~ Global Enum _
 ;~ 		$NETWEBVIEW2_ERR__INIT_FAILED, _
@@ -116,9 +116,9 @@ Global Enum _ ; Indicates the reason for the process failure.
 		$NETWEBVIEW2_PROCESS_FAILED_REASON_CRASHED, _
 		$NETWEBVIEW2_PROCESS_FAILED_REASON_LAUNCH_FAILED, _
 		$NETWEBVIEW2_PROCESS_FAILED_REASON_OUT_OF_MEMORY
-#EndRegion ; ENUMS
+#EndRegion ; === NetWebView2Lib UDF === ENUMS
 
-#Region ; NetWebView2Lib UDF - _NetWebView2_* core functions
+#Region ; === NetWebView2Lib UDF === _NetWebView2_* core functions
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_CreateManager
 ; Description ...: Create WebView2 object
@@ -237,54 +237,6 @@ Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left =
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " !!! Manager Creation ERROR", 1)
 	Return SetError(@error, $oWebV2M.GetBrowserProcessId(), $iInit)
 EndFunc   ;==>_NetWebView2_Initialize
-
-; #INTERNAL_USE_ONLY# ===========================================================================================================
-; Name ..........: __NetWebView2_WaitForReadyState
-; Description ...: Polls the browser until the document.readyState reaches 'complete'.
-; Syntax ........: __NetWebView2_WaitForReadyState($oWebV2M, $hTimer[, $iTimeOut_ms = 5000])
-; Parameters ....: $oWebV2M       - The WebView2 Manager object.
-;                  $hTimer        - a handle to a caller TimerInit
-;                  $iTimeOut_ms   - [optional] Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
-; Return values .: Success: True
-;                  Failure: False, sets @error:
-;                      1 - Timeout reached before document was complete.
-;                      2 - WebView2 object is not valid or ready.
-; Author ........: ioa747, mLipok
-; Modified.......:
-; Remarks .......: This function uses JavaScript execution to check the internal state of the page.
-;                  Useful for tasks like PDF printing where 'complete' state is mandatory.
-; ===============================================================================================================================
-Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms = 5000)
-	Local Const $s_Prefix = ">>>[_NetWebView2_WaitForReadyState]:"
-
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(2, 0, False)
-	Local $sReadyState = ""
-
-	While 1
-		; Execute JS via the Bridge (Mode 2)
-		$sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
-		If @error Then Return SetError(@error, @extended, False)
-
-		; Check for the 'complete' state
-		If $sReadyState == "complete" Then
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " SUCCESS: Document is ready. Timeout_ms: " & Round(TimerDiff($hTimer), 0), 0)
-			Return True
-		EndIf
-
-		; Check for C# Bridge internal errors (Timeout/Init)
-		If StringLeft($sReadyState, 6) == "ERROR:" Then
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " BRIDGE " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
-			Return SetError(3, 0, False)
-		EndIf
-
-		; Check for AutoIt-side Timeout
-		If $iTimeOut_ms > 0 And TimerDiff($hTimer) > $iTimeOut_ms Then
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " TIMEOUT: Document state is " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
-			Return SetError(1, 0, False)
-		EndIf
-		Sleep(50)
-	WEnd
-EndFunc   ;==>__NetWebView2_WaitForReadyState
 
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_IsRegisteredCOMObject
@@ -671,9 +623,9 @@ Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIE
 	EndIf
 EndFunc   ;==>_NetWebView2_NavigateToString
 
-#EndRegion ; NetWebView2Lib UDF - _NetWebView2_* core functions
+#EndRegion ; === NetWebView2Lib UDF === _NetWebView2_* core functions
 
-#Region ; NetWebView2Lib UDF - _NetWebView2_* helper functions
+#Region ; === NetWebView2Lib UDF === _NetWebView2_* helper functions
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_BrowserSetupWrapper
 ; Description ...:
@@ -856,9 +808,9 @@ Func _NetWebView2_PrintToPdfStream($oWebV2M, $b_TBinary_FBase64)
 	Return SetError(@error, @extended, $s_Result)
 EndFunc   ;==>_NetWebView2_PrintToPdfStream
 
-#EndRegion ; NetWebView2Lib UDF - _NetWebView2_* helper functions
+#EndRegion ; === NetWebView2Lib UDF === _NetWebView2_* helper functions
 
-#Region ; New Core Method Wrappers
+#Region ; === NetWebView2Lib UDF === New Core Method Wrappers
 ; #FUNCTION# ====================================================================================================================
 ; Name...........: _NetWebView2_AddInitializationScript
 ; Description ...: Adds a JavaScript to be executed before any other script when a new page is loaded.
@@ -1016,21 +968,6 @@ Func _NetWebView2_SetBuiltInErrorPageEnabled($oWebV2M, $bEnabled)
 EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_SilentErrorHandler
-; Description....: A generic COM Error Handler that silences errors.
-; Syntax.........: _NetWebView2_SilentErrorHandler()
-; Remarks........: Used to prevent script crashes when a WebView2 object is disposed or closed
-;                  while an event or a method call is still in progress.
-; Author ........: ioa747, mLipok
-; ===============================================================================================================================
-Volatile Func _NetWebView2_SilentErrorHandler($oError)
-	#forceref $oError
-	; We do nothing, effectively "swallowing" the COM error.
-	; This prevents the "Object Disposed" fatal crash.
-	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
-EndFunc   ;==>_NetWebView2_SilentErrorHandler
-
-; #FUNCTION# ====================================================================================================================
 ; Name...........: _WebView2_FrameGetHtmlSource
 ; Description....: Synchronously retrieves the full HTML source of a frame.
 ; Syntax.........: _WebView2_FrameGetHtmlSource($oFrame)
@@ -1070,9 +1007,9 @@ Func _WebView2_FrameGetHtmlSource($oFrame)
 	Return $sClean
 EndFunc   ;==>_WebView2_FrameGetHtmlSource
 
-#EndRegion ; New Core Method Wrappers
+#EndRegion ; === NetWebView2Lib UDF === New Core Method Wrappers
 
-#Region ; NetWebView2Lib UDF - _NetJson_* functions
+#Region ; === NetWebView2Lib UDF === _NetJson_* functions
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetJson_CreateParser
 ; Description ...:
@@ -1120,13 +1057,13 @@ Func _NetJson_DecodeB64($sData)
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	Local $oJSON = _NetJson_CreateParser()
+	Local $oJson = _NetJson_CreateParser()
 	If @error Then
 		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
-		Return SetError(@error, @extended, $oJSON)
+		Return SetError(@error, @extended, $oJson)
 	EndIf
 
-	Local $dBinary = $oJSON.Decode64($sData)
+	Local $dBinary = $oJson.Decode64($sData)
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	Return SetError(@error, @extended, $dBinary)
 EndFunc   ;==>_NetJson_DecodeB64
@@ -1149,19 +1086,67 @@ Func _NetJson_EncodeB64($sData)
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	Local $oJSON = _NetJson_CreateParser()
+	Local $oJson = _NetJson_CreateParser()
 	If @error Then
 		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
-		Return SetError(@error, @extended, $oJSON)
+		Return SetError(@error, @extended, $oJson)
 	EndIf
 
-	Local $vResult = $oJSON.EncodeB64($sData)
+	Local $vResult = $oJson.EncodeB64($sData)
 	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	Return SetError(@error, @extended, $vResult)
 EndFunc   ;==>_NetJson_EncodeB64
-#EndRegion ; NetWebView2Lib UDF - _NetJson_* functions
+#EndRegion ; === NetWebView2Lib UDF === _NetJson_* functions
 
-#Region ; NetWebView2Lib UDF - #INTERNAL_USE_ONLY#
+#Region ; === NetWebView2Lib UDF === #INTERNAL_USE_ONLY#
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_WaitForReadyState
+; Description ...: Polls the browser until the document.readyState reaches 'complete'.
+; Syntax ........: __NetWebView2_WaitForReadyState($oWebV2M, $hTimer[, $iTimeOut_ms = 5000])
+; Parameters ....: $oWebV2M       - The WebView2 Manager object.
+;                  $hTimer        - a handle to a caller TimerInit
+;                  $iTimeOut_ms   - [optional] Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
+; Return values .: Success: True
+;                  Failure: False, sets @error:
+;                      1 - Timeout reached before document was complete.
+;                      2 - WebView2 object is not valid or ready.
+; Author ........: ioa747, mLipok
+; Modified.......:
+; Remarks .......: This function uses JavaScript execution to check the internal state of the page.
+;                  Useful for tasks like PDF printing where 'complete' state is mandatory.
+; ===============================================================================================================================
+Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms = 5000)
+	Local Const $s_Prefix = ">>>[_NetWebView2_WaitForReadyState]:"
+
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(2, 0, False)
+	Local $sReadyState = ""
+
+	While 1
+		; Execute JS via the Bridge (Mode 2)
+		$sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
+		If @error Then Return SetError(@error, @extended, False)
+
+		; Check for the 'complete' state
+		If $sReadyState == "complete" Then
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " SUCCESS: Document is ready. Timeout_ms: " & Round(TimerDiff($hTimer), 0), 0)
+			Return True
+		EndIf
+
+		; Check for C# Bridge internal errors (Timeout/Init)
+		If StringLeft($sReadyState, 6) == "ERROR:" Then
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " BRIDGE " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
+			Return SetError(3, 0, False)
+		EndIf
+
+		; Check for AutoIt-side Timeout
+		If $iTimeOut_ms > 0 And TimerDiff($hTimer) > $iTimeOut_ms Then
+			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " TIMEOUT: Document state is " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
+			Return SetError(1, 0, False)
+		EndIf
+		Sleep(50)
+	WEnd
+EndFunc   ;==>__NetWebView2_WaitForReadyState
+
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name...........: __NetWebView2_LastMessage_KEEPER
 ; Description....: Centralized state manager for WebView2 instances using a static map.
@@ -1180,7 +1165,7 @@ EndFunc   ;==>_NetJson_EncodeB64
 Func __NetWebView2_LastMessage_KEEPER($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
 	; Static Map - The central database of status indexed by Window Handle
 	; Local COM Error Handler to trap 0x80020009 (Disposed Object) during closure
-	Local $oMyError = ObjEvent("AutoIt.Error", _NetWebView2_SilentErrorHandler)
+	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_SilentErrorHandler)
 	#forceref $oMyError
 
 	Local Static $mLastMessegKeeper[]
@@ -1200,7 +1185,7 @@ EndFunc   ;==>__NetWebView2_LastMessage_KEEPER
 Func __NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
 	; Static Map - The central database of status indexed by Window Handle
 	; Local COM Error Handler to trap 0x80020009 (Disposed Object) during closure
-	Local $oMyError = ObjEvent("AutoIt.Error", _NetWebView2_SilentErrorHandler)
+	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_SilentErrorHandler)
 	#forceref $oMyError
 
 	Local Static $mLastMessegReceived[]
@@ -1217,7 +1202,7 @@ EndFunc   ;==>__NetWebView2_LastMessage_onReceived
 Func __NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
 	; Static Map - The central database of status indexed by Window Handle
 	; Local COM Error Handler to trap 0x80020009 (Disposed Object) during closure
-	Local $oMyError = ObjEvent("AutoIt.Error", _NetWebView2_SilentErrorHandler)
+	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_SilentErrorHandler)
 	#forceref $oMyError
 
 	Local Static $mLastNavigationMessage[]
@@ -1482,11 +1467,26 @@ Func __NetWebView2_freezer($oWebV2M, ByRef $idPic)
 	#EndRegion ; freeze $hWindow_WebView2
 EndFunc   ;==>__NetWebView2_freezer
 
-#EndRegion ; NetWebView2Lib UDF - #INTERNAL_USE_ONLY#
+#EndRegion ; === NetWebView2Lib UDF === #INTERNAL_USE_ONLY#
 
-#Region ; === NetWebView2Lib UDF === EVENT HANDLERS ===
+#Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Collection ===
 
-#Region ; === EVENT HANDLERS === Error Handler ===
+#Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Error Handlers ===
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name...........: __NetWebView2_SilentErrorHandler
+; Description....: A generic COM Error Handler that silences errors.
+; Syntax.........: __NetWebView2_SilentErrorHandler()
+; Remarks........: Used to prevent script crashes when a WebView2 object is disposed or closed
+;                  while an event or a method call is still in progress.
+; Author ........: ioa747, mLipok
+; ===============================================================================================================================
+Volatile Func __NetWebView2_SilentErrorHandler($oError)
+	#forceref $oError
+	; We do nothing, effectively "swallowing" the COM error.
+	; This prevents the "Object Disposed" fatal crash.
+	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
+EndFunc   ;==>__NetWebView2_SilentErrorHandler
+
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_COMErrFunc
 ; Description ...:
@@ -1522,9 +1522,9 @@ Volatile Func __NetWebView2_fake_COMErrFunc($oError) ; COM Error Function used b
 	; this is only to silently handle _NetWebView2_IsRegisteredCOMObject()
 	$oError = 0 ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_fake_COMErrFunc
-#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Error Handler ===
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Error Handlers ===
 
-#Region ; === EVENT HANDLERS === MessageReceived ===
+#Region ; === NetWebView2Lib UDF === EVENT HANDLERS === MessageReceived ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnMessageReceived
 ; Description ...: Handles native WebView2 events
@@ -1755,18 +1755,18 @@ Volatile Func __NetWebView2_JSEvents__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	; 1. Modern JSON Messaging
 	If $sFirstChar = "{" Or $sFirstChar = "[" Then
 		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " Processing JSON message...", 1)
-		Local $oJSON = _NetJson_CreateParser()
-		If @error Or Not IsObj($oJSON) Then
+		Local $oJson = _NetJson_CreateParser()
+		If @error Or Not IsObj($oJson) Then
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " ERROR: Failed to create NetJson object.", 1)
-			Return SetError(@error, @extended, $oJSON)
+			Return SetError(@error, @extended, $oJson)
 		EndIf
 
-		$oJSON.Parse($sMsg)
-		Local $sJobType = $oJSON.GetTokenValue("type")
+		$oJson.Parse($sMsg)
+		Local $sJobType = $oJson.GetTokenValue("type")
 
 		Switch $sJobType
 			Case "COM_TEST"
-				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COM_TEST Confirmed: " & $oJSON.GetTokenValue("status"), 1)
+				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COM_TEST Confirmed: " & $oJson.GetTokenValue("status"), 1)
 		EndSwitch
 
 	Else
@@ -1807,7 +1807,7 @@ Volatile Func __NetWebView2_JSEvents__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 EndFunc   ;==>__NetWebView2_JSEvents__OnMessageReceived
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === MessageReceived ===
 
-#Region ; === EVENT HANDLERS === Browser ===
+#Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Browser ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnBrowserGotFocus
 ; Description ...:
@@ -2191,7 +2191,7 @@ Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hG
 EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Browser ===
 
-#Region ; === EVENT HANDLERS === Frame Related ===
+#Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Frame Related ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: _NetWebView2_GetFrame
 ; Description ...: Returns a Frame Object (IWebView2Frame) for the specified index.
@@ -2381,9 +2381,17 @@ Volatile Func __NetWebView2_Events__OnFrameWebMessageReceived($oWebV2M, $hGUI, $
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_WEB_MESSAGE_RECEIVED)
 EndFunc   ;==>__NetWebView2_Events__OnFrameWebMessageReceived
+
+Func __NetWebView2_Events__FrameKeeper($oWebV2M, $hGUI, $oFrame)
+	#TODO mLipok
+	#forceref $oWebV2M, $hGUI, $oFrame
+;~ 	Local Static $aFrames[0][2]
+;~ 	Local Const $aFrameTemplate
+;~
+EndFunc   ;==>__NetWebView2_Events__FrameKeeper
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Frame Related ===
 
-#Region ; === EVENT HANDLERS * #TODO ===
+#Region ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
 ;~ is this followed webmessagereceived are the same as __NetWebView2_Events__OnMessageReceived() ?
 ;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#webmessagereceived
 
@@ -2392,7 +2400,4 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameWebMessageReceived
 ;~ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
 
-#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS ===
-
-
-
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Collection ===
