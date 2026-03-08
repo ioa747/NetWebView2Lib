@@ -29,6 +29,7 @@
 Global $_g_bNetWebView2_DebugInfo = True
 ;~ Global $_g_bNetWebView2_DebugDev = False
 Global $_g_bNetWebView2_DebugDev = (@Compiled = 1)
+Global $_g_bNetWebView2_Sleep = Sleep                  ; Default to calling standard Sleep function
 
 #Region ; === NetWebView2Lib UDF === ENUMS
 
@@ -92,6 +93,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by mainly by __NetWebView2_Event
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_COMPLETED, _
 		$NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED, _
 		$NETWEBVIEW2_MESSAGE__UNKNOWN_MESSAGE, _
+		$NETWEBVIEW2_MESSAGE__USER_ABORT, _
 		$NETWEBVIEW2_MESSAGE___FAKE_COUNTER
 
 Global Enum _
@@ -211,7 +213,7 @@ Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left =
 	Local $iTimeOut_ms = 10000 ; max 10 seconds for initialization
 	Local $iMessage
 	Do
-		Sleep(50)
+		__NetWebView2_Sleep(10)
 		$iMessage = __NetWebView2_LastMessage_KEEPER($oWebV2M)
 		If $iMessage = $NETWEBVIEW2_MESSAGE__INIT_FAILED _
 				Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY _
@@ -467,7 +469,7 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 
 	While 1
 		; Allow AutoIt to "breathe" and process the GUI messages
-		Sleep(10)
+		__NetWebView2_Sleep(10)
 
 		; RULE 1: If we reached the target status or higher
 		Local $bWebIsReady = $oWebV2M.IsReady
@@ -769,7 +771,7 @@ Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FilePath, Const $s_Parameter
 	$oWebV2M.LockWebView()
 	If $bFreeze Then __NetWebView2_freezer($oWebV2M, $idPic)
 	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FilePath, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
-	If Not @error Then Sleep($iSleep_ms)
+	If Not @error Then __NetWebView2_Sleep($iSleep_ms)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	If $bFreeze And $idPic Then __NetWebView2_freezer($oWebV2M, $idPic)
 	$oWebV2M.UnLockWebView()
@@ -1100,6 +1102,26 @@ EndFunc   ;==>_NetJson_EncodeB64
 
 #Region ; === NetWebView2Lib UDF === #INTERNAL_USE_ONLY#
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: __NetWebView2_Sleep
+; Description ...: Pause script execution for designated timeframe.
+; Syntax ........: __NetWebView2_Sleep($iPause)
+; Parameters ....: $iPause - Amount of time to pause (in milliseconds)
+; Return values .: Success - None
+;                  Failure - None and sets @error $NETWEBVIEW2_MESSAGE__USER_ABORT
+; Author ........: @Danp2, mLipok
+; Modified ......:
+; Remarks .......: Calls standard Sleep() by default. This can be overridden by setting $_g_bNetWebView2_Sleep so that a user supplied function gets called instead.
+;                  User's function can throw error which will lead to $NETWEBVIEW2_MESSAGE__USER_ABORT
+; Related .......:
+; Link ..........:
+; Example .......: No
+; ===============================================================================================================================
+Func __NetWebView2_Sleep($iPause)
+	$_g_bNetWebView2_Sleep($iPause)
+	If @error Then Return SetError($NETWEBVIEW2_MESSAGE__USER_ABORT)
+EndFunc   ;==>__NetWebView2_Sleep
+
+; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_WaitForReadyState
 ; Description ...: Polls the browser until the document.readyState reaches 'complete'.
 ; Syntax ........: __NetWebView2_WaitForReadyState($oWebV2M, $hTimer[, $iTimeOut_ms = 5000])
@@ -1143,7 +1165,7 @@ Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms = 5000)
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " TIMEOUT: Document state is " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0), 1)
 			Return SetError(1, 0, False)
 		EndIf
-		Sleep(50)
+		__NetWebView2_Sleep(50)
 	WEnd
 EndFunc   ;==>__NetWebView2_WaitForReadyState
 
