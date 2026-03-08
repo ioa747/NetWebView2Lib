@@ -243,7 +243,10 @@ EndFunc   ;==>_NetWebView2_Initialize
 ; Description ...: Check if all necessary object are registerd
 ; Syntax ........: _NetWebView2_IsRegisteredCOMObject()
 ; Parameters ....: None
-; Return values .: True or False
+; Return values..: Success      - True
+;                  Failure      - False and sets @error:
+;                                     1 - error registering "NetWebView2Lib.WebView2Manager"
+;                                     2 - error registering "NetWebView2Lib.WebView2Parser"
 ; Author ........: mLipok
 ; Modified ......:
 ; Remarks .......:
@@ -252,16 +255,23 @@ EndFunc   ;==>_NetWebView2_Initialize
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_IsRegisteredCOMObject()
+	Local $iErr = 0, $iExt = 0, $iRet = False ; predefined endpoint results
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_fake_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
 	ObjCreate("NetWebView2Lib.WebView2Manager")
-	If @error Then Return SetError(1, 0, False)
+	If @error Then
+		$iErr = 1
+	Else
+		ObjCreate("NetWebView2Lib.WebView2Parser")
+		If @error Then
+			$iErr = 2
+		Else
+			$iRet = True
+		EndIf
+	EndIf
 
-	ObjCreate("NetWebView2Lib.WebView2Parser")
-	If @error Then Return SetError(2, 0, False)
-
-	Return True
+	Return SetError($iErr, $iExt, $iRet) ; one common endpoint for entire functions
 EndFunc   ;==>_NetWebView2_IsRegisteredCOMObject
 
 ; #FUNCTION# ====================================================================================================================
@@ -2401,3 +2411,4 @@ EndFunc   ;==>__NetWebView2_Events__FrameKeeper
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
 
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Collection ===
+
