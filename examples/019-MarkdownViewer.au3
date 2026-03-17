@@ -285,12 +285,11 @@ Func _WebView2_CopyHTML()
 EndFunc   ;==>_WebView2_CopyHTML
 
 Func _ClearEditor()
-	#EndRegion ; === Core ===
-
 	GUICtrlSetData($g_idEdtMarkdown, "")
 	_RenderMarkdown($oWebV2M, "")
 	$g_iSaved = 1
 EndFunc   ;==>_ClearEditor
+#EndRegion ; === Core ===
 
 #Region ; === GUI helper ===
 Func _Web_MakeBar($hGUI, $ctx_list = "", $bAddress = 1) ; Make a Basic ToolBar for Browsing navigation
