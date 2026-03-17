@@ -67,11 +67,11 @@ This project is provided "as-is". You are free to use, modify, and distribute it
 </p>
 
 
-# 🚀 What's New in v2.2.0-alpha - Event Object Refactoring
+## 🚀 What's New in v2.2.0-alpha - Event Object Refactoring
 
 This release marks a major architectural milestone for the library by introducing **Event Object Refactoring**. Key events have been transitioned from passing raw data (strings) to passing full **COM-visible objects**, granting developers absolute control over the application's navigation flow.
 
-## ⚡ Key Features & Enhancements
+### ⚡ Key Features & Enhancements
 
 ### 1. Advanced Navigation Control (`IWebView2NavigationStartingEventArgs`)
 
@@ -86,7 +86,7 @@ Navigation is no longer a passive process. With the new `Args` object, you can p
 - **`NavigationId`**: A unique identifier for precise request tracking across complex web sessions.
     
 
-### 2. Event Object Refactoring & API Maturity
+#### 2. Event Object Refactoring & API Maturity
 
 We are moving away from "Raw Parameter" callbacks toward an **Object-Oriented Event Model**.
 
@@ -95,7 +95,7 @@ We are moving away from "Raw Parameter" callbacks toward an **Object-Oriented Ev
 - **Future-Proofing**: Adding new metadata in future WebView2 updates will no longer break existing user code, as new properties will simply be appended to the existing object.
 
 
-## 🏗️ Architectural Inheritance & Refactoring
+### 🏗️ Architectural Inheritance & Refactoring
 
 Building on the foundation of v2.1.0, this version further strengthens the **Event Wrapper** hierarchy:
 
