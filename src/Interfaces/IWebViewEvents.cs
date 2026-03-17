@@ -18,7 +18,7 @@ namespace NetWebView2Lib
         /// <param name="parentHandle">The parent window handle.</param>
         /// <param name="message">The message content.</param>
         [DispId(1)] void OnMessageReceived(object sender, string parentHandle, string message);
-        [DispId(2)] void OnNavigationStarting(object sender, string parentHandle, string url);
+        [DispId(2)] void OnNavigationStarting(object sender, string parentHandle, object args);
         [DispId(3)] void OnNavigationCompleted(object sender, string parentHandle, bool isSuccess, int webErrorStatus);
         [DispId(4)] void OnTitleChanged(object sender, string parentHandle, string newTitle);
         [DispId(5)] void OnWebResourceResponseReceived(object sender, string parentHandle, int statusCode, string reasonPhrase, string requestUrl);
@@ -36,7 +36,7 @@ namespace NetWebView2Lib
         [DispId(239)] void OnPermissionRequested(object sender, string parentHandle, object args);
 
         // --- FRAME EVENTS ---
-        [DispId(229)] void OnFrameNavigationStarting(object sender, string parentHandle, object frame, string uri);
+        [DispId(229)] void OnFrameNavigationStarting(object sender, string parentHandle, object frame, object args);
         [DispId(230)] void OnFrameNavigationCompleted(object sender, string parentHandle, object frame, bool isSuccess, int webErrorStatus);
         [DispId(231)] void OnFrameContentLoading(object sender, string parentHandle, object frame, long navigationId);
         [DispId(232)] void OnFrameDOMContentLoaded(object sender, string parentHandle, object frame, long navigationId);

@@ -14,7 +14,7 @@ namespace NetWebView2Lib
 
         /// <summary>Delegate for message events.</summary>
         public delegate void OnMessageReceivedDelegate(object sender, string parentHandle, string message);
-        public delegate void OnNavigationStartingDelegate(object sender, string parentHandle, string url);
+        public delegate void OnNavigationStartingDelegate(object sender, string parentHandle, object args);
         public delegate void OnNavigationCompletedDelegate(object sender, string parentHandle, bool isSuccess, int webErrorStatus);
         public delegate void OnTitleChangedDelegate(object sender, string parentHandle, string newTitle);
         public delegate void OnURLChangedDelegate(object sender, string parentHandle, string newUrl);
@@ -31,7 +31,7 @@ namespace NetWebView2Lib
         public delegate void OnBasicAuthenticationRequestedDelegate(object sender, string parentHandle, object args);
         public delegate void OnPermissionRequestedDelegate(object sender, string parentHandle, object args);
 
-        public delegate void OnFrameNavigationStartingDelegate(object sender, string parentHandle, object frame, string uri);
+        public delegate void OnFrameNavigationStartingDelegate(object sender, string parentHandle, object frame, object args);
         public delegate void OnFrameNavigationCompletedDelegate(object sender, string parentHandle, object frame, bool isSuccess, int webErrorStatus);
         public delegate void OnFrameContentLoadingDelegate(object sender, string parentHandle, object frame, long navigationId);
         public delegate void OnFrameDOMContentLoadedDelegate(object sender, string parentHandle, object frame, long navigationId);
@@ -165,7 +165,7 @@ namespace NetWebView2Lib
 
             // Navigation & Content Events
             _webView.CoreWebView2.NavigationStarting += (s, e) => { 
-                OnNavigationStarting?.Invoke(this, FormatHandle(_parentHandle), e.Uri); 
+                OnNavigationStarting?.Invoke(this, FormatHandle(_parentHandle), new WebView2NavigationStartingEventArgsWrapper(e, _parentHandle)); 
                 OnMessageReceived?.Invoke(this, FormatHandle(_parentHandle), "NAV_STARTING|" + e.Uri);
             };
 

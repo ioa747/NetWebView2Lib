@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2026.2.25.11 🚩
+; NetWebView2Lib.au3 - Script Version: 2026.3.17.12 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -1948,10 +1948,10 @@ EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnNavigationStarting
 ; Description ...:
-; Syntax ........: __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
+; Syntax ........: __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $oArgs)
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $hGUI                - a handle value.
-;                  $sURL                - a string value.
+;                  $oArgs               - an object.
 ; Return values .: None
 ; Author ........: ioa747, mLipok
 ; Modified ......:
@@ -1960,7 +1960,8 @@ EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
+Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $oArgs)
+	Local $sURL = $oArgs.Uri
 	Local Const $s_Prefix = "[EVENT: OnNavigationStarting]: GUI:" & $hGUI & " URL: " & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
@@ -2303,11 +2304,11 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnFrameNavigationStarting
 ; Description ...: Handles Frame NavigationStarting event
-; Syntax ........: __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $sUri)
+; Syntax ........: __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $oArgs)
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $hGUI                - a handle value.
 ;                  $oFrame              - an Frame object.
-;                  $sUri                - a string value.
+;                  $oArgs               - an object.
 ; Return values .: None
 ; Author ........: ioa747
 ; Modified ......:
@@ -2316,7 +2317,8 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
 ; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.navigationstarting
 ; Example .......: No
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $sUri)
+Volatile Func __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $oArgs)
+	Local $sUri = $oArgs.Uri
 	Local Const $s_Prefix = "[EVENT: OnFrameNavigationStarting]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Uri:" & $sUri
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_NAV_STARTING) ; Optional: Update status if needed
