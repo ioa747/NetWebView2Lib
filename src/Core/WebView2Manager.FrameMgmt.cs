@@ -25,7 +25,7 @@ namespace NetWebView2Lib
                 frame.NavigationStarting += (s, e) =>
                 {
                    lock (_frameUrls) { _frameUrls[frame] = e.Uri; }
-                   InvokeOnUiThread(() => OnFrameNavigationStarting?.Invoke(this, FormatHandle(_parentHandle), new WebView2Frame(frame, this), e.Uri));
+                   InvokeOnUiThread(() => OnFrameNavigationStarting?.Invoke(this, FormatHandle(_parentHandle), new WebView2Frame(frame, this), new WebView2NavigationStartingEventArgsWrapper(e, _parentHandle)));
                 };
                 frame.NavigationCompleted += (s, e) => 
                 {

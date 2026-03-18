@@ -66,574 +66,571 @@ This project is provided "as-is". You are free to use, modify, and distribute it
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 🚀 What's New in v2.1.0-alpha - Frame Support & Event Isolation
 
-This patch introduces first-class support for `iframe` interaction, allowing developers to target specific frames for script execution, messaging, and host object binding.
+## 🚀 What's New in v2.2.0-alpha - Event Object Refactoring
+
+This release marks a major architectural milestone for the library by introducing **Event Object Refactoring**. Key events have been transitioned from passing raw data (strings) to passing full **COM-visible objects**, granting developers absolute control over the application's navigation flow.
 
 ### ⚡ Key Features & Enhancements
 
-#### **1. Professional Frame Support (WebView2Frame)**
-IFrames are no longer just metadata. You can now obtain a dedicated COM object for any frame to interact with it directly.
-- **`GetFrame(index)`**: returns an `IWebView2Frame` object.
-- **Frame Methods**: `ExecuteScript`, `ExecuteScriptWithResult` (Thread-Safe Sync), `PostWebMessageAsJson`, `PostWebMessageAsString`.
-- **Host Object Injection**: `AddHostObjectToScript` and `RemoveHostObjectFromScript` are now supported per frame.
+### 1. Advanced Navigation Control (`IWebView2NavigationStartingEventArgs`)
 
-#### **2. Isolated Frame Events**
-Listen to the lifecycle of specific frames without context ambiguity.
-- **Events**: `OnFrameNavigationStarting`, `OnFrameNavigationCompleted`, `OnFrameContentLoading`, `OnFrameDOMContentLoaded`, `OnFrameWebMessageReceived`.
-- **Targeting**: Every event provides the `frameName` to facilitate multi-frame coordination.
+Navigation is no longer a passive process. With the new `Args` object, you can programmatically intervene in the navigation lifecycle before it even begins.
 
-#### **3. Backward Compatibility Sync**
-The existing bulk extraction methods (`GetFrameCount`, `GetFrameUrls`, etc.) remain fully functional and synchronized with the internal frame tracker.
-
-
-#### **4. Refactoring & Structural Inheritance**
-
-The project's internal architecture has been fully reorganized to ensure long-term scalability and clean COM interoperability.
-
-- **Logic-Based Namespacing:** Files are now categorized into dedicated directories (`/Core`, `/Events`, `/Interfaces`, `/Utils`). This makes the codebase easier to navigate and ensures that the root namespace remains focused on the primary API.
+- **`Cancel` [Property]**: The ability to kill a navigation request at its source. Perfect for content filtering, security, and custom protocol handling.
     
-- **Partial Class Implementation:** The `WebView2Manager` is now distributed across specialized partial classes (e.g., `Main`, `Events`, `FrameMgmt`). This maintains a single, unified COM object for the user while keeping the source code modular and readable.
+- **`IsUserInitiated`**: Determine whether the navigation was triggered by a physical user click or programmatically via JavaScript.
     
-- **Inheritance-Driven Event Wrappers:** We introduced `BaseWebViewEventArgs`, a parent class for all event wrappers. This leverages C# inheritance to streamline how data is passed to the host application.
+- **`IsRedirected`**: Automatically detect if the current request is a server-side or client-side redirect.
+    
+- **`NavigationId`**: A unique identifier for precise request tracking across complex web sessions.
     
 
-**Why this matters:**
+#### 2. Event Object Refactoring & API Maturity
 
-- **Standardized Metadata:** Every event now automatically inherits common properties like `WindowHandle` and a reference to the `Manager` instance.
+We are moving away from "Raw Parameter" callbacks toward an **Object-Oriented Event Model**.
+
+- **Breaking Change**: `OnNavigationStarting` and `OnFrameNavigationStarting` now return an **Args Object**. This change is essential to support bi-directional communication (e.g., AutoIt telling C# to `Cancel = True`).
     
-- **DRY (Don't Repeat Yourself):** By using `: base(manager, hwnd)`, we eliminated boilerplate code. Updates to core event logic (like handle formatting) now only need to be made in one place to affect all event types.
+- **Future-Proofing**: Adding new metadata in future WebView2 updates will no longer break existing user code, as new properties will simply be appended to the existing object.
+
+
+### 🏗️ Architectural Inheritance & Refactoring
+
+Building on the foundation of v2.1.0, this version further strengthens the **Event Wrapper** hierarchy:
+
+- **Base Inheritance**: All new event objects inherit from `BaseWebViewEventArgs`, ensuring that core properties like `WindowHandle` and the `ManagerInstance` are consistently available.
     
-- **Developer Predictability:** Whether you are handling a `ZoomChanged` or a `NavigationStarting` event, the core properties remain consistent, making the library much more intuitive for AutoIt/COM scripting.
+- **Uniformity**: Whether you are handling a sub-frame or the main browser instance, the parameter logic remains predictable and standardized.
+    
 
-
-The project has been reorganized into logical directories:
-```
-NETWEBVIEW2LIB\SRC
-├───Core       Main manager logic (partial classes) and core bridge/parser.
-├───Events     Standardized event argument wrappers.
-├───Interfaces COM-visible interface definitions.
-└───Utils      Shared utility functions and assembly helpers.
-```
+> **Why this matters:** The shift to objects transforms **NetWebView2Lib** from a "simple browser wrapper" into a **Professional-Grade SDK** for AutoIt. It brings low-level control—previously reserved for languages like C# or C++—directly into the hands of the AutoIt developer.
 
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 📖 NetWebView2Lib Version 2.1.0-alpha (Quick Reference)
 
-### 🧊 WebView2Manager (ProgId: NetWebView2Lib.WebView2Manager)
+## 📖 NetWebView2Lib Version 2.2.0-alpha (Quick Reference)
 
-#### ===🏷️ Properties===
+### 🟦 WebView2Manager (ProgId: NetWebView2Lib.WebView2Manager)
 
-##### 🏷️AreDevToolsEnabled
+#### ===🔧 Properties===
+
+##### 🔧 AreDevToolsEnabled
 Determines whether the user is able to use the context menu or keyboard shortcuts to open the DevTools window.
 `object.AreDevToolsEnabled = Value`
 
-##### 🏷️AreDefaultContextMenusEnabled
+##### 🔧 AreDefaultContextMenusEnabled
 Activates or Deactivates the contextual menus of the WebView2 browser.
 `object.AreDefaultContextMenusEnabled = Value`
 
-##### 🏷️ AreDefaultScriptDialogsEnabled
+##### 🔧 AreDefaultScriptDialogsEnabled
 Determines whether the standard JavaScript dialogs (alert, confirm, prompt) are enabled.
 `object.AreDefaultScriptDialogsEnabled = Value`
 
-##### 🏷️ AreBrowserAcceleratorKeysEnabled
+##### 🔧 AreBrowserAcceleratorKeysEnabled
 Determines whether browser-specific accelerator keys are enabled (e.g., Ctrl+P, F5, etc.).
 `object.AreBrowserAcceleratorKeysEnabled = Value`
 
-##### 🏷️ IsStatusBarEnabled
+##### 🔧 IsStatusBarEnabled
 Determines whether the status bar is visible.
 `object.IsStatusBarEnabled = Value`
 
-##### 🏷️ ZoomFactor
+##### 🔧 ZoomFactor
 Gets or sets the current zoom factor (e.g., 1.0 for 100%).
 `object.ZoomFactor = Value`
 
-##### 🏷️ BackColor
+##### 🔧 BackColor
 Sets the background color of the WebView using a Hex string (e.g., "#FFFFFF" or "0xFFFFFF").
 `object.BackColor = Value`
 
-##### 🏷️ AreHostObjectsAllowed
+##### 🔧 AreHostObjectsAllowed
 Determines whether host objects (like the 'autoit' bridge) are accessible from JavaScript.
 `object.AreHostObjectsAllowed = Value`
 
-##### 🏷️ Anchor
+##### 🔧 Anchor
 Determines how the control is anchored when the parent window is resized.
 `object.Anchor = Value`
 
-##### 🏷️ BorderStyle
+##### 🔧 BorderStyle
 Note: Not supported natively by WebView2, provided for compatibility.
 `object.BorderStyle = Value`
   
-##### 🏷️ AreBrowserPopupsAllowed
+##### 🔧 AreBrowserPopupsAllowed
 Determines whether new window requests are allowed or redirected to the same window.
 `object.AreBrowserPopupsAllowed = Value`
 
-##### 🏷️ CustomMenuEnabled
+##### 🔧 CustomMenuEnabled
 Enables or disables custom context menu handling.
 `object.CustomMenuEnabled = Value`
 
-##### 🏷️ AdditionalBrowserArguments
+##### 🔧 AdditionalBrowserArguments
 Sets additional command-line arguments to be passed to the Chromium engine during initialization. Must be set BEFORE calling Initialize().
 `object.AdditionalBrowserArguments = Value`
 
-##### 🏷️ HiddenPdfToolbarItems
+##### 🔧 HiddenPdfToolbarItems
 Controls the visibility of buttons in the PDF viewer toolbar using a bitwise combination of CoreWebView2PdfToolbarItems (e.g., 1=Save, 2=Print, 4=Search).
 `object.HiddenPdfToolbarItems = Value`
 
-##### 🏷️ IsDownloadUIEnabled
+##### 🔧 IsDownloadUIEnabled
 Determines whether the browser's default download UI (shelf/bubble) is shown.
 `object.IsDownloadUIEnabled = Value`
 
-##### 🏷️ HttpStatusCodeEventsEnabled
+##### 🔧 HttpStatusCodeEventsEnabled
 Enables or disables the `OnWebResourceResponseReceived` event entirely.
 `object.HttpStatusCodeEventsEnabled = Value`
 
-##### 🏷️ HttpStatusCodeDocumentOnly
+##### 🔧 HttpStatusCodeDocumentOnly
 Determines whether `OnWebResourceResponseReceived` triggers for all resources (False) or only for the main document (True). Essential for preventing GUI deadlocks in AutoIt.
 `object.HttpStatusCodeDocumentOnly = Value`
 
-##### 🏷️ Verbose
+##### 🔧 Verbose
 Enable diagnostic logging to console.  (before `$object.Initialize()`)
 `object.Verbose = Value`
 
-##### 🏷️ IsDownloadHandled
+##### 🔧 IsDownloadHandled
 Determines whether the download is handled by the application. If set to **True** during `OnDownloadStarting`, the internal Edge download is cancelled.
 `object.IsDownloadHandled = Value`
 
-##### 🏷️ ActiveDownloadsList
+##### 🔧 ActiveDownloadsList
 Returns a pipe-separated string of all active download URIs.
 `object.ActiveDownloadsList`
 
-##### 🏷️ IsZoomControlEnabled
+##### 🔧 IsZoomControlEnabled
 Determines whether user can zoom the page (Ctrl+MouseWheel, shortcuts).
 `object.IsZoomControlEnabled = Value`
 
-##### 🏷️ IsBuiltInErrorPageEnabled
+##### 🔧 IsBuiltInErrorPageEnabled
 Control visibility of the browser's default error pages (e.g., connection lost).
 `object.IsBuiltInErrorPageEnabled = Value`
 
-##### 🏷️ BrowserWindowHandle
+##### 🔧 BrowserWindowHandle
 Returns the internal window handle (HWND) of the WebView2 control. [Format: `[HANDLE:0x...]`]
 `object.BrowserWindowHandle`
 
-##### 🏷️ ParentWindowHandle
+##### 🔧 ParentWindowHandle
 Returns the parent window handle provided during initialization. [Format: `[HANDLE:0x...]`]
 `object.ParentWindowHandle`
 
-##### 🏷️ BlockedVirtualKeys
+##### 🔧 BlockedVirtualKeys
 A comma-separated list of Virtual Key codes to be blocked synchronously (e.g., "116,123").
 `object.BlockedVirtualKeys = "116,123"`
 
-##### 🏷️ FailureReportFolderPath
+##### 🔧 FailureReportFolderPath
 Sets or gets the path where the WebView2 browser stores crash reports (dump files).
 - **Default**: If NOT set by the user, the system automatically uses the `FailureReportFolderPath` subfolder within the `UserDataFolder` (assigned during `.Initialize`).
 - **Manual Override**: You can set a custom path **before** calling `.Initialize`.
 - **Example (Custom Path)**: `object.FailureReportFolderPath = "C:\MyCustomCrashDumps"`
 - **Example (Read current)**: `$sPath = object.FailureReportFolderPath`
 
-##### 🏷️ Version
+##### 🔧 Version
 Allows AutoIt to verify the DLL version at runtime for compatibility checks.
 `object.Version`
 
-#### ===⚡Method===
+#### ===🧊 Method===
 
-##### ⚡ Initialize
+##### 🧊 Initialize
 Initializes the WebView2 control within a parent window.
 `object.Initialize(ParentHandle As HWND, UserDataFolder As String, X As Integer, Y As Integer, Width As Integer, Height As Integer)`
 
-##### ⚡Navigate
+##### 🧊 Navigate
 Navigates the browser to the specified URL.
 `object.Navigate(Url As String)`
 
-##### ⚡ NavigateToString
+##### 🧊 NavigateToString
 Loads the provided HTML content directly into the browser.
 `object.NavigateToString(HtmlContent As String)`
 
-##### ⚡ ExecuteScript
+##### 🧊 ExecuteScript
 **Type**: void (Fire-and-Forget)
 **Description**: Sends the command to the UI thread. No return value.
 **Use Case**: UI Actions (click, scroll, focus).
 `object.ExecuteScript(Script As String)`
 
-##### ⚡ Resize
+##### 🧊 Resize
 Changes the dimensions of the WebView2 control.
 `object.Resize(Width As Integer, Height As Integer)`
 
-##### ⚡ Cleanup
+##### 🧊 Cleanup
 Disposes of the WebView2 control and releases resources.
 `object.Cleanup()`
 
-##### ⚡ GetBridge
+##### 🧊 GetBridge
 Returns the Bridge object for advanced AutoIt-JavaScript interaction.
 `object.GetBridge()`
 
-##### ⚡ ExportToPdf
+##### 🧊 ExportToPdf
 Saves the current page as a PDF file.
 `object.ExportToPdf(FilePath As String)`
 
-##### ⚡ IsReady
+##### 🧊 IsReady
 Checks if the WebView2 control is fully initialized and ready for use.
 `object.IsReady()`
 
-##### ⚡ SetContextMenuEnabled
+##### 🧊 SetContextMenuEnabled
 Toggles between Native (true) and Custom (false) context menu modes.
 `object.SetContextMenuEnabled(Enabled As Boolean)`
 
-##### ⚡ LockWebView
+##### 🧊 LockWebView
 Locks down the WebView by disabling context menus, dev tools, zoom control, default error pages, script dialogs, accelerator keys, and popups.
 `object.LockWebView()`
 
-##### ⚡ UnLockWebView
+##### 🧊 UnLockWebView
 Re-enables the features previously restricted by `LockWebView()` (ContextMenus, DevTools, Zoom, ErrorPages, Dialogs, Keys, Popups).
 `object.UnLockWebView()`
 
-##### ⚡ DisableBrowserFeatures
+##### 🧊 DisableBrowserFeatures
 Disables major browser features for a controlled environment (Unified with `LockWebView`).
 `object.DisableBrowserFeatures()`
 
-##### ⚡ GoBack
+##### 🧊 GoBack
 Navigates back to the previous page in history.
 `object.GoBack()`
 
-##### ⚡ GoForward
+##### 🧊 GoForward
 Navigates forward to the next page in history.
 `object.GoForward()`
 
-##### ⚡ ResetZoom
+##### 🧊 ResetZoom
 Resets the zoom factor to the default 100%.
 `object.ResetZoom()`
 
-##### ⚡ InjectCss
+##### 🧊 InjectCss
 Injects a block of CSS code into the current page.
 `object.InjectCss(CssCode As String)`
 
-##### ⚡ ClearInjectedCss
+##### 🧊 ClearInjectedCss
 Removes any CSS previously injected via InjectCss.
 `object.ClearInjectedCss()`
 
-##### ⚡ ToggleAuditHighlights
+##### 🧊 ToggleAuditHighlights
 Toggles visual highlights on common web elements for auditing purposes.
 `object.ToggleAuditHighlights(Enable As Boolean)`
 
-##### ⚡ SetAdBlock
+##### 🧊 SetAdBlock
 Enables or disables the built-in ad blocker.
 `object.SetAdBlock(Active As Boolean)`
 
-##### ⚡ AddBlockRule
+##### 🧊 AddBlockRule
 Adds a domain pattern to the ad block list.
 `object.AddBlockRule(Domain As String)`
 
-##### ⚡ ClearBlockRules
+##### 🧊 ClearBlockRules
 Clears all active ad block rules.
 `object.ClearBlockRules()`
 
-##### ⚡ GetHtmlSource
+##### 🧊 GetHtmlSource
 Asynchronously retrieves the full HTML source (sent via OnMessageReceived with 'HTML_SOURCE|').
 `object.GetHtmlSource()`
 
-##### ⚡ GetFrameCount
+##### 🧊 GetFrameCount
 Returns the number of currently tracked iframes.
 `object.GetFrameCount()`
 
-##### ⚡ GetFrameUrl
+##### 🧊 GetFrameUrl
 Returns the URL of the specified frame index.
 `object.GetFrameUrl(Index As Integer)`
 
-##### ⚡ GetFrameName
+##### 🧊 GetFrameName
 Returns the Name attribute of the specified frame index.
 `object.GetFrameName(Index As Integer)`
 
-##### ⚡ GetFrameUrls
+##### 🧊 GetFrameUrls
 Returns a pipe-separated string of all tracked iframe URLs.
 `object.GetFrameUrls()`
 
-##### ⚡ GetFrameNames
+##### 🧊 GetFrameNames
 Returns a pipe-separated string of all tracked iframe names.
 `object.GetFrameNames()`
 
-##### ⚡ GetFrameHtmlSource
+##### 🧊 GetFrameHtmlSource
 Asynchronously retrieves the HTML of the frame at the specified index (sent via OnMessageReceived with 'FRAME_HTML_SOURCE|Index|').
 `object.GetFrameHtmlSource(Index As Integer)`
 
-##### ⚡ GetFrame
+##### 🧊 GetFrame
 Returns a `WebView2Frame` COM object for the frame at the specified index. Returns `Null` if the index is invalid.
 `object.GetFrame(Index As Integer)`
 
-##### ⚡ GetFrameById
+##### 🧊 GetFrameById
 Returns a `WebView2Frame` COM object for the frame matching the specified FrameId. Returns `Null` if not found.
 `object.GetFrameById(FrameId As UInt)`
 
-##### ⚡ GetSelectedText
+##### 🧊 GetSelectedText
 Asynchronously retrieves the currently selected text (sent via OnMessageReceived with 'SELECTED_TEXT|').
 `object.GetSelectedText()`
 
-##### ⚡ SetZoom
+##### 🧊 SetZoom
 Sets the zoom factor (wrapper for ZoomFactor property).
 `object.SetZoom(Factor As Double)`
 
-##### ⚡ ParseJsonToInternal
+##### 🧊 ParseJsonToInternal
 Parses a JSON string into the internal JSON storage.
 `object.ParseJsonToInternal(Json As String)`
 
-##### ⚡ GetInternalJsonValue
+##### 🧊 GetInternalJsonValue
 Retrieves a value from the internal JSON storage using a path.
 `object.GetInternalJsonValue(Path As String)`
 
-##### ⚡ ClearBrowserData
+##### 🧊 ClearBrowserData
 Clears all browsing data including cookies, cache, and history.
 `object.ClearBrowserData()`
 
-##### ⚡ Reload
+##### 🧊 Reload
 Reloads the current page.
 `object.Reload()`
 
-##### ⚡ Stop
+##### 🧊 Stop
 Stops any ongoing navigation or loading.
 `object.Stop()`
 
-##### ⚡ ShowPrintUI
+##### 🧊 ShowPrintUI
 Opens the standard Print UI dialog.
 `object.ShowPrintUI()`
 
-##### ⚡ SetMuted
+##### 🧊 SetMuted
 Mutes or unmutes the audio output of the browser.
 `object.SetMuted(Muted As Boolean)`
 
-##### ⚡ IsMuted
+##### 🧊 IsMuted
 Returns true if the browser audio is currently muted.
 `object.IsMuted()`
 
-##### ⚡ SetUserAgent
+##### 🧊 SetUserAgent
 Sets a custom User Agent string for the browser.
 `object.SetUserAgent(UserAgent As String)`
 
-##### ⚡ GetDocumentTitle
+##### 🧊 GetDocumentTitle
 Returns the title of the current document.
 `object.GetDocumentTitle()`
 
-##### ⚡ GetSource
+##### 🧊 GetSource
 Returns the current URL of the browser.
 `object.GetSource()`
 
-##### ⚡ SetScriptEnabled
+##### 🧊 SetScriptEnabled
 Enables or disables JavaScript execution.
 `object.SetScriptEnabled(Enabled As Boolean)`
 
-##### ⚡ SetWebMessageEnabled
+##### 🧊 SetWebMessageEnabled
 Enables or disables the Web Message communication system.
 `object.SetWebMessageEnabled(Enabled As Boolean)`
   
-##### ⚡ SetStatusBarEnabled
+##### 🧊 SetStatusBarEnabled
 Enables or disables the browser status bar.
 `object.SetStatusBarEnabled(Enabled As Boolean)`
 
-##### ⚡ CapturePreview
+##### 🧊 CapturePreview
 Captures a screenshot of the current view to a file.
 `object.CapturePreview(FilePath As String, Format As String)`
 
-##### ⚡ CallDevToolsProtocolMethod
+##### 🧊 CallDevToolsProtocolMethod
 Calls a Chrome DevTools Protocol (CDP) method directly.
 `object.CallDevToolsProtocolMethod(MethodName As String, ParametersJson As String)`
 
-##### ⚡ GetCookies
+##### 🧊 GetCookies
 Retrieves all cookies (results sent via OnMessageReceived as 'COOKIES_B64|').
 `object.GetCookies(ChannelId As String)`
 
-##### ⚡ AddCookie
+##### 🧊 AddCookie
 Adds or updates a cookie in the browser.
 `object.AddCookie(Name As String, Value As String, Domain As String, Path As String)`
 
-##### ⚡ DeleteCookie
+##### 🧊 DeleteCookie
 Deletes a specific cookie.
 `object.DeleteCookie(Name As String, Domain As String, Path As String)`
 
-##### ⚡ DeleteAllCookies
+##### 🧊 DeleteAllCookies
 Deletes all cookies from the current profile.
 `object.DeleteAllCookies()`
 
-##### ⚡ Print
+##### 🧊 Print
 Opens the print dialog (via window.print()).
 `object.Print()`
   
-##### ⚡ AddExtension
+##### 🧊 AddExtension
 Adds a browser extension from an unpacked folder.
 `object.AddExtension(ExtensionPath As String)`
 
-##### ⚡ RemoveExtension
+##### 🧊 RemoveExtension
 Removes an extension by its ID.
 `object.RemoveExtension(ExtensionId As String)`
 
-##### ⚡ GetCanGoBack
+##### 🧊 GetCanGoBack
 Returns true if navigating back is possible.
 `object.GetCanGoBack()`
 
-##### ⚡ GetCanGoForward
+##### 🧊 GetCanGoForward
 Returns true if navigating forward is possible.
 `object.GetCanGoForward()`
 
-##### ⚡ GetBrowserProcessId
+##### 🧊 GetBrowserProcessId
 Returns the Process ID (PID) of the browser process.
 `object.GetBrowserProcessId()`
 
-##### ⚡ EncodeURI
+##### 🧊 EncodeURI
 URL-encodes a string.
 `object.EncodeURI(Value As String)
 
-##### ⚡ DecodeURI
+##### 🧊 DecodeURI
 URL-decodes a string.
 `object.DecodeURI(Value As String)`
 
-##### ⚡ EncodeB64
+##### 🧊 EncodeB64
 Encodes a string to Base64 (UTF-8).
 `object.EncodeB64(Value As String)`
 
-##### ⚡ DecodeB64
+##### 🧊 DecodeB64
 Decodes a Base64 string back to **plain text** (UTF-8).
 `object.DecodeB64(Value As String)`
 
-##### ⚡ DecodeB64ToBinary
+##### 🧊 DecodeB64ToBinary
 Decodes a Base64 string directly into a **raw byte array**. Optimized for memory-based binary processing (e.g., images, PDFs).
 `object.DecodeB64ToBinary(Base64Text As String)`
 
-##### ⚡ CapturePreviewAsBase64
+##### 🧊 CapturePreviewAsBase64
 Captures a screenshot of the current page  content and returns it as a Base64-encoded data URL.
 `object.CapturePreviewAsBase64(format)`
 
-##### ⚡ SetZoomFactor
+##### 🧊 SetZoomFactor
 Sets the zoom factor for the control.
 `object.SetZoomFactor(Factor As Double)`
 
-##### ⚡ OpenDevToolsWindow
+##### 🧊 OpenDevToolsWindow
 Opens the DevTools window for the current project.
 `object.OpenDevToolsWindow()`
 
-##### ⚡ WebViewSetFocus
+##### 🧊 WebViewSetFocus
 Gives focus to the WebView control.
 `object.WebViewSetFocus()` 
 
-##### ⚡ SetAutoResize
+##### 🧊 SetAutoResize
 Enables or disables robust "Smart Anchor" resizing. Uses Win32 subclassing to perfectly sync with any parent window (AutoIt/Native). Sends "WINDOW_RESIZED" via OnMessageReceived on completion.
 `object.SetAutoResize(Enabled As Boolean)`
 
-##### ⚡ AddInitializationScript
+##### 🧊 AddInitializationScript
 Registers a script that will run automatically every time a new page loads. Returns the unique **ScriptId** (string).
 `ResultString = object.AddInitializationScript(Script As String)`
 
-##### ⚡ RemoveInitializationScript
+##### 🧊 RemoveInitializationScript
 Removes a script previously added via AddInitializationScript using its ScriptId.
 `object.RemoveInitializationScript(ScriptId As String)`
 
-##### ⚡ SetVirtualHostNameToFolderMapping
+##### 🧊 SetVirtualHostNameToFolderMapping
 Maps a virtual host name (e.g., `app.local`) to a local folder path for local resource loading.
 `object.SetVirtualHostNameToFolderMapping(hostName As String, folderPath As String, accessKind As Integer)`
 
-##### ⚡ BindJsonToBrowser
+##### 🧊 BindJsonToBrowser
 Binds the internal JSON data to a browser variable.
 `object.BindJsonToBrowser(VariableName As String)`
 
-##### ⚡ SyncInternalData
+##### 🧊 SyncInternalData
 Syncs JSON data to internal parser and optionally binds it to a browser variable.
 `object.SyncInternalData(Json As String, BindToVariableName As String)`
 
-##### ⚡ ExecuteScriptOnPage
+##### 🧊 ExecuteScriptOnPage
 **Type**: void (Async-Fire)
 **Description**: Starts asynchronously but does not wait. No return value.
 **Use Case**: Quick background actions.
 `object.ExecuteScriptOnPage(Script As String)`
 
-##### ⚡ ExecuteScriptWithResult
+##### 🧊 ExecuteScriptWithResult
 **Type**: string (Synchronous/Blocking)
 **Description**: Uses Message Pump (DoEvents) to wait for the response (timeout 5s).
 **Special**: Performs automatic JSON Unescaping (removes extra quotes and fixes escape characters).
 **Use Case**: Scraping, retrieving variables from JS, checking DOM state.
 `object.ExecuteScriptWithResult(Script As String)`
 
-##### ⚡ ClearCache
+##### 🧊 ClearCache
 Clears the browser cache (DiskCache and LocalStorage).
 `object.ClearCache()`
 
-##### ⚡ GetInnerText
+##### 🧊 GetInnerText
 Asynchronously retrieves the entire visible text content of the document (sent via OnMessageReceived with 'Inner_Text|').
 `object.GetInnerText()`
 
-##### ⚡ CaptureSnapshot
+##### 🧊 CaptureSnapshot
 Captures page data using Chrome DevTools Protocol. Can return MHTML or other CDP formats based on the `cdpParameters` JSON string.
 `object.CaptureSnapshot(CdpParameters As String)`
 
-##### ⚡ SetDownloadPath
+##### 🧊 SetDownloadPath
 Sets a global default folder or file path for all browser downloads. If a directory is provided, the filename is automatically appended by the library. Create the folder if it doesn't exist
 `object.SetDownloadPath(Path As String)`
 
-##### ⚡ CancelDownloads
+##### 🧊 CancelDownloads
 Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
 `object.CancelDownloads([Uri As String])`
 
-##### ⚡ ExportPageData
+##### 🧊 ExportPageData
 [LEGACY] Consolidated into **CaptureSnapshot**.
 `object.ExportPageData(Format As Integer, FilePath As String)`
 
-##### ⚡ PrintToPdfStream
+##### 🧊 PrintToPdfStream
 Captures the current page as a PDF and returns the content as a Base64-encoded string.
 `object.PrintToPdfStream()`
 
-#### ===🔔Events===
+#### ===⚡ Events===
 
-##### 🔔OnMessageReceived
+##### ⚡ OnMessageReceived
 Fired when a message or notification is sent from the library to AutoIt.
 `object_OnMessageReceived(Sender As Object, ParentHandle As HWND, Message As String)`
 
-##### 🔔 OnWebResourceResponseReceived
+##### ⚡ OnWebResourceResponseReceived
 Fired when a web resource response is received (useful for tracking HTTP Status Codes).
 `object_OnWebResourceResponseReceived(Sender As Object, ParentHandle As HWND, StatusCode As Integer, ReasonPhrase As String, RequestUrl As String)`
 
-##### 🔔 OnNavigationStarting
+##### ⚡ OnNavigationStarting
 Fired when the browser starts navigating to a new URL.
-`object_OnNavigationStarting(Sender As Object, ParentHandle As HWND, Url As String)`
+`object_OnNavigationStarting(Sender As Object, ParentHandle As HWND, Args As Object)`
+    *Args properties:
+        Uri (string): The target URL.
+        Cancel (bool): Set to True to cancel navigation.
+        IsUserInitiated (bool): Whether the navigation was triggered by user interaction.
+        IsRedirected (bool): Whether the navigation is a redirect.
+        NavigationId (ulong): Unique ID for this navigation.*
 
-##### 🔔 OnNavigationCompleted
+##### ⚡ OnNavigationCompleted
 Fired when navigation has finished.
 `object_OnNavigationCompleted(Sender As Object, ParentHandle As HWND, IsSuccess As Boolean, WebErrorStatus As Integer)`
 
-##### 🔔 OnTitleChanged
+##### ⚡ OnTitleChanged
 Fired when the document title changes.
 `object_OnTitleChanged(Sender As Object, ParentHandle As HWND, NewTitle As String)`
   
-##### 🔔 OnURLChanged
+##### ⚡ OnURLChanged
 Fired when the current URL changes.
 `object_OnURLChanged(Sender As Object, ParentHandle As HWND, NewUrl As String)`
 
-##### 🔔 OnContextMenu
+##### ⚡ OnContextMenu
 Fired when a custom context menu is requested (if SetContextMenuEnabled is false).
 `object_OnContextMenu(Sender As Object, ParentHandle As HWND, MenuData As String)`
 
-##### 🔔 OnZoomChanged
+##### ⚡ OnZoomChanged
 Fired when the zoom factor is changed.
 `object_OnZoomChanged(Sender As Object, ParentHandle As HWND, Factor As Double)`
 
-##### 🔔 OnBrowserGotFocus
+##### ⚡ OnBrowserGotFocus
 Fired when the browser receives focus.
 `object_OnBrowserGotFocus(Sender As Object, ParentHandle As HWND, Reason As Integer)`
 
-##### 🔔 OnBrowserLostFocus
+##### ⚡ OnBrowserLostFocus
 Fired when the browser loses focus.
 `object_OnBrowserLostFocus(Sender As Object, ParentHandle As HWND, Reason As Integer)`
 
-##### 🔔 OnContextMenuRequested
+##### ⚡ OnContextMenuRequested
 Fired when a context menu is requested (Simplified for AutoIt).
 `object_OnContextMenuRequested(Sender As Object, ParentHandle As HWND, LinkUrl As String, X As Integer, Y As Integer, SelectionText As String)`
 
-##### 🔔 OnDownloadStarting
+##### ⚡ OnDownloadStarting
 Fired when a download is starting. Provides core metadata to allow decision making. Path overrides and UI suppression should be handled via the `DownloadResultPath` and `IsDownloadHandled` properties.
 `object_OnDownloadStarting(Sender As Object, ParentHandle As HWND, Uri As String, DefaultPath As String)`
 
-##### 🔔 OnDownloadStateChanged
+##### ⚡ OnDownloadStateChanged
 Fired when a download state changes (e.g., Progress, Completed, Failed).
 `object_OnDownloadStateChanged(Sender As Object, ParentHandle As HWND, State As String, Uri As String, TotalBytes As Long, ReceivedBytes As Long)`
 
-##### 🔔 OnAcceleratorKeyPressed
+##### ⚡ OnAcceleratorKeyPressed
 Fired when an accelerator key is pressed. Allows blocking browser shortcuts.
 `object_OnAcceleratorKeyPressed(Sender As Object, ParentHandle As HWND, Args As Object)`
 	*Args properties: 
@@ -648,7 +645,7 @@ Fired when an accelerator key is pressed. Allows blocking browser shortcuts.
 		IsKeyReleased (bool): True if the event is a key up.
 		KeyEventLParam  (int):  Gets the LPARAM value that accompanied the window message*
 
-##### 🔔 OnProcessFailed
+##### ⚡ OnProcessFailed
 Fired when a renderer or other browser process fails/crashes.
 `object_OnProcessFailed(Sender As Object, ParentHandle As HWND, Args As Object)`
     *Args properties:
@@ -657,7 +654,7 @@ Fired when a renderer or other browser process fails/crashes.
         ExitCode (int): The exit code of the failed process.
         ProcessDescription (string): A description of the process.*
 
-##### 🔔 OnBasicAuthenticationRequested
+##### ⚡ OnBasicAuthenticationRequested
 Fired when the browser requires basic authentication credentials for a URI.
 `object_OnBasicAuthenticationRequested(Sender As Object, ParentHandle As HWND, Args As Object)`
     *Args properties:
@@ -670,7 +667,7 @@ Fired when the browser requires basic authentication credentials for a URI.
         Complete(): Notifies the browser that credentials have been set (supports asynchronous data gathering).*
 
 
-##### 🔔 OnPermissionRequested
+##### ⚡ OnPermissionRequested
 Fired when the page requests a permission (e.g. Geolocation, Camera, Microphone).
 `object_OnPermissionRequested(Sender As Object, ParentHandle As String, Args As Object)`
     *Args properties:
@@ -683,227 +680,228 @@ Fired when the page requests a permission (e.g. Geolocation, Camera, Microphone)
         GetDeferral(): Acquires an async deferral for out-of-band decision making.
         Complete(): Completes the deferral and notifies the browser of the decision.*
 
-#### ===🔔Frame Events===
+#### ===⚡ Frame Events===
 
-##### 🔔 OnFrameCreated
+##### ⚡ OnFrameCreated
 Fired when a new iframe is created in the document.
 `object_OnFrameCreated(Sender As Object, ParentHandle As String, Frame As Object)`
 
-##### 🔔 OnFrameDestroyed
+##### ⚡ OnFrameDestroyed
 Fired when an iframe is removed from the document.
 `object_OnFrameDestroyed(Sender As Object, ParentHandle As String, Frame As Object)`
 
-##### 🔔 OnFrameNameChanged
+##### ⚡ OnFrameNameChanged
 Fired when an iframe's name attribute changes.
 `object_OnFrameNameChanged(Sender As Object, ParentHandle As String, Frame As Object)`
 
-##### 🔔 OnFrameNavigationStarting
+##### ⚡ OnFrameNavigationStarting
 Fired when a frame starts navigating to a new URL.
-`object_OnFrameNavigationStarting(Sender As Object, ParentHandle As String, Frame As Object, Url As String)`
+`object_OnFrameNavigationStarting(Sender As Object, ParentHandle As String, Frame As Object, Args As Object)`
+    *See `OnNavigationStarting` Args for property details.*
 
-##### 🔔 OnFrameNavigationCompleted
+##### ⚡ OnFrameNavigationCompleted
 Fired when a frame navigation has finished.
 `object_OnFrameNavigationCompleted(Sender As Object, ParentHandle As String, Frame As Object, IsSuccess As Boolean, WebErrorStatus As Integer)`
 
-##### 🔔 OnFrameContentLoading
+##### ⚡ OnFrameContentLoading
 Fired when a frame starts loading content.
 `object_OnFrameContentLoading(Sender As Object, ParentHandle As String, Frame As Object, NavigationId As Long)`
 
-##### 🔔 OnFrameDOMContentLoaded
+##### ⚡ OnFrameDOMContentLoaded
 Fired when a frame's DOM content is fully loaded.
 `object_OnFrameDOMContentLoaded(Sender As Object, ParentHandle As String, Frame As Object, NavigationId As Long)`
 
-##### 🔔 OnFrameWebMessageReceived
+##### ⚡ OnFrameWebMessageReceived
 Fired when a frame receives a message via `window.chrome.webview.postMessage`.
 `object_OnFrameWebMessageReceived(Sender As Object, ParentHandle As String, Frame As Object, Message As String)`
 
-##### 🔔 OnFramePermissionRequested
+##### ⚡ OnFramePermissionRequested
 Fired when a frame requests permission (e.g. Geolocation).
 `object_OnFramePermissionRequested(Sender As Object, ParentHandle As String, Frame As Object, Args As Object)`
     *See `OnPermissionRequested` Args for property details.*
 
 
 ---
-### 🧊 WebView2Frame (ProgId: NetWebView2Lib.WebView2Frame)
+### 🟦 WebView2Frame (ProgId: NetWebView2Lib.WebView2Frame)
 
-#### ===🏷️Properties===
+#### ===🔧 Properties===
 
-##### 🏷️ Name
+##### 🔧 Name
 Returns the name attribute of the frame.
 `string object.Name`
 
-##### 🏷️ IsDestroyed
+##### 🔧 IsDestroyed
 Checks if the frame is still valid and attached to the page.
 `bool object.IsDestroyed`
 
-##### 🏷️ FrameId
+##### 🔧 FrameId
 Returns the unique identifier of the frame (assigned by the browser).
 `uint object.FrameId`
 
-##### 🏷️ Source
+##### 🔧 Source
 Returns the current URL of the frame. Uses reflection-based SDK-independent retrieval.
 `string object.Source`
 
-#### ===⚡Methods===
+#### ===🧊 Methods===
 
-##### ⚡IsDestroyed
+##### 🧊 IsDestroyed
 **Description**: Checks if the frame is still valid and attached to the page.
 `object.IsDestroyed()`
-
-##### ⚡ExecuteScript
+##### 🧊 ExecuteScript
 **Type**: void (Fire-and-Forget)
 **Description**: Executes JavaScript within the context of the frame.
 `object.ExecuteScript(Script As String)`
 
-##### ⚡ExecuteScriptWithResult
+##### 🧊 ExecuteScriptWithResult
 **Type**: string (Synchronous/Blocking)
 **Description**: Executes JavaScript in the frame and waits for the result (Thread-Safe).
 `object.ExecuteScriptWithResult(Script As String)`
 
-##### ⚡PostWebMessageAsJson
+##### 🧊 PostWebMessageAsJson
 Sends a JSON message to the frame content.
 `object.PostWebMessageAsJson(Json As String)`
 
-##### ⚡PostWebMessageAsString
+##### 🧊 PostWebMessageAsString
 Sends a plain text message to the frame content.
 `object.PostWebMessageAsString(Text As String)`
 
-##### ⚡AddHostObjectToScript
+##### 🧊 AddHostObjectToScript
 Adds a host object (AutoIt object) to the frame's script environment.
 `object.AddHostObjectToScript(Name As String, RawObject As Object)`
 
-##### ⚡RemoveHostObjectFromScript
+##### 🧊 RemoveHostObjectFromScript
 Removes a host object from the frame's script environment.
 `object.RemoveHostObjectFromScript(Name As String)`
 
 ---
 
-###  🧊 WebView2Parser (ProgId: NetWebView2Lib.WebView2Parser)
+###  🟦 WebView2Parser (ProgId: NetWebView2Lib.WebView2Parser)
 
-#### ===🏷️Properties===
-##### 🏷️ Version
+#### ===🔧 Properties===
+
+##### 🔧 Version
 Allows AutoIt to verify the DLL version at runtime for compatibility checks.
 `object.Version`
 
-#### ===⚡Methods===
+#### ===🧊 Methods===
 
-##### ⚡Parse
+##### 🧊 Parse
 Parses a JSON string. Automatically detects if it's an Object or an Array.
 `bool Parse(Json As String)`
 
-##### ⚡GetTokenValue
+##### 🧊 GetTokenValue
 Retrieves a value by JSON path (e.g., "items[0].name").
 `string GetTokenValue(Path As String)`
 
-##### ⚡GetArrayLength
+##### 🧊 GetArrayLength
 Returns the count of elements if the JSON is an array (Legacy wrapper for GetTokenCount).
 `int GetArrayLength(Path As String)`
 
-##### ⚡GetTokenCount
+##### 🧊 GetTokenCount
 Returns the count of elements (array items or object properties) at the specified path.
 `int GetTokenCount(Path As String)`
 
-##### ⚡GetKeys
+##### 🧊 GetKeys
 Returns a delimited string of keys for the object at the specified path.
 `string GetKeys(Path As String, Delimiter As String)`
 
-##### ⚡SetTokenValue
+##### 🧊 SetTokenValue
 Updates or adds a value at the specified path. Supports **Deep Creation** (automatic path creation) and **Smart Typing** (auto-detection of bool/null/numbers).
 `void SetTokenValue(Path As String, Value As String)`
 
-##### ⚡LoadFromFile
+##### 🧊 LoadFromFile
 Loads JSON content directly from a file.
 `bool LoadFromFile(FilePath As String)`
 
-##### ⚡SaveToFile
+##### 🧊 SaveToFile
 Saves the current JSON state back to a file.
 `bool SaveToFile(FilePath As String)`
 
-##### ⚡Exists
+##### 🧊 Exists
 Checks if a path exists in the current JSON structure.
 `bool Exists(Path As String)`
 
-##### ⚡Clear
+##### 🧊 Clear
 Clears the internal data.
 `void Clear()`
 
-##### ⚡GetJson
+##### 🧊 GetJson
 Returns the full JSON string.
 `string GetJson()`
 
-##### ⚡EscapeString
+##### 🧊 EscapeString
 Escapes a string to be safe for use in JSON.
 `string EscapeString(PlainText As String)`
 
-##### ⚡UnescapeString
+##### 🧊 UnescapeString
 Unescapes a JSON string back to plain text.
 `string UnescapeString(EscapedText As String)`
 
-##### ⚡GetPrettyJson
+##### 🧊 GetPrettyJson
 Returns the JSON string with nice formatting (Indented).
 `string GetPrettyJson()`
   
-##### ⚡GetMinifiedJson
+##### 🧊 GetMinifiedJson
 Minifies a JSON string (removes spaces and new lines).
 `string GetMinifiedJson()`
 
-##### ⚡Merge
+##### 🧊 Merge
 Merges another JSON string into the current JSON structure.
 `bool Merge(JsonContent As String)`
 
-##### ⚡MergeFromFile
+##### 🧊 MergeFromFile
 Merges JSON content from a file into the current JSON structure.
 `bool MergeFromFile(FilePath As String)`
   
-##### ⚡GetTokenType
+##### 🧊 GetTokenType
 Returns the type of the token at the specified path (e.g., Object, Array, String).
 `string GetTokenType(Path As String)` 
 
-##### ⚡RemoveToken
+##### 🧊 RemoveToken
 Removes the token at the specified path.
 `bool RemoveToken(Path As String)`
 
-##### ⚡Search
+##### 🧊 Search
 Searches the JSON structure using a JSONPath query and returns a JSON array of results.
 `string Search(Query As String)`
 
-##### ⚡Flatten
+##### 🧊 Flatten
 Flattens the JSON structure into a single-level object with dot-notated paths.
 `string Flatten()`
 
-##### ⚡CloneTo
+##### 🧊 CloneTo
 Clones the current JSON data to another named parser instance.
 `bool CloneTo(ParserName As String)`
 
-##### ⚡FlattenToTable
+##### 🧊 FlattenToTable
 Flattens the JSON structure into a table-like string with specified delimiters.
 `string FlattenToTable(ColDelim As String, RowDelim As String)`
 
-##### ⚡EncodeB64
+##### 🧊 EncodeB64
 Encodes a string to Base64 (UTF-8).
 `string EncodeB64(PlainText As String)`
 
-##### ⚡DecodeB64ToBinary
+##### 🧊 DecodeB64ToBinary
 Converts a Base64-encoded string back into raw binary data (byte array).
 `Variant DecodeB64ToBinary(Base64Text As String)`
 
-##### ⚡EncodeBinaryToB64
+##### 🧊 EncodeBinaryToB64
 Converts raw binary data (byte array) to a Base64-encoded string.
 `string EncodeBinaryToB64(BinaryData As Variant)`
 
-##### ⚡DecodeB64
+##### 🧊 DecodeB64
 Decodes a Base64 string back to **plain text** (UTF-8).
 `string DecodeB64(Base64Text As String)`
 
-##### ⚡DecodeB64ToFile
+##### 🧊 DecodeB64ToFile
 Decodes a Base64 string and saves the binary content directly to a file.
 `bool DecodeB64ToFile(Base64Text As String, FilePath As String)`
 
-##### ⚡SortArray
+##### 🧊 SortArray
 Sorts a JSON array by a specific key.
 `bool SortArray(ArrayPath As String, Key As String, Descending As Boolean)`
 
-##### ⚡SelectUnique
+##### 🧊 SelectUnique
 Removes duplicate objects from a JSON array based on a key's value.
 `bool SelectUnique(ArrayPath As String, Key As String)`
 

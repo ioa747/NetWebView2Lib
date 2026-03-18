@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2026.2.25.11 🚩
+; NetWebView2Lib.au3 - Script Version: 2026.3.17.22 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -1498,7 +1498,7 @@ EndFunc   ;==>__NetWebView2_freezer
 
 #EndRegion ; === NetWebView2Lib UDF === #INTERNAL_USE_ONLY#
 
-#Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Collection ===
+#Region ; === NetWebView2Lib UDF === EVENT HANDLERS ***** Collection *****
 
 #Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Error Handlers ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -1628,9 +1628,17 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__URL_CHANGED)
 
 		Case "NAV_ERROR"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand, 1)
-			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_ERROR)
-			$oWebV2M.Stop()
+			If $sData = "OperationCanceled" Then ; Check if the error is actually a user cancellation
+				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand & " - USER_ABORT Data:" & $sData, 1)
+				__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__USER_ABORT)
+			Else
+				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand & " Data:" & $sData, 1)
+				__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_ERROR)
+				$oWebV2M.Stop() ; We only stop if it is a real error.
+			EndIf
+
+			; 🚧 *******************************************
+			ConsoleWrite("> TEST NAV_ERR: " & $sMsg & @CRLF)
 			ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessage_KEEPER($oWebV2M)=" & __NetWebView2_LastMessage_KEEPER($oWebV2M) & " SLN=" & @ScriptLineNumber & @CRLF)
 
 		Case "NAV_COMPLETED"
@@ -1948,19 +1956,20 @@ EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnNavigationStarting
 ; Description ...:
-; Syntax ........: __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
+; Syntax ........: __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $oArgs)
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $hGUI                - a handle value.
-;                  $sURL                - a string value.
+;                  $oArgs               - an object.
 ; Return values .: None
 ; Author ........: ioa747, mLipok
 ; Modified ......:
 ; Remarks .......:
 ; Related .......:
-; Link ..........:
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.navigationstarting
 ; Example .......: No
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $sURL)
+Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $oArgs)
+	Local $sURL = $oArgs.Uri
 	Local Const $s_Prefix = "[EVENT: OnNavigationStarting]: GUI:" & $hGUI & " URL: " & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
@@ -2051,7 +2060,7 @@ EndFunc   ;==>__NetWebView2_Events__OnContextMenu
 ; Modified ......:
 ; Remarks .......:
 ; Related .......:
-; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.webresourceresponsereceived?view=webview2-dotnet-1.0.2849.39
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.webresourceresponsereceived
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
@@ -2204,7 +2213,7 @@ EndFunc   ;==>__NetWebView2_Events__OnProcessFailed
 ; Remarks .......: The host can provide a response with credentials for the authentication or cancel the request.
 ;                  If the host sets the Cancel property to false but does not provide either UserName or Password properties on the Response property, then WebView2 will show the default authentication challenge dialog prompt to the user.
 ; Related .......:
-; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.basicauthenticationrequested?view=webview2-dotnet-1.0.2903.40
+; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.basicauthenticationrequested
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hGUI, $oArgs)
@@ -2303,11 +2312,11 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnFrameNavigationStarting
 ; Description ...: Handles Frame NavigationStarting event
-; Syntax ........: __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $sUri)
+; Syntax ........: __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $oArgs)
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $hGUI                - a handle value.
 ;                  $oFrame              - an Frame object.
-;                  $sUri                - a string value.
+;                  $oArgs               - an object.
 ; Return values .: None
 ; Author ........: ioa747
 ; Modified ......:
@@ -2316,7 +2325,8 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
 ; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2frame.navigationstarting
 ; Example .......: No
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $sUri)
+Volatile Func __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $oArgs)
+	Local $sUri = $oArgs.Uri
 	Local Const $s_Prefix = "[EVENT: OnFrameNavigationStarting]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Uri:" & $sUri
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_NAV_STARTING) ; Optional: Update status if needed
@@ -2429,4 +2439,4 @@ EndFunc   ;==>__NetWebView2_Events__FrameKeeper
 ;~ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
 
-#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS === Collection ===
+#EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS ***** Collection *****

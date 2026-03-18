@@ -182,13 +182,13 @@ Func _MainGUI() ; Creates the primary application window and starts the message 
 EndFunc   ;==>_MainGUI
 ;---------------------------------------------------------------------------------------
 #Region ; === Core ===
-
-Volatile Func Web_Events_OnNavigationStarting($oWebV2M, $hGUI, $sURL)
+Volatile Func Web_Events_OnNavigationStarting($oWebV2M, $hGUI, $oArgs)
 	#forceref $oWebV2M, $hGUI
+	Local $sURL = $oArgs.Uri
 	If StringLeft($sURL, 4) = "http" Then
 		ShellExecute($sURL)
-		$oWebV2M.Stop() ; Cancel navigation within WebView2
-		ConsoleWrite(">> External Link Intercepted: " & $sURL & @CRLF)
+		$oArgs.Cancel = True ; Cancel navigation in WebView2
+		ConsoleWrite("!!! External Link Intercepted: " & $sURL & @CRLF)
 	EndIf
 EndFunc   ;==>Web_Events_OnNavigationStarting
 
