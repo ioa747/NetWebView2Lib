@@ -1629,7 +1629,7 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 
 		Case "NAV_ERROR"
 			If $sData = "OperationCanceled" Then ; Check if the error is actually a user cancellation
-				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:USER_ABORT (Navigation Canceled)", 1)
+				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand & " - USER_ABORT Data:" & $sData, 1)
 				__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__USER_ABORT)
 			Else
 				__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand & " Data:" & $sData, 1)
