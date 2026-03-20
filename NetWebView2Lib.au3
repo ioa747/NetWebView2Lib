@@ -1018,6 +1018,25 @@ Func _WebView2_FrameGetHtmlSource($oFrame)
 	Return $sClean
 EndFunc   ;==>_WebView2_FrameGetHtmlSource
 
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: _NetWebView2_GetFrame
+; Description ...: Returns a Frame Object (IWebView2Frame) for the specified index.
+; Syntax ........: _NetWebView2_GetFrame($oWebV2M, $iIndex)
+; Parameters ....: $oWebV2M             - an object.
+;                  $iIndex              - an int value.
+; Return values .: Frame Object or Null
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........:
+; Example .......: Yes
+; ===============================================================================================================================
+Func _NetWebView2_GetFrame($oWebV2M, $iIndex)
+	Local $oFrame = $oWebV2M.GetFrame($iIndex)
+	Return SetError(@error, @extended, $oFrame)
+EndFunc   ;==>_NetWebView2_GetFrame
+
 #EndRegion ; === NetWebView2Lib UDF === New Core Method Wrappers
 
 #Region ; === NetWebView2Lib UDF === _NetJson_* functions
@@ -1642,8 +1661,10 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			EndIf
 
 			; 🚧 *******************************************
-			ConsoleWrite("> TEST NAV_ERR: " & $sMsg & @CRLF)
-			ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessage_KEEPER($oWebV2M)=" & __NetWebView2_LastMessage_KEEPER($oWebV2M) & " SLN=" & @ScriptLineNumber & @CRLF)
+			If $_g_bNetWebView2_DebugInfo Then
+				ConsoleWrite("> TEST NAV_ERR: " & $sMsg & @CRLF)
+				ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessage_KEEPER($oWebV2M)=" & __NetWebView2_LastMessage_KEEPER($oWebV2M) & " SLN=" & @ScriptLineNumber & @CRLF)
+			EndIf
 
 		Case "NAV_COMPLETED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand, 1)
@@ -1953,7 +1974,7 @@ Volatile Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
 
 	Local Const $s_Prefix = "[EVENT: OnTitleChanged]: GUI:" & $hGUI & " TITLE: " & $sTITLE
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-;~ 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
+	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 	If $_g_bNetWebView2_DebugDev Then ConsoleWrite("> IFNC: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & __NetWebView2_LastMessage_Navigation($oWebV2M) & ' SLN=' & @ScriptLineNumber & @CRLF)
 EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 
@@ -1977,6 +1998,7 @@ Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $oArgs
 	Local Const $s_Prefix = "[EVENT: OnNavigationStarting]: GUI:" & $hGUI & " URL: " & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
+	$oArgs = 0
 EndFunc   ;==>__NetWebView2_Events__OnNavigationStarting
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2201,7 +2223,7 @@ Volatile Func __NetWebView2_Events__OnProcessFailed($oWebV2M, $hGUI, $oArgs)
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__PROCESS_FAILED)
-	$oArgs = 0
+	$oArgs = 0  ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_Events__OnProcessFailed
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2235,25 +2257,6 @@ EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
 
 #Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Frame Related ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
-; Name ..........: _NetWebView2_GetFrame
-; Description ...: Returns a Frame Object (IWebView2Frame) for the specified index.
-; Syntax ........: _NetWebView2_GetFrame($oWebV2M, $iIndex)
-; Parameters ....: $oWebV2M             - an object.
-;                  $iIndex              - an int value.
-; Return values .: Frame Object or Null
-; Author ........: ioa747
-; Modified ......:
-; Remarks .......:
-; Related .......:
-; Link ..........:
-; Example .......: Yes
-; ===============================================================================================================================
-Func _NetWebView2_GetFrame($oWebV2M, $iIndex)
-	Local $oFrame = $oWebV2M.GetFrame($iIndex)
-	Return SetError(@error, @extended, $oFrame)
-EndFunc   ;==>_NetWebView2_GetFrame
-
-; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnFrameCreated
 ; Description ...: FrameCreated is raised when a new iframe is created. Handle this event to get access to CoreWebView2Frame objects.
 ; Syntax ........: __NetWebView2_Events__OnFrameCreated($oWebV2M, $hGUI, $oFrame)
@@ -2271,6 +2274,7 @@ EndFunc   ;==>_NetWebView2_GetFrame
 Volatile Func __NetWebView2_Events__OnFrameCreated($oWebV2M, $hGUI, $oFrame)
 	Local Const $s_Prefix = "[EVENT: OnFrameCreated]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameCreated
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2291,6 +2295,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameCreated
 Volatile Func __NetWebView2_Events__OnFrameDestroyed($oWebV2M, $hGUI, $oFrame)
 	Local Const $s_Prefix = "[EVENT: OnFrameDestroyed]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameDestroyed
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2311,6 +2316,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameDestroyed
 Volatile Func __NetWebView2_Events__OnFrameNameChanged($oWebV2M, $hGUI, $oFrame)
 	Local Const $s_Prefix = "[EVENT: OnFrameNameChanged]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2334,6 +2340,7 @@ Volatile Func __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $
 	Local Const $s_Prefix = "[EVENT: OnFrameNavigationStarting]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Uri:" & $sUri
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_NAV_STARTING) ; Optional: Update status if needed
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameNavigationStarting
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2379,6 +2386,7 @@ Volatile Func __NetWebView2_Events__OnFrameContentLoading($oWebV2M, $hGUI, $oFra
 	Local Const $s_Prefix = "[EVENT: OnFrameContentLoading]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_CONTENT_LOADING)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameContentLoading
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2401,6 +2409,7 @@ Volatile Func __NetWebView2_Events__OnFrameDOMContentLoaded($oWebV2M, $hGUI, $oF
 	Local Const $s_Prefix = "[EVENT: OnFrameDOMContentLoaded]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_DOM_CONTENT_LOADED)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameDOMContentLoaded
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2423,6 +2432,7 @@ Volatile Func __NetWebView2_Events__OnFrameWebMessageReceived($oWebV2M, $hGUI, $
 	Local Const $s_Prefix = "[EVENT: OnFrameWebMessageReceived]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Message:" & $sMessage
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_WEB_MESSAGE_RECEIVED)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameWebMessageReceived
 
 Func __NetWebView2_Events__FrameKeeper($oWebV2M, $hGUI, $oFrame)
