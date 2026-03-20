@@ -168,21 +168,33 @@ namespace NetWebView2Lib
              });
         }
 
+        private bool _isLocked = false;
+
         public void SetLockState(bool lockState)
         {
+            if (_isLocked == lockState) return; // Skip if already in this state
+            
             InvokeOnUiThread(() => {
                 if (_webView?.CoreWebView2 != null) {
                     var s = _webView.CoreWebView2.Settings;
-                    s.AreDefaultContextMenusEnabled = !lockState;
-                    s.AreDevToolsEnabled = !lockState;
-                    s.IsZoomControlEnabled = !lockState;
-                    s.IsBuiltInErrorPageEnabled = !lockState;
-                    s.AreDefaultScriptDialogsEnabled = !lockState;
-                    s.AreBrowserAcceleratorKeysEnabled = !lockState;
-                    s.IsStatusBarEnabled = !lockState;
+                    Log($"SetLockState: {lockState} (Interception Mode)");
+
+                    // PERMANENT ENGINE SETTINGS (to ensure they are ALWAYS available and snappy)
+                    s.AreDefaultContextMenusEnabled = true; 
+                    s.AreDevToolsEnabled = true; 
+                    s.AreBrowserAcceleratorKeysEnabled = true;
+
+                    // Volatile settings that we still toggle at engine level
+                    s.IsZoomControlEnabled = lockState ? false : _isZoomControlEnabled;
+                    s.IsBuiltInErrorPageEnabled = lockState ? false : _isBuiltInErrorPageEnabled;
+                    s.AreDefaultScriptDialogsEnabled = lockState ? false : _areDefaultScriptDialogsEnabled;
+                    s.IsStatusBarEnabled = lockState ? false : _isStatusBarEnabled;
                 }
-                _areBrowserPopupsAllowed = !lockState;
-                _contextMenuEnabled = !lockState;
+                
+                // Set the internal flag. Our event handlers (Events.cs) will check this
+                // to decide whether to Allow or Block F12/Right-Click.
+                _isLocked = lockState;
+                Log($"SetLockState: Results -> LockState={_isLocked}");
             });
         }
 
@@ -377,12 +389,6 @@ namespace NetWebView2Lib
         #endregion
 
         #region 16. UNIFIED SETTINGS (PROPERTIES)
-        public bool AreDevToolsEnabled
-        {
-            get => RunOnUiThread(() => _webView?.CoreWebView2?.Settings?.AreDevToolsEnabled ?? false);
-            set => InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.AreDevToolsEnabled = value; });
-        }
-		
         public bool AreBrowserPopupsAllowed
         {
             get => _areBrowserPopupsAllowed;
@@ -403,20 +409,20 @@ namespace NetWebView2Lib
 
         public bool AreDefaultScriptDialogsEnabled
         {
-            get => RunOnUiThread(() => _webView?.CoreWebView2?.Settings?.AreDefaultScriptDialogsEnabled ?? true);
-            set => InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = value; });
+            get => _areDefaultScriptDialogsEnabled;
+            set { _areDefaultScriptDialogsEnabled = value; InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = value; }); }
         }
 
         public bool AreBrowserAcceleratorKeysEnabled
         {
-            get => RunOnUiThread(() => _webView?.CoreWebView2?.Settings?.AreBrowserAcceleratorKeysEnabled ?? true);
-            set => InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = value; });
+            get => _areBrowserAcceleratorKeysEnabled;
+            set { _areBrowserAcceleratorKeysEnabled = value; InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = value; }); }
         }
 
         public bool IsStatusBarEnabled
         {
-            get => RunOnUiThread(() => _webView?.CoreWebView2?.Settings?.IsStatusBarEnabled ?? true);
-            set => SetStatusBarEnabled(value);
+            get => _isStatusBarEnabled;
+            set { _isStatusBarEnabled = value; InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.IsStatusBarEnabled = value; }); }
         }
 
         public double ZoomFactor
@@ -433,11 +439,17 @@ namespace NetWebView2Lib
                 catch { _webView.DefaultBackgroundColor = Color.White; }
             });
         }
-
+        
         public bool AreHostObjectsAllowed
         {
             get => RunOnUiThread(() => _webView?.CoreWebView2?.Settings?.AreHostObjectsAllowed ?? true);
             set => InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.AreHostObjectsAllowed = value; });
+        }
+
+        public bool AreDevToolsEnabled
+        {
+            get => _areDevToolsEnabled;
+            set { _areDevToolsEnabled = value; InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.AreDevToolsEnabled = value; }); }
         }
 
         public int Anchor
@@ -469,8 +481,8 @@ namespace NetWebView2Lib
 
         public bool IsBuiltInErrorPageEnabled
         {
-            get => RunOnUiThread(() => _webView?.CoreWebView2?.Settings?.IsBuiltInErrorPageEnabled ?? true);
-            set => InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = value; });
+            get => _isBuiltInErrorPageEnabled;
+            set { _isBuiltInErrorPageEnabled = value; InvokeOnUiThread(() => { if (_webView?.CoreWebView2?.Settings != null) _webView.CoreWebView2.Settings.IsBuiltInErrorPageEnabled = value; }); }
         }
         #endregion
 

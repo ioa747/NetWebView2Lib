@@ -95,11 +95,39 @@ namespace NetWebView2Lib
             // Context Menu Event
             _webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
             {
+                // FAST PATH: If context menus are enabled and the user isn't listening for details,
+                // just let the browser handle it immediately.
+                // 1. LOCK CHECK: If manager is locked (e.g. during Nav), block immediately
+                if (_isLocked) 
+                {
+                    args.Handled = true;
+                    return;
+                }
+
+                // 2. FAST PATH: If context menus are enabled and no custom listeners, allow default immediately.
+                // This ensures "Inspect" and other standard items appear without lag.
+                if (_contextMenuEnabled && OnContextMenuRequested == null && OnContextMenu == null)
+                {
+                    args.Handled = false;
+                    return;
+                }
+
+                // Log the request for custom processing
                 Log($"ContextMenuRequested: Location={args.Location.X}x{args.Location.Y}, Target={args.ContextMenuTarget.Kind}");
+                
+                // 3. SLOW PATH (Custom Handlers or Disabled Prefs)
+                // Set handled state based on user preference
                 args.Handled = !_contextMenuEnabled;
+
+                // If handled (user preference is disabled), we don't need to do more
+                if (args.Handled) return;
+
+                // Only proceed with script and deferral if someone is actually listening
+                var deferral = args.GetDeferral();
 
                 try
                 {
+                    // To get the tagName, we need to query the DOM
                     string script = "document.elementFromPoint(" + args.Location.X + "," + args.Location.Y + ").closest('table') ? 'TABLE' : document.elementFromPoint(" + args.Location.X + "," + args.Location.Y + ").tagName";
                     string tagNameResult = await _webView.CoreWebView2.ExecuteScriptAsync(script);
                     
@@ -112,24 +140,28 @@ namespace NetWebView2Lib
 
                         OnContextMenuRequested?.Invoke(this, FormatHandle(_parentHandle), lnk, args.Location.X, args.Location.Y, sel);
 
-                        string cleanSrc = src.Replace("\"", "\\\"");
-                        string cleanLnk = lnk.Replace("\"", "\\\"");
-                        string cleanSel = sel.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", "\\n");
+                        if (OnContextMenu != null)
+                        {
+                            string cleanSrc = src.Replace("\"", "\\\"");
+                            string cleanLnk = lnk.Replace("\"", "\\\"");
+                            string cleanSel = sel.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", "\\n");
 
-                        string json = "{" +
-                            "\"x\":" + args.Location.X + "," +
-                            "\"y\":" + args.Location.Y + "," +
-                            "\"kind\":\"" + k + "\"," +
-                            "\"tagName\":\"" + tagName + "\"," +
-                            "\"src\":\"" + cleanSrc + "\"," +
-                            "\"link\":\"" + cleanLnk + "\"," +
-                            "\"selection\":\"" + cleanSel + "\"" +
-                            "}";
+                            string json = "{" +
+                                "\"x\":" + args.Location.X + "," +
+                                "\"y\":" + args.Location.Y + "," +
+                                "\"kind\":\"" + k + "\"," +
+                                "\"tagName\":\"" + tagName + "\"," +
+                                "\"src\":\"" + cleanSrc + "\"," +
+                                "\"link\":\"" + cleanLnk + "\"," +
+                                "\"selection\":\"" + cleanSel + "\"" +
+                                "}";
 
-                        OnContextMenu?.Invoke(this, FormatHandle(_parentHandle), "JSON:" + json);
+                            OnContextMenu?.Invoke(this, FormatHandle(_parentHandle), "JSON:" + json);
+                        }
                     });
                 }
                 catch (Exception ex) { Debug.WriteLine("ContextMenu Error: " + ex.Message); }
+                finally { deferral.Complete(); }
             };
 
             // Ad Blocking
@@ -318,6 +350,30 @@ namespace NetWebView2Lib
                 {
                     controller.AcceleratorKeyPressed += (s, e) =>
                     {
+                        // 1. LOCK CHECK: If manager is locked, block F12/shortcuts
+                        if (_isLocked)
+                        {
+                            e.Handled = true;
+                            return;
+                        }
+
+                        // 2. PREFERENCE CHECK: If F12 and DevTools are disabled by user, block it.
+                        if (e.VirtualKey == 123 && !_areDevToolsEnabled)
+                        {
+                            e.Handled = true;
+                            return;
+                        }
+
+                        // 3. FAST PATH: If DevTools are enabled and F12 is pressed, allow it immediately.
+                        if (_areDevToolsEnabled && e.VirtualKey == 123) 
+                        {
+                             if (string.IsNullOrEmpty(_blockedVirtualKeys) || !_blockedVirtualKeys.Split(',').Any(k => k.Trim() == "123"))
+                             {
+                                 e.Handled = false;
+                                 return;
+                             }
+                        }
+
                         var eventArgs = new WebView2AcceleratorKeyPressedEventArgs(e, this);
                         if (!string.IsNullOrEmpty(_blockedVirtualKeys))
                         {
@@ -328,7 +384,10 @@ namespace NetWebView2Lib
                                 eventArgs.Block();
                             }
                         }
+                        
+                        // Only invoke if someone is listening or if it's not a standard system key
                         OnAcceleratorKeyPressed?.Invoke(this, FormatHandle(_parentHandle), eventArgs);
+
                         if (eventArgs.IsCurrentlyHandled) e.Handled = true;
                     };
                 }
