@@ -62,16 +62,17 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
 
 
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
 
-## 🚀 What's New in v2.2.0-alpha - Event Object Refactoring
+# 🚀 What's New in v2.2.1-alpha - UI Responsiveness & Refactoring
 
 This release marks a major architectural milestone for the library by introducing **Event Object Refactoring**. Key events have been transitioned from passing raw data (strings) to passing full **COM-visible objects**, granting developers absolute control over the application's navigation flow.
 
-### ⚡ Key Features & Enhancements
+## ⚡ Key Features & Enhancements
 
 ### 1. Advanced Navigation Control (`IWebView2NavigationStartingEventArgs`)
 
@@ -86,7 +87,7 @@ Navigation is no longer a passive process. With the new `Args` object, you can p
 - **`NavigationId`**: A unique identifier for precise request tracking across complex web sessions.
     
 
-#### 2. Event Object Refactoring & API Maturity
+### 2. Event Object Refactoring & API Maturity
 
 We are moving away from "Raw Parameter" callbacks toward an **Object-Oriented Event Model**.
 
@@ -94,8 +95,16 @@ We are moving away from "Raw Parameter" callbacks toward an **Object-Oriented Ev
     
 - **Future-Proofing**: Adding new metadata in future WebView2 updates will no longer break existing user code, as new properties will simply be appended to the existing object.
 
+### 3. UI Responsiveness & Interception-Based Locking (Critical Patch)
 
-### 🏗️ Architectural Inheritance & Refactoring
+Following the initial alpha release, we identified and resolved a critical issue where Developer Tools (F12) and Right-Click menus could become unresponsive after navigation.
+
+- **Interception-Based Locking**: We moved away from toggling engine-level properties (which caused state lag) to a robust **C# Interception Model**. Features are kept "On" at the engine level but are blocked via the `_isLocked` flag in C#, ensuring the "Inspect" menu item never disappears.
+- **C# Fast Path**: Common actions like F12 are now handled instantly within the C# layer, bypassing the AutoIt COM overhead for maximum performance.
+- **Guaranteed Unlock**: Improved the AutoIt navigation functions (`_NetWebView2_Navigate`) to ensure the browser is always unlocked, even if a navigation times out or fails.
+
+
+## 🏗️ Architectural Inheritance & Refactoring
 
 Building on the foundation of v2.1.0, this version further strengthens the **Event Wrapper** hierarchy:
 
@@ -107,12 +116,13 @@ Building on the foundation of v2.1.0, this version further strengthens the **Eve
 > **Why this matters:** The shift to objects transforms **NetWebView2Lib** from a "simple browser wrapper" into a **Professional-Grade SDK** for AutoIt. It brings low-level control—previously reserved for languages like C# or C++—directly into the hands of the AutoIt developer.
 
 
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
 
-## 📖 NetWebView2Lib Version 2.2.0-alpha (Quick Reference)
+## 📖 NetWebView2Lib Version 2.2.1-alpha (Quick Reference)
 
 ### 🟦 WebView2Manager (ProgId: NetWebView2Lib.WebView2Manager)
 
@@ -281,9 +291,13 @@ Locks down the WebView by disabling context menus, dev tools, zoom control, defa
 Re-enables the features previously restricted by `LockWebView()` (ContextMenus, DevTools, Zoom, ErrorPages, Dialogs, Keys, Popups).
 `object.UnLockWebView()`
 
-##### 🧊 DisableBrowserFeatures
+##### 🧊 DisableBrowserFeatures [LEGACY]
 Disables major browser features for a controlled environment (Unified with `LockWebView`).
 `object.DisableBrowserFeatures()`
+
+##### 🧊 EnableBrowserFeatures [LEGACY]
+Disables major browser features for a controlled environment (Unified with `UnLockWebView`).
+`object.EnableBrowserFeatures()`
 
 ##### 🧊 GoBack
 Navigates back to the previous page in history.
@@ -562,8 +576,8 @@ Sets a global default folder or file path for all browser downloads. If a direct
 Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
 `object.CancelDownloads([Uri As String])`
 
-##### 🧊 ExportPageData
-[LEGACY] Consolidated into **CaptureSnapshot**.
+##### 🧊 ExportPageData  [LEGACY] 
+Consolidated into **CaptureSnapshot**.
 `object.ExportPageData(Format As Integer, FilePath As String)`
 
 ##### 🧊 PrintToPdfStream
