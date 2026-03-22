@@ -23,7 +23,7 @@
 ; 🏆 Thanks to https://fontawesome.com/search?ic=free-collection
 ;----------------------------------------------------------------------------------------
 
-DllCall("User32.dll", "bool", "SetProcessDpiAwarenessContext", "int_ptr", -2)
+;~ DllCall("User32.dll", "bool", "SetProcessDpiAwarenessContext", "int_ptr", -2)
 
 $_g_bNetWebView2_DebugInfo = False
 
