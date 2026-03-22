@@ -1,3 +1,24 @@
+; 019-mdMsgBox_Example.au3
+
+#CS
+    === mdMsgBox parameters with default values ===
+	/BkColor:0x2B2B2B   ; (Dark slate gray)
+	/TxtColor:0xE0E0E0  ; (Gainsboro)
+	/FootColor:0x1E1E1E ; (Black)
+	/MaxWidth:400
+	/MaxHeight:800
+	/Left:-1
+	/Top:-1
+	/Title:"Markdown MsgBox"
+	/Text:""
+	/Buttons:"OK"
+	/BtnDefColor:0xD73443 ; (Crimson)
+	/BtnColor:0x559FF2    ; (Cornflower blue)
+	/Timer:0
+	/TopMost:0
+	/Parent:0
+#CE
+
 
 _Example1()
 ;~ _Example2()
@@ -5,6 +26,7 @@ _Example1()
 ;~ _Example4()
 ;~ _Example5()
 
+;---------------------------------------------------------------------------------------
 Func _Example1()
 	; === Caller Script Example ===
 	Local $sTitle = "Markdown MsgBox"
@@ -15,11 +37,11 @@ Func _Example1()
 			"* 2️⃣ **Parser:** Marked.js" & @CRLF & _
 			"* 3️⃣ **Logic:** AutoIt Bridge"
 	Local $sButtons = "1|2|3|~CANCEL"
-	Local $sHexText = String(StringToBinary($sMarkdown, 4)) ; Convert to Hex for safe CLI passage
+	Local $sHexText = StringToBinary($sMarkdown, 4) ; Convert to Hex for safe CLI passage
 
 	; Call your compiled EXE
 	; We pass Title, Text (Hex), Buttons and a custom Button Color
-	Local $iExitCode = RunWait('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /TopMost:1')
+	Local $iExitCode = mdMsgBox('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /TopMost:1 /Left:2200')
 
 	Switch $iExitCode
 		Case 0
@@ -35,7 +57,7 @@ Func _Example2()
 	Local $sIcon = _FA("exclamation-triangle", 0, 0xF1C40F, "beat", 1)
 	Local $sMarkdown = "## " & $sIcon & " Warning" & @CRLF & "SQLite3.dll could not be loaded."
 	Local $sHexText = StringToBinary($sMarkdown, 4)
-	RunWait('mdMsgBox.exe /Title:"Error" /MaxWidth:300 /Text:' & $sHexText & ' /Buttons:~Cancel')
+	mdMsgBox('mdMsgBox.exe /Title:"Error" /MaxWidth:300 /Text:' & $sHexText & ' /Buttons:~Cancel')
 EndFunc   ;==>_Example2
 
 Func _Example3()
@@ -46,7 +68,7 @@ Func _Example3()
 	Local $sText = "## " & $sIconHeader & " Unsaved Data." & @CRLF & _
 			"You have **unsaved changes**." & @CRLF & "Do you want to **exit without saving?**"
 	Local $sHexText = StringToBinary($sText, 4)
-	If RunWait('mdMsgBox.exe /Title:"Warning" /Text:' & $sHexText & ' /Buttons:~NO|YES /BtnDefColor:0x559FF2 /BtnColor:0xD73443') = 2 Then
+	If mdMsgBox('mdMsgBox.exe /Title:"Warning" /Text:' & $sHexText & ' /Buttons:~NO|YES /BtnDefColor:0x559FF2 /BtnColor:0xD73443') = 2 Then
 		ConsoleWrite("...exit without saving" & @CRLF)
 	EndIf
 
@@ -59,9 +81,10 @@ Func _Example4()
 			"copy is in progress. Please wait."
 	Local $sHexText = StringToBinary($sText, 4)
 
-	Run('mdMsgBox.exe /Title:"copy in progress" /BtnDefColor:0x3EB10D /Text:' & $sHexText & ' /Buttons:~Cancel')
+	mdMsgBox('mdMsgBox.exe /Title:"copy in progress" /BtnDefColor:0x3EB10D /Text:' & $sHexText & ' /Buttons:~Cancel', False) ; <<-($bWait = False)-<<
 
-	Sleep(15000)
+	Sleep(5000)
+
 	WinClose("copy in progress")
 EndFunc   ;==>_Example4
 
@@ -76,7 +99,7 @@ Func _Example5()
 			"* is a **icon library** with **2,140 free** Icons." & @CRLF & _
 			"* https://fontawesome.com/search?ic=free-collection  " & $sIconClick
 
-	Local $sHexText = String(StringToBinary($sMarkdown, 4)) ; Convert to Hex for safe CLI passage
+	Local $sHexText = StringToBinary($sMarkdown, 4) ; Convert to Hex for safe CLI passage
 
 	Local $sBtn1 = _FA("arrow-rotate-right", 0, "", "spin", 1) & "arrow"
 	Local $sBtn2 = _FA("floppy-disk", 1, "", "fade", 1) & "floppy"
@@ -85,9 +108,17 @@ Func _Example5()
 	Local $sButtons = StringToBinary($sBtn1 & "|" & $sBtn2 & "|" & $sBtn3 & "|" & $sBtn4, 4)
 
 	; Call your compiled EXE
-	Local $iExitCode = RunWait('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /MaxWidth:500')
+	Local $iExitCode = mdMsgBox('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /MaxWidth:500')
 	ConsoleWrite("User clicked: " & $iExitCode & @CRLF)
 EndFunc   ;==>_Example5
+
+Func mdMsgBox($sParam, $bWait = True) ; skip the compilation in the examples
+	If $bWait Then
+		Return ShellExecuteWait(@AutoItExe, '"' & @ScriptDir & '\019-mdMsgBox.au3" ' & $sParam)
+	Else
+		Return ShellExecute(@AutoItExe, '"' & @ScriptDir & '\019-mdMsgBox.au3" ' & $sParam)
+	EndIf
+EndFunc   ;==>mdMsgBox_Exec
 
 Func _FA($sIconName, $iStyle = 0, $hColor = "", $sEffect = "", $iSize = 0, $sExtra = "")
 	; https://docs.fontawesome.com/web/style/animate/
