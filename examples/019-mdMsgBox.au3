@@ -370,11 +370,19 @@ EndFunc   ;==>_EscapeForJS
 				"</span>"
 	EndFunc   ;==>_FA_Stack
 	;---------------------------------------------------------------------------------------
+	Func mdMsgBox($sParam, $bWait = True) ; skip the compilation in the examples
+		If $bWait Then
+			Return ShellExecuteWait(@AutoItExe, '"' & @ScriptDir & '\019-mdMsgBox.au3" ' & $sParam)
+		Else
+			Return ShellExecute(@AutoItExe, '"' & @ScriptDir & '\019-mdMsgBox.au3" ' & $sParam)
+		EndIf
+	EndFunc   ;==>mdMsgBox_Exec
+	;---------------------------------------------------------------------------------------
 
     === mdMsgBox parameters with default values ===
-	/BkColor:0x2B2B2B (Dark slate gray)
-	/TxtColor:0xE0E0E0 (Gainsboro)
-	/FootColor:0x1E1E1E (Black)
+	/BkColor:0x2B2B2B   ; (Dark slate gray)
+	/TxtColor:0xE0E0E0  ; (Gainsboro)
+	/FootColor:0x1E1E1E ; (Black)
 	/MaxWidth:400
 	/MaxHeight:800
 	/Left:-1
@@ -382,8 +390,8 @@ EndFunc   ;==>_EscapeForJS
 	/Title:"Markdown MsgBox"
 	/Text:""
 	/Buttons:"OK"
-	/BtnDefColor:0xD73443 (Crimson)
-	/BtnColor:0x559FF2 (Cornflower blue)
+	/BtnDefColor:0xD73443 ; (Crimson)
+	/BtnColor:0x559FF2    ; (Cornflower blue)
 	/Timer:0
 	/TopMost:0
 	/Parent:0
