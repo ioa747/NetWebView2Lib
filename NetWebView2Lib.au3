@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2026.3.17.22 🚩
+; NetWebView2Lib.au3 - Script Version: 2.2.1-alpha (2026.03.20.09) 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -443,15 +443,15 @@ Func _NetWebView2_GetVersion($oWebV2M)
 EndFunc   ;==>_NetWebView2_GetVersion
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_LoadWait
-; Description....: Waits for a specific WebView2 status or event with a timeout.
+; Name ..........: _NetWebView2_LoadWait
+; Description ...: Waits for a specific WebView2 status or event with a timeout.
 ; Syntax ........: _NetWebView2_LoadWait($oWebV2M[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[, $sExpectedTitle = ""[,
 ;                  $iTimeOut_ms = 5000]]])
-; Parameters.....: $oWebV2M             - The NetWebView2 Manager object.
+; Parameters ....: $oWebV2M             - The NetWebView2 Manager object.
 ;                  $iWaitMessage        - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
 ;                  $sExpectedTitle      - [optional] Expected title to LoadWait for, as StringRegExp() pattern
 ;                  $iTimeOut_ms         - [optional] Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
-; Return values..: Success      - True
+; Return values .: Success      - True
 ;                  Failure      - False and sets @error:
 ;                                     3 - Navigation Error ($NETWEBVIEW2_MESSAGE__NAV_ERROR)
 ;                                     4 - Timeout reached
@@ -529,16 +529,16 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 EndFunc   ;==>_NetWebView2_LoadWait
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_Navigate
-; Description....: Navigates to a URL and waits for a specific completion status.
+; Name ..........: _NetWebView2_Navigate
+; Description ...: Navigates to a URL and waits for a specific completion status.
 ; Syntax ........: _NetWebView2_Navigate($oWebV2M, $s_URL[, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED[,
 ;                  $sExpectedTitle = ""[, $iTimeOut_ms = 5000]]])
-; Parameters.....: $oWebV2M             - The NetWebView2 Manager object.
+; Parameters ....: $oWebV2M             - The NetWebView2 Manager object.
 ;                  $s_URL               - The URL to navigate to.
 ;                  $iWaitMessage        - The status code to wait for (Default is $NETWEBVIEW2_MESSAGE__TITLE_CHANGED).
 ;                  $sExpectedTitle      - [optional] Expected title to LoadWait for, as StringRegExp() pattern
 ;                  $iTimeOut_ms         - [optional] Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
-; Return values..: Success       - True
+; Return values .: Success       - True
 ;                  Failure       - False and sets @error:
 ;                                      1 - Invalid parameters
 ;                                      2 - Navigation call failed (COM error)
@@ -567,7 +567,10 @@ Func _NetWebView2_Navigate($oWebV2M, $s_URL, $iWaitMessage = $NETWEBVIEW2_MESSAG
 	; The Local Error Handler catches potential "Disposed Object" crashes here
 	$oWebV2M.LockWebView()
 	$oWebV2M.Navigate($s_URL)
-	If @error Then Return SetError(2, @error, False)
+	If @error Then
+		$oWebV2M.UnLockWebView()
+		Return SetError(2, @error, False)
+	EndIf
 
 	; 3. Wait for status using the Bulletproof LoadWait logic
 	Local $bResult = _NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
@@ -616,6 +619,7 @@ Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIE
 		Local $iNavigation = $oWebV2M.NavigateToString($s_HTML)
 		Local $iErr = @error, $iExt = @extended
 		If @error Then
+			$oWebV2M.UnLockWebView()
 			Return SetError($iErr, $iExt, $iNavigation)
 		Else
 			_NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
@@ -633,7 +637,7 @@ EndFunc   ;==>_NetWebView2_NavigateToString
 #Region ; === NetWebView2Lib UDF === _NetWebView2_* helper functions
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_BrowserSetupWrapper
-; Description ...:
+; Description ...: Sets up and initializes a browser window using the specified profile and settings.
 ; Syntax ........: _NetWebView2_BrowserSetupWrapper($hOuterParentWindow, ByRef $oOuterWeb, $sEventPrefix, $sProfile,
 ;                  ByRef $oOuterBridge, ByRef $hInnerWebViewWindow, $iX, $iY, $iW, $iH, $s_AddBrowserArgs)
 ; Parameters ....: $hOuterParentWindow  - a handle value.
@@ -671,7 +675,7 @@ EndFunc   ;==>_NetWebView2_BrowserSetupWrapper
 
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_ExportPageData
-; Description ...:
+; Description ...: Captures page data using Chrome DevTools Protocol. Can return MHTML or other CDP formats based on the `cdpParameters` JSON string.
 ; Syntax ........: _NetWebView2_ExportPageData($oWebV2M, $iFormat[, $sFilePath = ''])
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $iFormat             - a string value. 0 HTML only, 1 MHTML Snapshot
@@ -699,7 +703,7 @@ EndFunc   ;==>_NetWebView2_ExportPageData
 
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_GetSource
-; Description ...:
+; Description ...: Returns the current URL of the browser.
 ; Syntax ........: _NetWebView2_GetSource($oWebV2M)
 ; Parameters ....: $oWebV2M             - an object.
 ; Return values .: None
@@ -819,9 +823,9 @@ EndFunc   ;==>_NetWebView2_PrintToPdfStream
 
 #Region ; === NetWebView2Lib UDF === New Core Method Wrappers
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_AddInitializationScript
+; Name ..........: _NetWebView2_AddInitializationScript
 ; Description ...: Adds a JavaScript to be executed before any other script when a new page is loaded.
-; Syntax.........: _NetWebView2_AddInitializationScript($oWeb, $sScript)
+; Syntax ........: _NetWebView2_AddInitializationScript($oWeb, $sScript)
 ; Parameters ....: $oWeb    - The NetWebView2 Manager object.
 ;                  $vScript - The JavaScript code to inject (String) OR the full path to a JavaScript file.
 ; Return values .: Success  - Returns a Script ID (string).
@@ -845,10 +849,10 @@ Func _NetWebView2_AddInitializationScript($oWebV2M, $vScript)
 EndFunc   ;==>_NetWebView2_AddInitializationScript
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_RemoveInitializationScript
-; Description....: Removes a previously added initialization script using its ID.
-; Syntax.........: _NetWebView2_RemoveInitializationScript($oWebV2M, $sScriptId)
-; Parameters.....: $oWebV2M - The Net WebView2 instance to manipulate.
+; Name ..........: _NetWebView2_RemoveInitializationScript
+; Description ...: Removes a previously added initialization script using its ID.
+; Syntax ........: _NetWebView2_RemoveInitializationScript($oWebV2M, $sScriptId)
+; Parameters ....: $oWebV2M - The Net WebView2 instance to manipulate.
 ;                  $sScriptId     - The ID of the initialization script to remove.
 ; Return values .: Success   - True
 ;                  Failure   - False and sets @error
@@ -866,9 +870,9 @@ Func _NetWebView2_RemoveInitializationScript($oWebV2M, $sScriptId)
 EndFunc   ;==>_NetWebView2_RemoveInitializationScript
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_SetVirtualHostNameToFolderMapping
+; Name ..........: _NetWebView2_SetVirtualHostNameToFolderMapping
 ; Description ...: Maps a custom host name to a local folder path (bypasses CORS).
-; Syntax.........: _NetWebView2_SetVirtualHostNameToFolderMapping($oWebV2M, $sHostName, $sFolderPath[, $iAccessKind = 0])
+; Syntax ........: _NetWebView2_SetVirtualHostNameToFolderMapping($oWebV2M, $sHostName, $sFolderPath[, $iAccessKind = 0])
 ; Parameters ....: $oWebV2M     - The NetWebView2 Manager object.
 ;                  $sHostName   - The virtual domain (e.g., "myapp.local").
 ;                  $sFolderPath - The absolute path to the local folder.
@@ -889,9 +893,9 @@ Func _NetWebView2_SetVirtualHostNameToFolderMapping($oWebV2M, $sHostName, $sFold
 EndFunc   ;==>_NetWebView2_SetVirtualHostNameToFolderMapping
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_SetLockState
+; Name ..........: _NetWebView2_SetLockState
 ; Description ...: Locks or unlocks the manager to prevent COM calls during critical operations (e.g., Cleanup).
-; Syntax.........: _NetWebView2_SetLockState($oWebV2M, $bLockState)
+; Syntax ........: _NetWebView2_SetLockState($oWebV2M, $bLockState)
 ; Parameters ....: $oWebV2M    - The NetWebView2 Manager object.
 ;                  $bLockState - True to lock (prevent calls), False to unlock.
 ; Return values .: Success     - True
@@ -910,9 +914,9 @@ Func _NetWebView2_SetLockState($oWebV2M, $bLockState)
 EndFunc   ;==>_NetWebView2_SetLockState
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_EncodeBinaryToB64
+; Name ..........: _NetWebView2_EncodeBinaryToB64
 ; Description ...: High-performance binary to Base64 string encoding using the C# Core.
-; Syntax.........: _NetWebView2_EncodeBinaryToB64($oWebV2M, ByRef $dBinary)
+; Syntax ........: _NetWebView2_EncodeBinaryToB64($oWebV2M, ByRef $dBinary)
 ; Parameters ....: $oWebV2M - The NetWebView2 Manager object.
 ;                  $dBinary - The binary data to encode.
 ; Return values .: Success  - Returns a Base64 encoded string.
@@ -932,9 +936,9 @@ Func _NetWebView2_EncodeBinaryToB64($oWebV2M, ByRef $dBinary)
 EndFunc   ;==>_NetWebView2_EncodeBinaryToB64
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_DecodeB64ToBinary
+; Name ..........: _NetWebView2_DecodeB64ToBinary
 ; Description ...: High-performance Base64 string to binary data decoding using the C# Core.
-; Syntax.........: _NetWebView2_DecodeB64ToBinary($oWebV2M, ByRef $sB64)
+; Syntax ........: _NetWebView2_DecodeB64ToBinary($oWebV2M, ByRef $sB64)
 ; Parameters ....: $oWebV2M - The NetWebView2 Manager object.
 ;                  $sB64    - The Base64 encoded string to decode.
 ; Return values .: Success  - Returns binary data.
@@ -954,9 +958,9 @@ Func _NetWebView2_DecodeB64ToBinary($oWebV2M, ByRef $sB64)
 EndFunc   ;==>_NetWebView2_DecodeB64ToBinary
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _NetWebView2_SetBuiltInErrorPageEnabled
+; Name ..........: _NetWebView2_SetBuiltInErrorPageEnabled
 ; Description ...: Enables or disables the built-in WebView2 error pages (e.g., "No Internet").
-; Syntax.........: _NetWebView2_SetBuiltInErrorPageEnabled($oWeb, $bEnabled)
+; Syntax ........: _NetWebView2_SetBuiltInErrorPageEnabled($oWeb, $bEnabled)
 ; Parameters ....: $oWeb     - The NetWebView2 Manager object.
 ;                  $bEnabled - True to show default error pages, False to hide them.
 ; Return values .: Success   - True
@@ -975,11 +979,11 @@ Func _NetWebView2_SetBuiltInErrorPageEnabled($oWebV2M, $bEnabled)
 EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
 
 ; #FUNCTION# ====================================================================================================================
-; Name...........: _WebView2_FrameGetHtmlSource
-; Description....: Synchronously retrieves the full HTML source of a frame.
-; Syntax.........: _WebView2_FrameGetHtmlSource($oFrame)
-; Parameters.....: $oFrame - The WebView2Frame object.
-; Return values..: Success - Clean HTML string.
+; Name ..........: _WebView2_FrameGetHtmlSource
+; Description ...: Synchronously retrieves the full HTML source of a frame.
+; Syntax ........: _WebView2_FrameGetHtmlSource($oFrame)
+; Parameters ....: $oFrame - The WebView2Frame object.
+; Return values .: Success - Clean HTML string.
 ;                  Failure - Sets @error and returns empty string.
 ; Author ........: ioa747
 ; Modified ......:
@@ -1013,6 +1017,25 @@ Func _WebView2_FrameGetHtmlSource($oFrame)
 
 	Return $sClean
 EndFunc   ;==>_WebView2_FrameGetHtmlSource
+
+; #INTERNAL_USE_ONLY# ===========================================================================================================
+; Name ..........: _NetWebView2_GetFrame
+; Description ...: Returns a Frame Object (IWebView2Frame) for the specified index.
+; Syntax ........: _NetWebView2_GetFrame($oWebV2M, $iIndex)
+; Parameters ....: $oWebV2M             - an object.
+;                  $iIndex              - an int value.
+; Return values .: Frame Object or Null
+; Author ........: ioa747
+; Modified ......:
+; Remarks .......:
+; Related .......:
+; Link ..........:
+; Example .......: Yes
+; ===============================================================================================================================
+Func _NetWebView2_GetFrame($oWebV2M, $iIndex)
+	Local $oFrame = $oWebV2M.GetFrame($iIndex)
+	Return SetError(@error, @extended, $oFrame)
+EndFunc   ;==>_NetWebView2_GetFrame
 
 #EndRegion ; === NetWebView2Lib UDF === New Core Method Wrappers
 
@@ -1177,8 +1200,8 @@ Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms = 5000)
 EndFunc   ;==>__NetWebView2_WaitForReadyState
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
-; Name...........: __NetWebView2_LastMessage_KEEPER
-; Description....: Centralized state manager for WebView2 instances using a static map.
+; Name ..........: __NetWebView2_LastMessage_KEEPER
+; Description ...: Centralized state manager for WebView2 instances using a static map.
 ; Syntax ........: __NetWebView2_LastMessage_KEEPER($oWebV2M[, $iMessage = Default[, $iError = @error[, $iExtended = @extended]]])
 ; Parameters ....: $oWebV2M             - The NetWebView2 Manager object.
 ;                  $iMessage            - [optional] Message to SET. If Default, function acts as GET. If -1, performs cleanup.
@@ -1502,9 +1525,9 @@ EndFunc   ;==>__NetWebView2_freezer
 
 #Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Error Handlers ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
-; Name...........: __NetWebView2_SilentErrorHandler
-; Description....: A generic COM Error Handler that silences errors.
-; Syntax.........: __NetWebView2_SilentErrorHandler()
+; Name ..........: __NetWebView2_SilentErrorHandler
+; Description ...: A generic COM Error Handler that silences errors.
+; Syntax ........: __NetWebView2_SilentErrorHandler()
 ; Remarks........: Used to prevent script crashes when a WebView2 object is disposed or closed
 ;                  while an event or a method call is still in progress.
 ; Author ........: ioa747, mLipok
@@ -1638,8 +1661,10 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			EndIf
 
 			; 🚧 *******************************************
-			ConsoleWrite("> TEST NAV_ERR: " & $sMsg & @CRLF)
-			ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessage_KEEPER($oWebV2M)=" & __NetWebView2_LastMessage_KEEPER($oWebV2M) & " SLN=" & @ScriptLineNumber & @CRLF)
+			If $_g_bNetWebView2_DebugInfo Then
+				ConsoleWrite("> TEST NAV_ERR: " & $sMsg & @CRLF)
+				ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessage_KEEPER($oWebV2M)=" & __NetWebView2_LastMessage_KEEPER($oWebV2M) & " SLN=" & @ScriptLineNumber & @CRLF)
+			EndIf
 
 		Case "NAV_COMPLETED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand, 1)
@@ -1949,7 +1974,7 @@ Volatile Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
 
 	Local Const $s_Prefix = "[EVENT: OnTitleChanged]: GUI:" & $hGUI & " TITLE: " & $sTITLE
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
-;~ 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
+	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 	If $_g_bNetWebView2_DebugDev Then ConsoleWrite("> IFNC: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & __NetWebView2_LastMessage_Navigation($oWebV2M) & ' SLN=' & @ScriptLineNumber & @CRLF)
 EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 
@@ -1973,6 +1998,7 @@ Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $oArgs
 	Local Const $s_Prefix = "[EVENT: OnNavigationStarting]: GUI:" & $hGUI & " URL: " & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
+	$oArgs = 0
 EndFunc   ;==>__NetWebView2_Events__OnNavigationStarting
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2197,12 +2223,12 @@ Volatile Func __NetWebView2_Events__OnProcessFailed($oWebV2M, $hGUI, $oArgs)
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__PROCESS_FAILED)
-	$oArgs = 0
+	$oArgs = 0  ; Explicitly release the COM reference inside the volatile scopeEndFunc
 EndFunc   ;==>__NetWebView2_Events__OnProcessFailed
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnBasicAuthenticationRequested
-; Description ...:  event is raised when WebView encounters a Basic HTTP Authentication request as described in https://developer.mozilla.org/docs/Web/HTTP/Authentication, a Digest HTTP Authentication request as described in https://developer.mozilla.org/docs/Web/HTTP/Headers/Authorization#digest, an NTLM authentication or a Proxy Authentication request.
+; Description ...: event is raised when WebView encounters a Basic HTTP Authentication request as described in https://developer.mozilla.org/docs/Web/HTTP/Authentication, a Digest HTTP Authentication request as described in https://developer.mozilla.org/docs/Web/HTTP/Headers/Authorization#digest, an NTLM authentication or a Proxy Authentication request.
 ; Syntax ........: __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hGUI, $oArgs)
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $hGUI                - a handle value.
@@ -2231,25 +2257,6 @@ EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
 
 #Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Frame Related ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
-; Name ..........: _NetWebView2_GetFrame
-; Description ...: Returns a Frame Object (IWebView2Frame) for the specified index.
-; Syntax ........: _NetWebView2_GetFrame($oWebV2M, $iIndex)
-; Parameters ....: $oWebV2M             - an object.
-;                  $iIndex              - an int value.
-; Return values .: Frame Object or Null
-; Author ........: ioa747
-; Modified ......:
-; Remarks .......:
-; Related .......:
-; Link ..........:
-; Example .......: Yes
-; ===============================================================================================================================
-Func _NetWebView2_GetFrame($oWebV2M, $iIndex)
-	Local $oFrame = $oWebV2M.GetFrame($iIndex)
-	Return SetError(@error, @extended, $oFrame)
-EndFunc   ;==>_NetWebView2_GetFrame
-
-; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnFrameCreated
 ; Description ...: FrameCreated is raised when a new iframe is created. Handle this event to get access to CoreWebView2Frame objects.
 ; Syntax ........: __NetWebView2_Events__OnFrameCreated($oWebV2M, $hGUI, $oFrame)
@@ -2267,6 +2274,7 @@ EndFunc   ;==>_NetWebView2_GetFrame
 Volatile Func __NetWebView2_Events__OnFrameCreated($oWebV2M, $hGUI, $oFrame)
 	Local Const $s_Prefix = "[EVENT: OnFrameCreated]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameCreated
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2287,6 +2295,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameCreated
 Volatile Func __NetWebView2_Events__OnFrameDestroyed($oWebV2M, $hGUI, $oFrame)
 	Local Const $s_Prefix = "[EVENT: OnFrameDestroyed]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameDestroyed
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2307,6 +2316,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameDestroyed
 Volatile Func __NetWebView2_Events__OnFrameNameChanged($oWebV2M, $hGUI, $oFrame)
 	Local Const $s_Prefix = "[EVENT: OnFrameNameChanged]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2330,6 +2340,7 @@ Volatile Func __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $
 	Local Const $s_Prefix = "[EVENT: OnFrameNavigationStarting]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Uri:" & $sUri
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_NAV_STARTING) ; Optional: Update status if needed
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameNavigationStarting
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2375,6 +2386,7 @@ Volatile Func __NetWebView2_Events__OnFrameContentLoading($oWebV2M, $hGUI, $oFra
 	Local Const $s_Prefix = "[EVENT: OnFrameContentLoading]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_CONTENT_LOADING)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameContentLoading
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2397,6 +2409,7 @@ Volatile Func __NetWebView2_Events__OnFrameDOMContentLoaded($oWebV2M, $hGUI, $oF
 	Local Const $s_Prefix = "[EVENT: OnFrameDOMContentLoaded]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_DOM_CONTENT_LOADED)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameDOMContentLoaded
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
@@ -2419,6 +2432,7 @@ Volatile Func __NetWebView2_Events__OnFrameWebMessageReceived($oWebV2M, $hGUI, $
 	Local Const $s_Prefix = "[EVENT: OnFrameWebMessageReceived]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Message:" & $sMessage
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_WEB_MESSAGE_RECEIVED)
+	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameWebMessageReceived
 
 Func __NetWebView2_Events__FrameKeeper($oWebV2M, $hGUI, $oFrame)
