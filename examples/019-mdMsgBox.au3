@@ -1,5 +1,4 @@
 #NoTrayIcon
-#AutoIt3Wrapper_Au3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=
 #AutoIt3Wrapper_Outfile=mdMsgBox.exe
@@ -9,6 +8,8 @@
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
+;~ #AutoIt3Wrapper_UseX64=y
+
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
 #include "..\NetWebView2Lib.au3"
@@ -16,19 +17,19 @@
 ;----------------------------------------------------------------------------------------
 ; Title...........: 019-mdMsgBox.au3
 ; Description.....: Markdown Modern MsgBox (WebView2)
-; AutoIt Version..: 3.3.18.0   Author: ioa747           Script Version: 0.1
+; AutoIt Version..: 3.3.18.0   Author: ioa747           Script Version: 0.3
 ; Note............: Testet in Windows 11 Pro 25H2       Date:20/03/2026
 ; ## The dependencies are in the folder @ScriptDir & "\JS_Lib"
 ; 🏆 Thanks to https://github.com/markedjs/marked/
 ; 🏆 Thanks to https://fontawesome.com/search?ic=free-collection
 ;----------------------------------------------------------------------------------------
 
-;~ DllCall("User32.dll", "bool", "SetProcessDpiAwarenessContext", "int_ptr", -2)
+$_g_bNetWebView2_DebugInfo = False ; NetWebView2 DebugInfo
 
-$_g_bNetWebView2_DebugInfo = False
+DllCall("User32.dll", "bool", "SetProcessDpiAwarenessContext", "int_ptr", -4) ; (-4 = Per Monitor V2)
 
 Global $g_hGUI, $g_hBkColor, $g_hTxtColor, $g_hFootColor, $g_iMaxWidth, $g_iMaxHeight, $g_iLeft, $g_iTop, $g_sTitle, $g_sText, _
-		$g_sButtons, $g_sBtnDefColor, $g_sBtnColor, $g_sBtnResult, $g_aBtn, $g_iTimer, $g_iTopMost, $g_hParent
+		$g_sButtons, $g_sBtnDefColor, $g_sBtnColor, $g_sBtnResult, $g_aBtn, $g_iTimer, $g_iTopMost, $g_hParent, $g_sFile
 
 $g_hGUI = 0
 $g_hBkColor = Hex(0x2B2B2B, 6)     ; Dark slate gray
@@ -48,10 +49,26 @@ $g_aBtn = StringSplit($g_sButtons, "|", 1)
 $g_iTimer = 0 ; Default: No timer
 $g_iTopMost = 0
 $g_hParent = 0
+$g_sFile = ""
+
+; === Testing ===
+;~ $g_sTitle = "Markdown MsgBox"
+;~ $g_sText = "" & _
+;~ 		"# 🎯 Make your Choice" & @CRLF & _
+;~ 		"This is a **Modern UI** message box." & @CRLF & _
+;~ 		"* 1️⃣ **Engine:** WebView2" & @CRLF & _
+;~ 		"* 2️⃣ **Parser:** Marked.js" & @CRLF & _
+;~ 		"* 3️⃣ **Logic:** AutoIt Bridge"
+;~ $g_sButtons = "1|2|3|~CANCEL"
+;~ $g_aBtn = StringSplit($g_sButtons, "|", 1)
+
 
 _CmdLine_Parsing()
 
+If FileExists($g_sFile) Then $g_sText = FileRead($g_sFile)
+
 ; === Execution ===
+Global $g_fDpiScale = _GetNearestWindowsDpi()
 Global $oWebV2M
 Global $sResult = _MarkdownMsgBox()
 ConsoleWrite($sResult & @CRLF)
@@ -101,16 +118,23 @@ Func _CmdLine_Parsing()
 					$g_iTopMost = (Int(StringReplace($sCmd, "/TopMost:", "")) ? $WS_EX_TOPMOST : 0)
 				Case StringInStr($sCmd, "/Parent:")
 					$g_hParent = HWnd(StringReplace($sCmd, "/Parent:", ""))
+				Case StringInStr($sCmd, "/File:")
+					$g_sFile = StringReplace($sCmd, "/File:", "")
+					; We remove any extra quotes if the user entered /File:"path"
+					$g_sFile = StringReplace($g_sFile, '"', "")
 			EndSelect
 		Next
 	EndIf
 EndFunc   ;==>_CmdLine_Parsing
 ;---------------------------------------------------------------------------------------
 Func _MarkdownMsgBox()
+
 	; Create the GUI Window (Hidden)
 	$g_hGUI = GUICreate($g_sTitle, $g_iMaxWidth, $g_iMaxHeight, -1, -1, BitOR($WS_CAPTION, $WS_POPUP, $WS_SYSMENU, $WS_CLIPCHILDREN), $g_iTopMost, $g_hParent)
 	GUISetIcon(@ScriptFullPath)
 	GUISetBkColor($g_hBkColor)
+
+	GUIRegisterMsg(0x02E0, WM_DPICHANGED) ; 0x02E0 = WM_DPICHANGED
 
 	$oWebV2M = _NetWebView2_CreateManager("", "Web_Events_", "--allow-file-access-from-files --disable-web-security") ; 👈
 	_NetWebView2_GetBridge($oWebV2M, "JS_Events_")
@@ -162,27 +186,41 @@ Volatile Func JS_Events_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
 	#forceref $oWebV2M
 
 	If StringLeft($sMessage, 7) = "RESIZE|" Then
-		; Cancel _EmergencyShow timer immediately since JS is responding
 		AdlibUnRegister("_EmergencyShow")
 
 		Local $aData = StringSplit($sMessage, "|")
 		If $aData[0] < 3 Then Return
 
+		; Getting the Scale Factor
+		$g_fDpiScale = _GetNearestWindowsDpi()
+		ConsoleWrite("$g_fDpiScale=" & $g_fDpiScale & @CRLF)
+
 		Local $iW = Int($aData[2]), $iH = Int($aData[3])
 
-		; Constraints
-		If $iW > $g_iMaxWidth Then $iW = $g_iMaxWidth
-		If $iW < 300 Then $iW = 300
-		If $iH > $g_iMaxHeight Then $iH = $g_iMaxHeight
-		If $iH < 120 Then $iH = 120
+		; Dynamic Constraints based on Scaling
+		Local $iMinW = 300 * $g_fDpiScale
+		Local $iMaxW = $g_iMaxWidth * $g_fDpiScale
+		Local $iMaxH = $g_iMaxHeight * $g_fDpiScale
 
-		; Final dimensions with window chrome offsets
+		If $iW > $iMaxW Then $iW = $iMaxW
+		If $iW < $iMinW Then $iW = $iMinW
+		If $iH > $iMaxH Then $iH = $iMaxH
+
+
+		; Add margins (Titlebar etc.)
 		Local $iFinalW = $iW + 6
-		Local $iFinalH = $iH + 30
+		Local $iFinalH = $iH + 29
 
-		; Use Global Left/Top if set, otherwise center
-		Local $iTargetLeft = ($g_iLeft = -1) ? (@DesktopWidth - $iFinalW) / 2 : $g_iLeft
-		Local $iTargetTop = ($g_iTop = -1) ? (@DesktopHeight - $iFinalH) / 2 : $g_iTop
+		; Download Work Area (Screen without Taskbar)
+		Local $tRect = DllStructCreate("int Left;int Top;int Right;int Bottom")
+		DllCall("user32.dll", "bool", "SystemParametersInfo", "uint", 48, "uint", 0, "ptr", DllStructGetPtr($tRect), "uint", 0) ; 48 = SPI_GETWORKAREA
+
+		Local $iWA_W = DllStructGetData($tRect, "Right") - DllStructGetData($tRect, "Left")
+		Local $iWA_H = DllStructGetData($tRect, "Bottom") - DllStructGetData($tRect, "Top")
+
+		; Position calculation (Center in Work Area)
+		Local $iTargetLeft = ($g_iLeft = -1) ? DllStructGetData($tRect, "Left") + ($iWA_W - $iFinalW) / 2 : $g_iLeft
+		Local $iTargetTop = ($g_iTop = -1) ? DllStructGetData($tRect, "Top") + ($iWA_H - $iFinalH) / 2 : $g_iTop
 
 		; Resize and Show
 		WinMove($hGUI, "", $iTargetLeft, $iTargetTop, $iFinalW, $iFinalH)
@@ -294,47 +332,132 @@ Func _RenderMarkdown()
 EndFunc   ;==>_RenderMarkdown
 ;---------------------------------------------------------------------------------------
 Func _CSS()
-    Local $hBCol, $sButtons = ""
-    For $i = 1 To $g_aBtn[0]
-        $hBCol = (StringLeft($g_aBtn[$i], 1) = "~" ? $g_sBtnDefColor : $g_sBtnColor)
-        $sButtons &= ".btn-" & $i & " { background: #" & $hBCol & "; color: white; border: none; " & _
-                (StringLeft($g_aBtn[$i], 1) = "~" ? " font-weight: bold; " : "") & "}"
-    Next
+	Local $hBCol, $sButtons = ""
+	For $i = 1 To $g_aBtn[0]
+		$hBCol = (StringLeft($g_aBtn[$i], 1) = "~" ? $g_sBtnDefColor : $g_sBtnColor)
+		$sButtons &= ".btn-" & $i & " { background: #" & $hBCol & "; color: white; border: none; " & _
+				(StringLeft($g_aBtn[$i], 1) = "~" ? " font-weight: bold; " : "") & "}"
+	Next
 
-    Local $sStyle = ""
-    ; ΠΡΟΣΘΗΚΗ MARGIN-BOTTOM ΓΙΑ ΝΑ ΜΗΝ ΕΙΝΑΙ ΣΤΡΙΜΩΓΜΕΝΑ
-    $sStyle &= "h1, h2, h3, h4, h5, h6 { margin: 0 0 15px 0; border-bottom: 1px solid #333; padding-bottom: 5px; color: #ffffff; }" & _
-               "ul, ol { margin: 10px 0; padding-left: 25px; }" & _
-               "li { margin-bottom: 5px; padding: 0; }" & _
-               "#view p { margin-bottom: 10px; padding: 0; }" & _
-               "a { color: #4da6ff; text-decoration: none; }"
+	Local $sStyle = ""
+	; Markdown elements
+	$sStyle &= "h1, h2, h3, h4, h5, h6 { margin: 0 0 15px 0; color: #ffffff; }" & _
+			"ul, ol { margin: 10px 0; padding-left: 25px; }" & _
+			"li { margin-bottom: 5px; padding: 0; }" & _
+			"#view p { margin-bottom: 10px; padding: 0; }" & _
+			"a { color: #4da6ff; text-decoration: none; }" & _
+			"blockquote { " & _
+			"    border-left: 5px solid #4CAF50; " & _
+			"    background-color: #252525; " & _
+			"    margin: 1.5em 0; " & _
+			"    padding: 10px 20px; " & _
+			"    color: #aaaaaa; " & _
+			"    font-style: italic; " & _
+			"}"
 
-    $sStyle &= "body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #" & $g_hBkColor & "; " & _
-               "color: #" & $g_hTxtColor & "; margin: 0; padding: 0; overflow: hidden; outline: none; }" & _
-               "#main-container { width: 100%; display: block; text-align: left; word-wrap: break-word; outline: none; }" & _
-               "#view { padding: 20px; min-height: 50px; }" ; white-space: pre-wrap;
+	$sStyle &= "pre, code { " & _
+			"font-family: 'Consolas', 'Courier New', monospace; " & _
+			"background-color: #1e1e1e; " & _
+			"padding: 2px 4px; " & _
+			"border-radius: 4px; " & _
+			"color: #dcdcdc; " & _
+			"white-space: pre-wrap; " & _
+			"word-wrap: break-word; " & _
+			"}" & _
+			"pre { " & _
+			"padding: 15px; " & _
+			"margin: 10px 0; " & _
+			"line-height: 1.5; " & _
+			"display: block; " & _
+			"overflow-x: hidden; " & _
+			"}"
 
-    $sStyle &= ".footer { background: #" & $g_hFootColor & "; padding: 12px; text-align: right; " & _
-               "border-top: 1px solid #333; width: 100%; box-sizing: border-box; }" & _
-               ".btn { padding: 8px 16px; margin-left: 6px; border-radius: 3px; cursor: pointer; font-size: 13px; " & _
-               "transition: filter 0.2s; outline: none; }" & $sButtons & _
-               ".btn:hover { filter: brightness(1.2); } .btn:focus { outline: 2px solid #ffffff; outline-offset: 2px; }"
 
-    Return $sStyle
-EndFunc
+	$sStyle &= "body { " & _
+			"font-family: 'Segoe UI', Tahoma, sans-serif; " & _
+			"background: #" & $g_hBkColor & "; " & _
+			"color: #" & $g_hTxtColor & "; " & _
+			"margin: 0; padding: 0; outline: none; " & _
+			"display: block; " & _
+			"overflow-x: hidden; " & _
+			"overflow-y: auto; " & _
+			"word-wrap: break-word; " & _
+			"overflow-wrap: break-word; " & _
+			"}" & _
+			"#main-container { " & _
+			"width: 100%; " & _
+			"display: block; " & _
+			"text-align: left; " & _
+			"outline: none; " & _
+			"box-sizing: border-box; " & _
+			"}" & _
+			"#view { " & _
+			"padding: 20px; " & _
+			"min-height: 50px; " & _
+			"box-sizing: border-box; " & _
+			"}"
+
+
+	$sStyle &= ".footer { background: #" & $g_hFootColor & "; padding: 12px; text-align: right; " & _
+			"border-top: 1px solid #333; width: 100%; box-sizing: border-box; }" & _
+			".btn { padding: 8px 16px; margin-left: 6px; border-radius: 3px; cursor: pointer; font-size: 13px; " & _
+			"transition: filter 0.2s; outline: none; }" & $sButtons & _
+			".btn:hover { filter: brightness(1.2); } .btn:focus { outline: 2px solid #ffffff; outline-offset: 2px; }"
+
+	Return $sStyle
+EndFunc   ;==>_CSS
 ;---------------------------------------------------------------------------------------
 Func _EscapeForJS($sText)
-    $sText = StringReplace($sText, "\", "\\")
-    $sText = StringReplace($sText, "'", "\'")
+	$sText = StringReplace($sText, "\", "\\")
+	$sText = StringReplace($sText, "'", "\'")
 
 	$sText = StringReplace($sText, @CRLF & @CRLF, "\\n&nbsp;\\n")
 	$sText = StringReplace($sText, "  ", "&nbsp;&nbsp;")
 
-    $sText = StringReplace($sText, @CRLF, "\\n")
-    $sText = StringReplace($sText, @CR, "\\n")
-    $sText = StringReplace($sText, @LF, "\\n")
-    Return "'" & $sText & "'"
+	$sText = StringReplace($sText, @CRLF, "\\n")
+	$sText = StringReplace($sText, @CR, "\\n")
+	$sText = StringReplace($sText, @LF, "\\n")
+	Return "'" & $sText & "'"
 EndFunc   ;==>_EscapeForJS
+;---------------------------------------------------------------------------------------
+Func _GetNearestWindowsDpi()
+	Local $hDC = _WinAPI_GetDC(0)
+	Local $iLogY = _WinAPI_GetDeviceCaps($hDC, 90) ; LOGPIXELSY
+	_WinAPI_ReleaseDC(0, $hDC)
+
+	Local $iCurrentPct = Round(($iLogY / 96) * 100)
+	Local $iBestMatch = 100
+	Local $iDiff = 9999
+
+	; Table with the official Windows Scaling steps
+	Local $aDpiVals[12] = [100, 125, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500]
+
+	For $i = 0 To UBound($aDpiVals) - 1
+		If Abs($iCurrentPct - $aDpiVals[$i]) < $iDiff Then
+			$iDiff = Abs($iCurrentPct - $aDpiVals[$i])
+			$iBestMatch = $aDpiVals[$i]
+		EndIf
+	Next
+
+	Return $iBestMatch / 100 ; Returns clean factor: 1.0, 1.25, 1.5, 1.75...
+EndFunc   ;==>_GetNearestWindowsDpi
+;---------------------------------------------------------------------------------------
+Func WM_DPICHANGED($hWnd, $iMsg, $wParam, $lParam)
+	#forceref $iMsg
+
+	; lParam already has the correct dimensions for the new DPI
+	Local $tRect = DllStructCreate("int Left;int Top;int Right;int Bottom", $lParam)
+	WinMove($hWnd, "", DllStructGetData($tRect, "Left"), DllStructGetData($tRect, "Top"), _
+			DllStructGetData($tRect, "Right") - DllStructGetData($tRect, "Left"), _
+			DllStructGetData($tRect, "Bottom") - DllStructGetData($tRect, "Top"))
+	$g_fDpiScale = BitAND($wParam, 0xFFFF) / 96
+	ConsoleWrite("-$g_fDpiScale=" & $g_fDpiScale & @CRLF)
+
+	Return 0
+EndFunc   ;==>WM_DPICHANGED
+;---------------------------------------------------------------------------------------
+
+
 
 #CS Helper function for client script
 	;---------------------------------------------------------------------------------------
@@ -395,5 +518,6 @@ EndFunc   ;==>_EscapeForJS
 	/Timer:0
 	/TopMost:0
 	/Parent:0
+	/File:""
 
 #CE Helper function for client script
