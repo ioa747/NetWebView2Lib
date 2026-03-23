@@ -98,7 +98,12 @@ Func _CmdLine_Parsing()
 					$g_sTitle = StringReplace($sCmd, "/Title:", "")
 				Case StringInStr($sCmd, "/Text:")
 					Local $sHex = StringReplace($sCmd, "/Text:", "")
-					$g_sText = BinaryToString($sHex, 4) ; 4 = UTF8
+					; If the string starts with 0x, it is Hex, otherwise it is plain text
+					If StringLeft($sHex, 2) = "0x" Then
+						$g_sText = BinaryToString($sHex, 4)
+					Else
+						$g_sText = StringRegExpReplace($sHex, '^["'']|["'']$', '')
+					EndIf
 				Case StringInStr($sCmd, "/Buttons:")
 					Local $sHexBtn = StringReplace($sCmd, "/Buttons:", "")
 					; If the string starts with 0x, it is Hex, otherwise it is plain text
@@ -121,7 +126,7 @@ Func _CmdLine_Parsing()
 				Case StringInStr($sCmd, "/File:")
 					$g_sFile = StringReplace($sCmd, "/File:", "")
 					; We remove any extra quotes if the user entered /File:"path"
-					$g_sFile = StringReplace($g_sFile, '"', "")
+					$g_sFile = StringRegExpReplace($g_sFile, '^["'']|["'']$', '')
 			EndSelect
 		Next
 	EndIf
