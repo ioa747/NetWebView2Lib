@@ -17,14 +17,16 @@
 	/Timer:0
 	/TopMost:0
 	/Parent:0
+	/File:""
 #CE
 
 
-_Example1()
+;~ _Example1()
 ;~ _Example2()
 ;~ _Example3()
 ;~ _Example4()
 ;~ _Example5()
+_Example6()
 
 ;---------------------------------------------------------------------------------------
 Func _Example1()
@@ -41,7 +43,7 @@ Func _Example1()
 
 	; Call your compiled EXE
 	; We pass Title, Text (Hex), Buttons and a custom Button Color
-	Local $iExitCode = mdMsgBox('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /TopMost:1 /Left:2200')
+	Local $iExitCode = mdMsgBox('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /TopMost:1')
 
 	Switch $iExitCode
 		Case 0
@@ -111,6 +113,19 @@ Func _Example5()
 	Local $iExitCode = mdMsgBox('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /MaxWidth:500')
 	ConsoleWrite("User clicked: " & $iExitCode & @CRLF)
 EndFunc   ;==>_Example5
+
+Func _Example6()
+    Local $sSelectedFile = FileOpenDialog("Select Markdown File", @ScriptDir, "Markdown Files (*.md;*.txt)", 1)
+    If @error Then Return 0 ; if Cancel, Return
+    Local $sTextParam = StringToBinary("### ❌ Error File not found", 4)
+    Local $sCommand = 'mdMsgBox.exe /Title:"File Viewer" ' & _
+                      '/Text:' & $sTextParam & ' ' & _
+                      '/Buttons:"~Close" ' & _
+                      '/File:"' & $sSelectedFile & '" ' & _
+                      '/MaxWidth:800'
+    Local $iExitCode = mdMsgBox($sCommand)
+    Return $iExitCode
+EndFunc
 
 Func mdMsgBox($sParam, $bWait = True) ; skip the compilation in the examples
 	If $bWait Then
