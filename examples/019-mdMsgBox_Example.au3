@@ -41,7 +41,6 @@ Func _Example1()
 	Local $sButtons = "1|2|3|~CANCEL"
 	Local $sHexText = StringToBinary($sMarkdown, 4) ; Convert to Hex for safe CLI passage
 
-	; Call your compiled EXE
 	; We pass Title, Text (Hex), Buttons and a custom Button Color
 	Local $iExitCode = mdMsgBox('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /TopMost:1')
 
@@ -109,7 +108,7 @@ Func _Example5()
 	Local $sBtn4 = _FA("clipboard", 1, "", "", 1, "fa-flip") & "clipboard"
 	Local $sButtons = StringToBinary($sBtn1 & "|" & $sBtn2 & "|" & $sBtn3 & "|" & $sBtn4, 4)
 
-	; Call your compiled EXE
+	; Call mdMsgBox()
 	Local $iExitCode = mdMsgBox('mdMsgBox.exe /Title:"' & $sTitle & '" /Text:' & $sHexText & ' /Buttons:"' & $sButtons & '" /MaxWidth:500')
 	ConsoleWrite("User clicked: " & $iExitCode & @CRLF)
 EndFunc   ;==>_Example5
