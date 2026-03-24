@@ -39,6 +39,8 @@ Func _Example_Console_Redirect()
 	_NetWebView2_ExecuteScript($oWebV2M, "console.log('Hello from JavaScript to AutoIt Console!');")
 	_NetWebView2_ExecuteScript($oWebV2M, "console.error('This is a test error message');")
 
+	__Example_Log(@ScriptLineNumber, "END - close window to exit" & @CRLF)
+
 	; --- Main Loop ---
 	While 1
 		Switch GUIGetMsg()
@@ -61,3 +63,7 @@ Func __UserEventHandler_Bridge__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	EndIf
 EndFunc   ;==>__UserEventHandler_Bridge__OnMessageReceived
 
+Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
+	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
+	Return SetError($iError, $iExtended, '')
+EndFunc   ;==>__Example_Log
