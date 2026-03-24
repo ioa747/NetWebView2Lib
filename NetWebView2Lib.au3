@@ -151,7 +151,7 @@ Func _NetWebView2_CreateManager($sUserAgent = '', $s_fnEventPrefix = "", $s_AddB
 	If @error Then
 		$ERR = @error
 		$EXT = @extended
-		$MSG = "Manager Creation ERROR : #SLN=" & @ScriptLineNumber
+		$MSG = "Manager Creation Error : #SLN=" & @ScriptLineNumber
 	Else
 		; Enable/Disable diagnostic logging
 		; When enabled, the console will show entries like:  +++[NetWebView2Lib][HANDLE:0x...][HH:mm:ss.fff] Message
@@ -679,27 +679,30 @@ Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIE
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, "ERROR: Invalid Object")
-
-	If $iWaitMessage < $NETWEBVIEW2_MESSAGE__INIT_READY Then
-		Return SetError(1)
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then
+		$ERR = 1
+		$MSG = " Invalid Object Error: #SLN=" & @ScriptLineNumber
+	ElseIf $iWaitMessage < $NETWEBVIEW2_MESSAGE__INIT_READY Then
+		$ERR = 2
+		$MSG = " $iWaitMessage Error: #SLN=" & @ScriptLineNumber
 	ElseIf $iWaitMessage > $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then ; higher messsages are not for NAVIGATION thus not checking in _NetWebView2_LoadWait()
-		Return SetError(2)
+		$ERR = 3
+		$MSG = " $iWaitMessage Error: #SLN=" & @ScriptLineNumber
 	Else
 		$oWebV2M.LockWebView()
 		$RET = $oWebV2M.NavigateToString($s_HTML)
 		$ERR = @error
-		If Not $ERR Then
+		If $ERR Then
+			$MSG = " NavigateToString Error: #SLN=" & @ScriptLineNumber
+		Else
 			_NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
 			$ERR = @error
 			$EXT = @extended
-			$oWebV2M.UnLockWebView()
-			If $ERR Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1, $ERR, $EXT)
-			Return SetError($ERR, $EXT, $RET)
+			$MSG = " LoadWait internal Error: #SLN=" & @ScriptLineNumber
 		EndIf
+		$oWebV2M.UnLockWebView()
 	EndIf
 
-	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_NavigateToString
