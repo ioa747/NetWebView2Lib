@@ -147,6 +147,7 @@ Func _NetWebView2_CreateManager($sUserAgent = '', $s_fnEventPrefix = "", $s_AddB
 	#forceref $oMyError
 
 	Local $oWebV2M = ObjCreate("NetWebView2Lib.WebView2Manager") ; REGISTERED VERSION
+	$RET = $oWebV2M
 	If @error Then
 		$ERR = @error
 		$EXT = @extended
@@ -624,37 +625,32 @@ Func _NetWebView2_Navigate($oWebV2M, $s_URL, $iWaitMessage = $NETWEBVIEW2_MESSAG
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, "ERROR: Invalid Object")
-
-	; 1. Parameter Validation
-	If $iWaitMessage < $NETWEBVIEW2_MESSAGE__INIT_READY Or $iWaitMessage > $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then ; higher messsages are not for NAVIGATION thus not checking in _NetWebView2_LoadWait()
-		Return SetError(1, 0, False)
-	EndIf
-
-	; 2. Execute Navigation
-	; The Local Error Handler catches potential "Disposed Object" crashes here
-	$oWebV2M.LockWebView()
-	$oWebV2M.Navigate($s_URL)
-	If @error Then
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then
+		$ERR = 1
+		$MSG = "ERROR: Invalid Object"
+	ELseif $iWaitMessage < $NETWEBVIEW2_MESSAGE__INIT_READY Or $iWaitMessage > $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then
+		; Parameter Validation - higher messsages are not for NAVIGATION thus not checking in _NetWebView2_LoadWait()
+		$ERR = 2
+		$MSG = "ERROR: $iWaitMessage not valid"
+	Else
+		; Execute Navigation
+		; The Local Error Handler catches potential "Disposed Object" crashes here
+		$oWebV2M.LockWebView()
+		$oWebV2M.Navigate($s_URL)
+		$ERR = @error
+		$EXT = @extended
+		If Not @error Then
+			; Wait for status using the BulletProof LoadWait logic
+			$RET = _NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
+			$ERR = @error
+			$EXT = @extended
+			If @error Then ; If an error occurred (3: Nav Error, 4: Timeout), log the failure
+				$MSG = " -> LOAD WAIT FAILED"
+			EndIf
+		EndIf
 		$oWebV2M.UnLockWebView()
-		Return SetError(2, @error, False)
 	EndIf
 
-	; 3. Wait for status using the Bulletproof LoadWait logic
-	Local $bResult = _NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
-	$ERR = @error
-	$EXT = @extended
-
-
-	; If an error occurred (3: Nav Error, 4: Timeout), log the failure
-	If @error Then
-		__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " -> LOAD WAIT FAILED (Err:" & $ERR & " Ext:" & $EXT & ")", 1, $ERR, $EXT)
-	EndIf
-
-	$oWebV2M.UnLockWebView()
-	Return SetError($ERR, $EXT, $bResult)
-
-	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_Navigate
@@ -1123,7 +1119,7 @@ Func _NetWebView2_SetBuiltInErrorPageEnabled($oWebV2M, $bEnabled)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
 
-; #INTERNAL_USE_ONLY# ===========================================================================================================
+; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_GetFrame
 ; Description ...: Returns a Frame Object (IWebView2Frame) for the specified index.
 ; Syntax ........: _NetWebView2_GetFrame($oWebV2M, $iIndex)
@@ -1194,25 +1190,6 @@ Func _WebView2_FrameGetHtmlSource($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_WebView2_FrameGetHtmlSource
-
-; #INTERNAL_USE_ONLY# ===========================================================================================================
-; Name ..........: _NetWebView2_GetFrame
-; Description ...: Returns a Frame Object (IWebView2Frame) for the specified index.
-; Syntax ........: _NetWebView2_GetFrame($oWebV2M, $iIndex)
-; Parameters ....: $oWebV2M             - an object.
-;                  $iIndex              - an int value.
-; Return values .: Frame Object or Null
-; Author ........: ioa747
-; Modified ......:
-; Remarks .......:
-; Related .......:
-; Link ..........:
-; Example .......: Yes
-; ===============================================================================================================================
-Func _NetWebView2_GetFrame($oWebV2M, $iIndex)
-	Local $oFrame = $oWebV2M.GetFrame($iIndex)
-	Return SetError(@error, @extended, $oFrame)
-EndFunc   ;==>_NetWebView2_GetFrame
 
 #EndRegion ; === NetWebView2Lib UDF === New Core Method Wrappers
 
@@ -1403,8 +1380,8 @@ EndFunc   ;==>__NetWebView2_WaitForReadyState
 ; Syntax ........: __NetWebView2_LastMessage_KEEPER($oWebV2M[, $iMessage = Default[, $iError = @error[, $iExtended = @extended]]])
 ; Parameters ....: $oWebV2M             - The NetWebView2 Manager object.
 ;                  $iMessage            - [optional] Message to SET. If Default, function acts as GET. If -1, performs cleanup.
-;                  $ERRor              - [optional] an integer value. Default is @error.
-;                  $EXTended           - [optional] an integer value. Default is @extended.
+;                  $iError              - [optional] an integer value. Default is @error.
+;                  $iExtended           - [optional] an integer value. Default is @extended.
 ; Author.........: mLipok, ioa747
 ; Modified ......:
 ; Remarks........: Uses a Local COM Error Handler to silently handle "Disposed Object" errors during shutdown.
@@ -1412,7 +1389,7 @@ EndFunc   ;==>__NetWebView2_WaitForReadyState
 ; Link ..........:
 ; Example .......: No
 ; ===============================================================================================================================
-Func __NetWebView2_LastMessage_KEEPER($oWebV2M, $iMessage = Default, $ERRor = @error, $EXTended = @extended)
+Func __NetWebView2_LastMessage_KEEPER($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
 	Local Const $s_Prefix = "[__NetWebView2_LastMessage_KEEPER]:"
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	; Static Map - The central database of status indexed by Window Handle
@@ -1423,13 +1400,13 @@ Func __NetWebView2_LastMessage_KEEPER($oWebV2M, $iMessage = Default, $ERRor = @e
 	Local Static $mLastMessegKeeper[]
 	Local $sKey = "" & $oWebV2M.BrowserWindowHandle
 	If $iMessage <> Default Then
-		__NetWebView2_LastMessage__INTERNALL($mLastMessegKeeper, $sKey, $iMessage, $ERRor = @error, $EXTended = @extended)
+		__NetWebView2_LastMessage__INTERNALL($mLastMessegKeeper, $sKey, $iMessage, $iError = @error, $iExtended = @extended)
 
 		__NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage)
 		__NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage)
-		Return SetError($ERRor, $EXTended)
+		Return SetError($iError, $iExtended)
 	Else
-		Return SetError($ERRor, $EXTended, $mLastMessegKeeper[$sKey])
+		Return SetError($iError, $iExtended, $mLastMessegKeeper[$sKey])
 	EndIf
 
 
@@ -1438,7 +1415,7 @@ Func __NetWebView2_LastMessage_KEEPER($oWebV2M, $iMessage = Default, $ERRor = @e
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>__NetWebView2_LastMessage_KEEPER
 
-Func __NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage = Default, $ERRor = @error, $EXTended = @extended)
+Func __NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
 	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage_onReceived]:"
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	; Static Map - The central database of status indexed by Window Handle
@@ -1451,17 +1428,17 @@ Func __NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage = Default, $ERRor 
 
 	If $iMessage <> Default Then
 		If $_g_bNetWebView2_DebugDev Then ConsoleWrite('! IFNC: __NetWebView2_LastMessage_onReceived ==> ' & $iMessage & ' Key=' & $sKey & ' SLN=' & @ScriptLineNumber & @CRLF)
-		__NetWebView2_LastMessage__INTERNALL($mLastMessegReceived, $sKey, $iMessage, $ERRor = @error, $EXTended = @extended)
+		__NetWebView2_LastMessage__INTERNALL($mLastMessegReceived, $sKey, $iMessage, $iError = @error, $iExtended = @extended)
 	EndIf
 
-	Return SetError($ERRor, $EXTended, $mLastMessegReceived[$sKey])
+	Return SetError($iError, $iExtended, $mLastMessegReceived[$sKey])
 
 	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>__NetWebView2_LastMessage_onReceived
 
-Func __NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage = Default, $ERRor = @error, $EXTended = @extended)
+Func __NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
 	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage_Navigation]:"
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	; Static Map - The central database of status indexed by Window Handle
@@ -1474,43 +1451,43 @@ Func __NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage = Default, $ERRor 
 	If $iMessage <> Default Then
 		If $iMessage >= $NETWEBVIEW2_MESSAGE__NAV_STARTING And $iMessage <= $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then
 			If $_g_bNetWebView2_DebugDev Then ConsoleWrite('! IFNC: __NetWebView2_LastMessage_Navigation ==> ' & $iMessage & ' Key=' & $sKey & ' SLN=' & @ScriptLineNumber & @CRLF)
-			__NetWebView2_LastMessage__INTERNALL($mLastNavigationMessage, $sKey, $iMessage, $ERRor = @error, $EXTended = @extended)
+			__NetWebView2_LastMessage__INTERNALL($mLastNavigationMessage, $sKey, $iMessage, $iError = @error, $iExtended = @extended)
 		EndIf
 	EndIf
-	Return SetError($ERRor, $EXTended, $mLastNavigationMessage[$sKey])
+	Return SetError($iError, $iExtended, $mLastNavigationMessage[$sKey])
 
 	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>__NetWebView2_LastMessage_Navigation
 
-Func __NetWebView2_LastMessage__INTERNALL(ByRef $mStatus, $sKey, $iMessage = Default, $ERRor = @error, $EXTended = @extended)
+Func __NetWebView2_LastMessage__INTERNALL(ByRef $mStatus, $sKey, $iMessage = Default, $iError = @error, $iExtended = @extended)
 	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage__INTERNALL]:"
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 
 	; If an error occurred while retrieving the Handle (e.g. Object already closed)
-	If @error Then Return SetError($ERRor, $EXTended, $NETWEBVIEW2_MESSAGE__NONE)
+	If @error Then Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
 
 	; If the handle is invalid
-	If $sKey = "0" Or $sKey = "" Then Return SetError($ERRor, $EXTended, $NETWEBVIEW2_MESSAGE__NONE)
+	If $sKey = "0" Or $sKey = "" Then Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
 
 	; --- SET MODE (Called from Events or Cleanup) ---
 	If $iMessage <> Default Then
 		; Special case: -1 for memory cleanup when the instance is closed
 		If $iMessage = -1 Then
 			If MapExists($mStatus, $sKey) Then MapRemove($mStatus, $sKey)
-			Return SetError($ERRor, $EXTended, $NETWEBVIEW2_MESSAGE__NONE)
+			Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
 		EndIf
 
 		; Update the status for this specific Handle
 		$mStatus[$sKey] = $iMessage
-		Return SetError($ERRor, $EXTended, $iMessage)
+		Return SetError($iError, $iExtended, $iMessage)
 	EndIf
 
 	; --- GET MODE (Called from LoadWait) ---
-	If Not MapExists($mStatus, $sKey) Then Return SetError($ERRor, $EXTended, $NETWEBVIEW2_MESSAGE__NONE)
+	If Not MapExists($mStatus, $sKey) Then Return SetError($iError, $iExtended, $NETWEBVIEW2_MESSAGE__NONE)
 
-	Return SetError($ERRor, $EXTended, $mStatus[$sKey])
+	Return SetError($iError, $iExtended, $mStatus[$sKey])
 
 	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
