@@ -371,14 +371,14 @@ Func _NetWebView2_CleanUp(ByRef $oWebV2M, ByRef $oJSBridge)
 		$ERR = 2
 		$EXT = 1
 		$MSG = " ! NetWebView2Lib.WebView2Manager object has invalid ProgID : #SLN=" & @ScriptLineNumber
-	ElseIf Not IsObj($oJSBridge) Then
-		$ERR = 3
-		$EXT = 2
-		$MSG = " ! NetWebView2Lib.WebView2Bridge is not object : #SLN=" & @ScriptLineNumber
-	ElseIf ObjName($oJSBridge, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Bridge" Then
-		$ERR = 4
-		$EXT = 2
-		$MSG = " ! NebView2Lib.WebView2Bridge object has invalid ProgID : #SLN=" & @ScriptLineNumber
+;~ 	ElseIf Not IsObj($oJSBridge) Then ; $oJSBridge usage is optional
+;~ 		$ERR = 3
+;~ 		$EXT = 2
+;~ 		$MSG = " ! NetWebView2Lib.WebView2Bridge is not object : #SLN=" & @ScriptLineNumber
+;~ 	ElseIf ObjName($oJSBridge, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Bridge" Then ; $oJSBridge usage is optional
+;~ 		$ERR = 4
+;~ 		$EXT = 2
+;~ 		$MSG = " ! NebView2Lib.WebView2Bridge object has invalid ProgID : #SLN=" & @ScriptLineNumber
 	Else
 		_NetWebView2_SetLockState($oWebV2M, True)
 		$RET = $oWebV2M.Cleanup()
