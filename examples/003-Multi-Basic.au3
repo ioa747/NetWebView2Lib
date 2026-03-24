@@ -32,6 +32,7 @@ Func _Main()
 	ConsoleWrite("! BrowserWindowHandle = " & $oWeb_2.BrowserWindowHandle & @CRLF)
 	_NetWebView2_NavigateToString($oWeb_2, _GetDemoHTML("Browser 2 Content"))
 
+	__Example_Log(@ScriptLineNumber, "END - close window to exit" & @CRLF)
 	; --- Main Loop ---
 	While 1
 		Switch GUIGetMsg()
