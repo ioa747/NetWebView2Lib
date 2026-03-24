@@ -34,11 +34,11 @@ Func _Example_HTTP_Tracking()
 	; Very important to prevent the GUI from getting stuck by hundreds of requests (images, scripts, etc.)
 	$oWebV2M.HttpStatusCodeDocumentOnly = True
 
+	GUISetState(@SW_SHOW)
 	; Testing with a non-existent page to see the 404
 	_NetWebView2_Navigate($oWebV2M, "https://google.com/this-page-does-not-exist")
 
-	GUISetState(@SW_SHOW)
-
+	__Example_Log(@ScriptLineNumber, "END - close window to exit" & @CRLF)
 	While 1
 		Switch GUIGetMsg()
 			Case $GUI_EVENT_CLOSE
