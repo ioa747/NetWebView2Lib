@@ -69,6 +69,7 @@ Func Main()
 	__Example_Log(@ScriptLineNumber, "After: https://w2ww.microsoft.com" & @CRLF)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, 'Watch Point - AFTER:' & @CRLF & 'navigate to fake/broken url' & @CRLF & 'HostNameNotResolved')
 
+	__Example_Log(@ScriptLineNumber, "END - close window to exit" & @CRLF)
 	; Main Loop
 	While 1
 		Switch GUIGetMsg()
