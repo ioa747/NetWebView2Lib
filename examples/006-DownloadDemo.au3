@@ -53,8 +53,11 @@ Func _Example()
 	$oWebV2M.SetDownloadPath(@ScriptDir & "\Downloads_Test")
 
 	; navigate to the page
-	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/donate/dl/win-x86_64/25.8.4/en-US/LibreOffice_25.8.4_Win_x86-64.msi", $NETWEBVIEW2_MESSAGE__NAV_STARTING)
+;~ 	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/donate/dl/win-x86_64/25.8.4/en-US/LibreOffice_25.8.4_Win_x86-64.msi", $NETWEBVIEW2_MESSAGE__NAV_STARTING)
+	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/donate/dl/win-x86_64/26.2.1/pl/LibreOffice_26.2.1_Win_x86-64.msi", $NETWEBVIEW2_MESSAGE__NAV_STARTING)
+	#TODO AutoDetermine MSI file location
 
+	__Example_Log(@ScriptLineNumber, "END - close window to exit" & @CRLF)
 	#Region ; GUI Loop
 	; Main Loop
 	While 1
