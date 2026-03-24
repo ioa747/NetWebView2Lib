@@ -99,7 +99,7 @@ Func __UserEventHandler_Web1__Bridge__OnMessageReceived($oWebView, $hWindow, $sM
 		$iMsgCnt += 1
 		_UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
 		_UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
-		If $sMsg = "PING" Then
+		If $sMsg = "PING" Then ; intentional flickering to show that Web1 work differently than Web2
 			GUISetState(@SW_HIDE, $hWindow)
 			Sleep(200)
 			GUISetState(@SW_SHOW, $hWindow)
