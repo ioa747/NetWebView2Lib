@@ -41,6 +41,11 @@ namespace NetWebView2Lib
         private bool _httpStatusCodeDocumentOnly = true;
         private bool _isDownloadHandledOverride = false;
         private bool _isZoomControlEnabled = true;
+        private bool _areDevToolsEnabled = true;
+        private bool _areBrowserAcceleratorKeysEnabled = true;
+        private bool _isStatusBarEnabled = true;
+        private bool _isBuiltInErrorPageEnabled = true;
+        private bool _areDefaultScriptDialogsEnabled = true;
         private string _failureReportFolderPath = "";
 
         private int _offsetX = 0;
@@ -282,11 +287,21 @@ namespace NetWebView2Lib
         /// </summary>
         private void ConfigureSettings()
         {
+            if (_webView?.CoreWebView2 == null) return;
             var settings = _webView.CoreWebView2.Settings;
             settings.IsWebMessageEnabled = true;            // Enable Web Messages
-            settings.AreDevToolsEnabled = true;             // Enable DevTools by default
-            settings.AreDefaultContextMenusEnabled = true;  // Keep TRUE to ensure the event fires
-            settings.IsZoomControlEnabled = _isZoomControlEnabled; // Apply custom zoom setting
+            
+            // PERMANENT ENGINE SETTINGS (Managed via Events.cs interception)
+            settings.AreDevToolsEnabled = true;
+            settings.AreDefaultContextMenusEnabled = true;
+            settings.AreBrowserAcceleratorKeysEnabled = true;
+
+            // VOLATILE USER PREFERENCES (Still safe to toggle at engine level)
+            settings.IsZoomControlEnabled = _isZoomControlEnabled;
+            settings.IsStatusBarEnabled = _isStatusBarEnabled;
+            settings.IsBuiltInErrorPageEnabled = _isBuiltInErrorPageEnabled;
+            settings.AreDefaultScriptDialogsEnabled = _areDefaultScriptDialogsEnabled;
+            
             _webView.DefaultBackgroundColor = Color.Transparent;
         }
         #endregion
