@@ -141,3 +141,9 @@ Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView, $hWindow, $sM
 	EndIf
 EndFunc   ;==>__UserEventHandler_Web2__Bridge__OnMessageReceived
 #EndRegion ; USER DEFINED EVENTS HANDLER FUNCTION
+
+Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
+	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
+	Return SetError($iError, $iExtended, '')
+EndFunc   ;==>__Example_Log
+
