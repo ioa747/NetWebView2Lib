@@ -151,3 +151,8 @@ Volatile Func __UserEventHandler__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArg
 
 	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scope
 EndFunc   ;==>__UserEventHandler__OnAcceleratorKeyPressed
+
+Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
+	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
+	Return SetError($iError, $iExtended, '')
+EndFunc   ;==>__Example_Log
