@@ -32,6 +32,7 @@ Func _Main()
 	ConsoleWrite("! BrowserWindowHandle = " & $oWeb_2.BrowserWindowHandle & @CRLF)
 	_NetWebView2_NavigateToString($oWeb_2, _GetDemoHTML("Browser 2 Content"))
 
+	__Example_Log(@ScriptLineNumber, "END - close window to exit" & @CRLF)
 	; --- Main Loop ---
 	While 1
 		Switch GUIGetMsg()
@@ -99,7 +100,7 @@ Func __UserEventHandler_Web1__Bridge__OnMessageReceived($oWebView, $hWindow, $sM
 		$iMsgCnt += 1
 		_UpdateWebUI($oWebView, "mainTitle", "Counter: " & $iMsgCnt)
 		_UpdateWebUI($oWebView, "statusMsg", "Last Message: " & $sMsg)
-		If $sMsg = "PING" Then
+		If $sMsg = "PING" Then ; intentional flickering to show that Web1 work differently than Web2
 			GUISetState(@SW_HIDE, $hWindow)
 			Sleep(200)
 			GUISetState(@SW_SHOW, $hWindow)
@@ -140,3 +141,9 @@ Func __UserEventHandler_Web2__Bridge__OnMessageReceived($oWebView, $hWindow, $sM
 	EndIf
 EndFunc   ;==>__UserEventHandler_Web2__Bridge__OnMessageReceived
 #EndRegion ; USER DEFINED EVENTS HANDLER FUNCTION
+
+Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
+	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
+	Return SetError($iError, $iExtended, '')
+EndFunc   ;==>__Example_Log
+
