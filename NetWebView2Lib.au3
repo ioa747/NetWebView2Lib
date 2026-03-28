@@ -786,12 +786,14 @@ Func _NetWebView2_ExportPageData($oWebV2M, $iFormat, $sFilePath = '')
 	#forceref $oMyError
 	#TODO $sParameters - search for  => "name": "captureSnapshot" ; https://github.com/ChromeDevTools/devtools-protocol/blob/master/json/browser_protocol.json
 
-	Local $s_Result = $oWebV2M.ExportPageData($iFormat, $sFilePath)
-	If StringLeft($s_Result, 6) = 'ERROR:' Then SetError(1)
-	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " RESULT:" & ((@error) ? ($s_Result) : ("SUCCESS")), 1, $ERR, $EXT)
-	Return SetError(@error, @extended, $s_Result)
+	Local $RET = $oWebV2M.ExportPageData($iFormat, $sFilePath)
+	If StringLeft($RET, 6) = "ERROR:" Then
+		$MSG = "RESULT:" & $RET
+		$ERR = 1
+	Else
+		$MSG = "RESULT: SUCCESS"
+	EndIf
 
-	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_ExportPageData
@@ -815,11 +817,9 @@ Func _NetWebView2_GetSource($oWebV2M)
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	Local $sSource = $oWebV2M.GetSource()
-	If @error Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1, $ERR, $EXT)
-	Return SetError(@error, @extended, $sSource)
+	Local $RET = $oWebV2M.GetSource()
+	$ERR = @error
 
-	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_GetSource
@@ -850,44 +850,47 @@ Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FilePath, Const $s_Parameter
 	Local Const $s_Prefix = "[_NetWebView2_NavigateToPDF]: URL_or_File:" & $s_URL_or_FilePath
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 
-	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then Return SetError(1, 0, "ERROR: Invalid Object")
-
-	If $sExpectedTitle = Default Then
-		Local $aFilePath = StringSplit($s_URL_or_FilePath, "\")
-		If @error Then
-			$sExpectedTitle = ''
-		Else
-			$sExpectedTitle = $aFilePath[$aFilePath[0]]
-			$sExpectedTitle = StringReplace($sExpectedTitle, '(', '\(')
-			$sExpectedTitle = StringReplace($sExpectedTitle, ')', '\)')
-			$sExpectedTitle = StringReplace($sExpectedTitle, '.', '\.')
+	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> 'NetWebView2Lib.WebView2Manager' Then
+		$ERR = 1
+		$MSG = "ERROR: Invalid Object"
+	Else
+		If $sExpectedTitle = Default Then
+			Local $aFilePath = StringSplit($s_URL_or_FilePath, "\")
+			If @error Then
+				$sExpectedTitle = ''
+			Else
+				$sExpectedTitle = $aFilePath[$aFilePath[0]]
+				$sExpectedTitle = StringReplace($sExpectedTitle, '(', '\(')
+				$sExpectedTitle = StringReplace($sExpectedTitle, ')', '\)')
+				$sExpectedTitle = StringReplace($sExpectedTitle, '.', '\.')
+			EndIf
 		EndIf
+
+		If FileExists($s_URL_or_FilePath) Then ; check if it is local path - yes=change path - otherwise treat as url
+			$s_URL_or_FilePath = StringReplace($s_URL_or_FilePath, '\', '/')
+			$s_URL_or_FilePath = StringReplace($s_URL_or_FilePath, ' ', '%20')
+			$s_URL_or_FilePath = "file:///" & $s_URL_or_FilePath
+		EndIf
+
+		If $s_Parameters Then
+			$s_URL_or_FilePath &= $s_Parameters
+			#TIP: FitToPage: https://stackoverflow.com/questions/78820187/how-to-change-webview2-fit-to-page-button-on-pdf-toolbar-default-to-fit-to-width#comment138971950_78821231
+			#TIP: Open desired PAGE: https://stackoverflow.com/questions/68500164/cycle-pdf-pages-in-wpf-webview2#comment135402565_68566860
+		EndIf
+
+		Local $idPic = 0
+		$oWebV2M.LockWebView()
+		If $bFreeze Then __NetWebView2_freezer($oWebV2M, $idPic)
+		_NetWebView2_Navigate($oWebV2M, $s_URL_or_FilePath, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
+		$ERR = @error
+		$EXT = @extended
+		If Not @error Then __NetWebView2_Sleep($iSleepAfter_ms)
+
+		If $bFreeze And $idPic Then __NetWebView2_freezer($oWebV2M, $idPic)
+		$oWebV2M.UnLockWebView()
+		$RET = True
 	EndIf
 
-	If FileExists($s_URL_or_FilePath) Then
-		$s_URL_or_FilePath = StringReplace($s_URL_or_FilePath, '\', '/')
-		$s_URL_or_FilePath = StringReplace($s_URL_or_FilePath, ' ', '%20')
-		$s_URL_or_FilePath = "file:///" & $s_URL_or_FilePath
-	EndIf
-
-	If $s_Parameters Then
-		$s_URL_or_FilePath &= $s_Parameters
-		#TIP: FitToPage: https://stackoverflow.com/questions/78820187/how-to-change-webview2-fit-to-page-button-on-pdf-toolbar-default-to-fit-to-width#comment138971950_78821231
-		#TIP: Open desired PAGE: https://stackoverflow.com/questions/68500164/cycle-pdf-pages-in-wpf-webview2#comment135402565_68566860
-	EndIf
-
-	Local $idPic = 0
-	$oWebV2M.LockWebView()
-	If $bFreeze Then __NetWebView2_freezer($oWebV2M, $idPic)
-	_NetWebView2_Navigate($oWebV2M, $s_URL_or_FilePath, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
-	If Not @error Then __NetWebView2_Sleep($iSleepAfter_ms)
-	If @error Then Return SetError(@error, @extended, '')
-
-	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1, $ERR, $EXT)
-	If $bFreeze And $idPic Then __NetWebView2_freezer($oWebV2M, $idPic)
-	$oWebV2M.UnLockWebView()
-
-	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_NavigateToPDF
@@ -913,19 +916,23 @@ Func _NetWebView2_PrintToPdfStream($oWebV2M, $b_TBinary_FBase64)
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
 
-	Local $s_Result = $oWebV2M.PrintToPdfStream()
-	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1, $ERR, $EXT)
-	If StringInStr($s_Result, 'ERROR:') Then SetError(1)
-
-	If $b_TBinary_FBase64 Then
-		; decode Base64 encoded data do Binary
-		$s_Result = _NetWebView2_DecodeB64ToBinary($oWebV2M, $s_Result)
+	Local $RET = $oWebV2M.PrintToPdfStream()
+	If StringInStr($RET, 'ERROR:') Then
+		$ERR = 1
+		$MSG = " RESULT: " & $RET
+	Else
+		If $b_TBinary_FBase64 Then
+			; decode Base64 encoded data do Binary
+			$s_Result = _NetWebView2_DecodeB64ToBinary($oWebV2M, $s_Result)
+			$ERR = 2
+		EndIf
+	EndIf
+	If $ERR Then
+		$RET = ""
+	Else
+		$MSG = " RESULT: SUCCESS"
 	EndIf
 
-	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " RESULT:" & ((@error) ? ($s_Result) : ("SUCCESS")), 1, $ERR, $EXT)
-	Return SetError(@error, @extended, $s_Result)
-
-	#TODO ENDPOINT REFACTORING
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_PrintToPdfStream
