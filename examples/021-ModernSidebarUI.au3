@@ -1,4 +1,4 @@
-; https:
+; https://github.com/ioa747/NetWebView2Lib/blob/main/examples/021-ModernSidebarUI.au3
 ;----------------------------------------------------------------------------------------
 ; Title...........: 021-ModernSidebarUI.au3
 ; Description.....: Injects a high-performance, Chromium-based Sidebar into a Win32 GUI using WebView2.
