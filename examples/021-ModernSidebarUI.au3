@@ -32,7 +32,7 @@ Func _Example()
 	Local $oWebV2M = _NetWebView2_CreateManager()
 	Local $oBridge = _NetWebView2_GetBridge($oWebV2M, "JS_Events_")
 
-	; Initialize on the left side (0, 0, 140, 450)
+	; Initialize on the left side (0, 0, 140, 410)
 	_NetWebView2_Initialize($oWebV2M, $hGui, @ScriptDir & "\UserData", 0, 0, 140, 410, True)
 
 	; Constructing the HTML with all the buttons
