@@ -81,7 +81,8 @@ EndFunc   ;==>NetWebView2_Events_OnFrameCreated
 ```
 
 
-> **💡 Pro Tip:** This practice is especially important for the `$oArgs` object in events like `OnWebMessageReceived` or `OnNavigationCompleted`. Even though AutoIt will eventually clear local variables when the function exits, setting them to `0` manually is an "active" safeguard against memory fragmentation in high-frequency events.
+>[!TIP] 
+This practice is especially important for the `$oArgs` object in events like `OnWebMessageReceived` or `OnNavigationCompleted`. Even though AutoIt will eventually clear local variables when the function exits, setting them to `0` manually is an "active" safeguard against memory fragmentation in high-frequency events.
 
 
 ---
