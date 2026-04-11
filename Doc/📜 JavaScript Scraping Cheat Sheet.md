@@ -61,3 +61,13 @@ rows.forEach(row => {
 window.chrome.webview.postMessage(results.join('\n'));
 ```
 
+```
+// Wait for a specific element to appear before scraping
+new MutationObserver((mutations, observer) => {
+    let el = document.querySelector('.target-data');
+    if (el) {
+        window.chrome.webview.postMessage("DATA_READY:" + el.innerText);
+        observer.disconnect();
+    }
+}).observe(document.body, { childList: true, subtree: true });
+```
