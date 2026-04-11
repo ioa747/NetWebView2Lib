@@ -158,7 +158,7 @@ Func _NetWebView2_CreateManager($sUserAgent = "", $s_fnEventPrefix = "", $s_AddB
 		; Verbose property was added to allow real-time diagnostic logging to the SciTE console (or any stdout listener).
 		; The diagnostic logs use a distinctive prefix and include the instance handle for easier filtering in multi-window applications.
 		$oWebV2M.Verbose = $bVerbose
-;~ 	If $_g_bNetWebView2_DebugDev Then __NetWebView2_ObjName_FlagsValue($oWebV2M) ; FOR DEV TESTING ONLY
+;~ 		If $_g_bNetWebView2_DebugDev Then __NetWebView2_ObjName_FlagsValue($oWebV2M) ; FOR DEV TESTING ONLY
 
 		If $sUserAgent Then $oWebV2M.SetUserAgent($sUserAgent)
 		If $s_AddBrowserArgs Then $oWebV2M.AdditionalBrowserArguments = $s_AddBrowserArgs
@@ -206,7 +206,6 @@ Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left =
 
 	If Not IsHWnd($hUserGUI) Then
 		$ERR = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR
-		$EXT = 0
 		$RET = False
 		$MSG = " !!! ERROR: $hUserGUI is not a valid HWND pointer" & " #SLN=" & @ScriptLineNumber
 	Else
@@ -215,7 +214,9 @@ Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left =
 		; This prevents the COM layer from changing the AutoIt variable type from Ptr to Int64.
 		$RET = $oWebV2M.Initialize(($hUserGUI), $s_ProfileDirectory, $i_Left, $i_Top, $i_Width, $i_Height)
 		If @error Then
-			Return SetError(@error, @extended, $RET)
+			$ERR = @error
+			$EXT = @extended
+			$MSG = " !!! ERROR: Initialization COM issue" & " #SLN=" & @ScriptLineNumber
 		Else
 			If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: FailureReportFolderPath = " & $oWebV2M.FailureReportFolderPath & @CRLF)
 
@@ -225,38 +226,52 @@ Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left =
 			Local $iMessage
 			Do
 				__NetWebView2_Sleep(10)
-				#TODO ENDPOINT
-				If @error Then Return SetError(@error, @extended, "")
-
-				$iMessage = __NetWebView2_LastMessage_KEEPER($oWebV2M)
-				If $iMessage = $NETWEBVIEW2_MESSAGE__INIT_FAILED _
-						Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY _
-						Or $iMessage = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED _
-						Or $iMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
-					#TODO ENDPOINT
-					Return SetError($iMessage, @extended, "")
+				If @error Then
+					$ERR = @error
+					$EXT = @extended
+					$RET = ""
+					$MSG = " !!! ERROR: Sleep aborted" & " #SLN=" & @ScriptLineNumber
+					ExitLoop
+				Else
+					$iMessage = __NetWebView2_LastMessage_KEEPER($oWebV2M) ; get last message
+					If $iMessage = $NETWEBVIEW2_MESSAGE__INIT_FAILED _
+							Or $iMessage = $NETWEBVIEW2_MESSAGE__PROFILE_NOT_READY _
+							Or $iMessage = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED _
+							Or $iMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
+						$ERR = 1
+						$RET = $iMessage
+						$MSG = " !!! ERROR: Last Message= " & $iMessage & " #SLN=" & @ScriptLineNumber
+						ExitLoop
+					Else
+						If TimerDiff($hTimer) >= $iTimeOut_ms Then
+							$ERR = 2
+							$RET = ""
+							$MSG = " !!! ERROR: TimeOut happend" & " #SLN=" & @ScriptLineNumber
+							ExitLoop
+						EndIf
+					EndIf
 				EndIf
-				#TODO ENDPOINT
-				If TimerDiff($hTimer) >= $iTimeOut_ms Then Return SetError(1, 0, "")
 			Until $oWebV2M.IsReady Or $iMessage = $NETWEBVIEW2_MESSAGE__INIT_READY
 ;~ 	If Not __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms) Then Return SetError(2, 0, "")
 			#EndRegion ; After Initialization wait for the engine to be ready before navigating
 
-			; WebView2 Configuration
-			$oWebV2M.SetAutoResize($b_SetAutoResize) ; Using SetAutoResize(True) to skip WM_SIZE
-			$oWebV2M.AreDevToolsEnabled = $b_DevToolsEnabled ; Allow F12
-			$oWebV2M.ZoomFactor = $i_ZoomFactor
-			$oWebV2M.BackColor = $s_BackColor
+			If Not $ERR Then
+				; WebView2 Configuration
+				$oWebV2M.SetAutoResize($b_SetAutoResize) ; Using SetAutoResize(True) to skip WM_SIZE
+				$oWebV2M.AreDevToolsEnabled = $b_DevToolsEnabled ; Allow F12
+				$oWebV2M.ZoomFactor = $i_ZoomFactor
+				$oWebV2M.BackColor = $s_BackColor
 
-			If $b_InitConsole Then
-				$oWebV2M.AddInitializationScript(__Get_Core_Bridge_JS())
+				If $b_InitConsole Then
+					$oWebV2M.AddInitializationScript(__Get_Core_Bridge_JS())
+				EndIf
+
+				$EXT = $oWebV2M.GetBrowserProcessId()
 			EndIf
-
-			$EXT = $oWebV2M.GetBrowserProcessId()
 		EndIf
 	EndIf
+
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
-	If $ERR Then __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " !!! Manager Creation ERROR", 1)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_Initialize
 
@@ -437,12 +452,17 @@ Func _NetWebView2_ExecuteScript($oWebV2M, $sJavaScript, $iMode = $NETWEBVIEW2_EX
 	Switch $iMode
 		Case 0
 			$RET = $oWebV2M.ExecuteScript($sJavaScript)
+			$ERR = @error
+			If @error Then $MSG = " ! Manager.ExecuteScript($sJavaScript) ERROR " & " #SLN=" & @ScriptLineNumber
 		Case 1
 			$RET = $oWebV2M.ExecuteScriptOnPage($sJavaScript)
+			$ERR = @error
+			If @error Then $MSG = " ! Manager.ExecuteScriptOnPage($sJavaScript) ERROR " & " #SLN=" & @ScriptLineNumber
 		Case 2
 			$RET = $oWebV2M.ExecuteScriptWithResult($sJavaScript)
+			$ERR = @error
+			If @error Then $MSG = " ! Manager.ExecuteScriptWithResult($sJavaScript) ERROR " & " #SLN=" & @ScriptLineNumber
 	EndSwitch
-	$ERR = @error
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_ExecuteScript
@@ -519,6 +539,7 @@ EndFunc   ;==>_NetWebView2_GetVersion
 ;                  $iTimeOut_ms         - [optional] Maximum time to wait in milliseconds. 0 for infinite. Default is 5000ms
 ; Return values .: Success      - True
 ;                  Failure      - False and sets @error:
+#TODO @error numbers changed revise the header
 ;                                     3 - Navigation Error ($NETWEBVIEW2_MESSAGE__NAV_ERROR)
 ;                                     4 - Timeout reached
 ; Author ........: mLipok, ioa747
@@ -599,7 +620,7 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 				EndIf
 			EndIf
 		EndIf
-		If $_g_bNetWebView2_DebugDev Then ConsoleWrite("> IFNC: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & $iLastMessage & " >> " & __NetWebView2_LastMessage_Navigation($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
+		If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & $iLastMessage & " >> " & __NetWebView2_LastMessage_Navigation($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
 	WEnd
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
@@ -1519,7 +1540,7 @@ Func __NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage = Default, $iError
 	Local Static $mLastMessegReceived[]
 	Local $sKey = "" & $oWebV2M.BrowserWindowHandle
 
-	If $iMessage = Default Then
+	If $iMessage = Default Then ; function acts as GET
 		$RET = $mLastMessegReceived[$sKey]
 	Else
 		If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: __NetWebView2_LastMessage_onReceived ==> " & $iMessage & " Key=" & $sKey & " #SLN=" & @ScriptLineNumber & @CRLF)
@@ -1543,8 +1564,8 @@ Func __NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage = Default, $iError
 
 	Local Static $mLastNavigationMessage[]
 	Local $sKey = "" & $oWebV2M.BrowserWindowHandle
-	If $iMessage = Default Then
-		$RET = $mLastNavigationMessage[$sKey])
+	If $iMessage = Default Then ; function acts as GET
+		$RET = $mLastNavigationMessage[$sKey]
 	Else
 		If $iMessage >= $NETWEBVIEW2_MESSAGE__NAV_STARTING And $iMessage <= $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then
 			If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: __NetWebView2_LastMessage_Navigation ==> " & $iMessage & " Key=" & $sKey & " #SLN=" & @ScriptLineNumber & @CRLF)
@@ -1911,7 +1932,7 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 
 	Local Static $sCommand_static = ""
 	If $_g_bNetWebView2_DebugDev And $sCommand_static <> $sCommand Then ; show the log - for DEV only
-;~ 		ConsoleWrite("TEST IFNC: " & $s_Prefix & " #SLN=" & @ScriptLineNumber & " " & $sCommand & " Data=" & (StringLen($sData) > 120 ? StringLeft($sData, 120) & "..." : $sData) & @CRLF) ; FOR DEV TESTING ONLY
+;~ 		ConsoleWrite("! IFNC: " & $s_Prefix & " #SLN=" & @ScriptLineNumber & " " & $sCommand & " Data=" & (StringLen($sData) > 120 ? StringLeft($sData, 120) & "..." : $sData) & @CRLF) ; FOR DEV TESTING ONLY
 		$sCommand_static = $sCommand
 	EndIf
 	#EndRegion ; Message parsing
@@ -1962,9 +1983,9 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 			EndIf
 
 			; 🚧 *******************************************
-			If $_g_bNetWebView2_DebugInfo Then
-				ConsoleWrite("> TEST NAV_ERR: " & $sMsg & @CRLF)
-				ConsoleWrite("> TEST NAV_ERR: __NetWebView2_LastMessage_KEEPER($oWebV2M)=" & __NetWebView2_LastMessage_KEEPER($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
+			If $_g_bNetWebView2_DebugDev Then
+				ConsoleWrite("! IFNC: NAV_ERR: " & $sMsg & @CRLF)
+				ConsoleWrite("! IFNC: NAV_ERR: __NetWebView2_LastMessage_KEEPER($oWebV2M)=" & __NetWebView2_LastMessage_KEEPER($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
 			EndIf
 
 		Case "NAV_COMPLETED"
@@ -2274,7 +2295,7 @@ Volatile Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
 	Local Const $s_Prefix = "[EVENT: OnTitleChanged]: GUI:" & $hGUI & " TITLE: " & $sTITLE
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
-	If $_g_bNetWebView2_DebugDev Then ConsoleWrite("> IFNC: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & __NetWebView2_LastMessage_Navigation($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
+	If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & __NetWebView2_LastMessage_Navigation($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
 EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
