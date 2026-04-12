@@ -35,7 +35,10 @@
 ;                 * Jonathan Bennett (@Jon) and the AutoIt Team
 ;                 * @Danp2 https://www.autoitscript.com/forum/profile/29736-danp2 - as his https://github.com/Danp2/au3WebDriver UDF largely inspires us in creating this UDF
 ; AutoIt Version : v3.3.18.0
-; Requirement ...: DLL ...... ????
+; Requirement ...:
+;                 * DLL/TLB libraries files that are in the bin folder and were passed during the installation
+;                 * .NET Framework 4.8 or higher
+;                 * Microsoft Edge WebView2 Runtime version 128.0.2739.15 or higher
 ; ==============================================================================
 #EndRegion UDF Header
 
