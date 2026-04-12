@@ -67,7 +67,6 @@ Func WebEvents_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	ConsoleWrite("- _WinAPI_GetClientWidth($hWnd)=" & _WinAPI_GetClientWidth($hWnd) & @CRLF) ; working
 	; End part of the $hGUI handle explanation }
 
-
 	ConsoleWrite(">>> [WebEvents]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $iSplitPos = StringInStr($sMsg, "|")
 	Local $sCommand = $iSplitPos ? StringStripWS(StringLeft($sMsg, $iSplitPos - 1), 3) : $sMsg
@@ -134,7 +133,7 @@ Func WebEvents_OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sRe
 	Local $sLog = StringFormat("! [HTTP %d] | %s | URL: %s", $iStatusCode, $sReasonPhrase, $sRequestUrl)
 	ConsoleWrite($sLog & @CRLF)
 
-	Local $oGuard = ObjEvent("AutoIt.Error", "__NetWebView2_fake_COMErrFunc")
+	Local $oGuard = ObjEvent("AutoIt.Error", __NetWebView2_fake_COMErrFunc)
 	#forceref $oGuard
 
 	; Management example:
@@ -157,3 +156,7 @@ EndFunc   ;==>WebEvents_OnWebResourceResponseReceived
 
 #EndRegion ; === EVENT HANDLERS ===
 
+Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
+	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
+	Return SetError($iError, $iExtended, '')
+EndFunc   ;==>__Example_Log
