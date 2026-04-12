@@ -631,14 +631,18 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 				ExitLoop
 			ElseIf $iLastMessage >= $iWaitMessage Then ; checking events
 				; RULE 6: checking document title
-				Local $sCurrentTitle = $oWebV2M.GetDocumentTitle()
-				Local $bTitleCheck = ($sExpectedTitle And StringRegExp($sCurrentTitle, $sExpectedTitle, $STR_REGEXPMATCH) = 1)
-				Local $s_DEV_Info = "! IFNC: DEV: TEST LOAD WAIT: Prefix:: " & $s_Prefix & " TitleCheck=" & $bTitleCheck & " LastMessage=" & $iLastMessage
-				If $sExpectedTitle And $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED And $bTitleCheck Then
-					If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
-					$MSG = " LastMessage=" & $iLastMessage & " : ExpectedTitle=" & $sExpectedTitle & " #SLN=" & @ScriptLineNumber
-					$RET = True
-					ExitLoop
+				If $sExpectedTitle Then
+					If $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then
+						Local $sCurrentTitle = $oWebV2M.GetDocumentTitle()
+						Local $bTitleCheck = (StringRegExp($sCurrentTitle, $sExpectedTitle, $STR_REGEXPMATCH) = 1)
+						Local $s_DEV_Info = "! IFNC: DEV: TEST LOAD WAIT: Prefix:: " & $s_Prefix & " TitleCheck=" & $bTitleCheck & " LastMessage=" & $iLastMessage & " CurrentTitle=" & $sCurrentTitle
+						If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
+						If $bTitleCheck Then
+							$MSG = " TitleCheck=" & $bTitleCheck & " #SLN=" & @ScriptLineNumber
+							$RET = True
+							ExitLoop
+						EndIf
+					EndIf
 				Else
 					If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
 					$MSG = " LastMessage=" & $iLastMessage & " #SLN=" & @ScriptLineNumber
@@ -2007,7 +2011,8 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 
 		Case "TITLE_CHANGED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand & " >> " & $oWebV2M.GetDocumentTitle(), 1)
-			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
+			#REMARK => __NetWebView2_Events__OnTitleChanged() should set __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
+;~ 			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 
 		Case "EXTENSION"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand, 1)
