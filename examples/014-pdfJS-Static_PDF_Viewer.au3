@@ -10,7 +10,7 @@
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; ⚠️ to make this work, download pdfJS library from https://mozilla.github.io/pdf.js/
 ; for example:
-; https://github.com/mozilla/pdf.js/releases/download/v5.4.624/pdfjs-5.4.624-dist.zip
+; https://github.com/mozilla/pdf.js/releases/download/v5.6.205/pdfjs-5.6.205-dist.zip
 ; and unzip to:   @ScriptDir & "\JS_Lib\pdfjs\"
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -151,8 +151,8 @@ Func _Example()
 		EndSwitch
 	WEnd
 
-	GUIDelete($hGUI)
 	_NetWebView2_CleanUp($oWeb, $oBridge)
+	GUIDelete($hGUI)
 EndFunc   ;==>_Example
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
