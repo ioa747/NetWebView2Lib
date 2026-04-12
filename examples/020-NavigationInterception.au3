@@ -52,8 +52,8 @@ Func _MainGUI()
 		EndSwitch
 	WEnd
 
-	GUIDelete($hGUI)
 	_NetWebView2_CleanUp($oWebV2M, $hGUI)
+	GUIDelete($hGUI)
 	Exit
 EndFunc   ;==>_MainGUI
 
