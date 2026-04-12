@@ -812,6 +812,8 @@ Func _NetWebView2_BrowserSetupWrapper($hOuterParentWindow, ByRef $oOuterWeb, $sE
 	EndIf
 	$ERR = @error
 	$EXT = @extended
+	$MSG = " InnerWebViewWindow=" & $hInnerWebViewWindow & " BrowserWindowHandle=" & $oOuterWeb.BrowserWindowHandle
+
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_BrowserSetupWrapper
