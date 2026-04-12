@@ -979,7 +979,7 @@ Func _NetWebView2_PrintToPdfStream($oWebV2M, $b_TBinary_FBase64)
 		If $b_TBinary_FBase64 Then
 			; decode Base64 encoded data do Binary
 			$RET = _NetWebView2_DecodeB64ToBinary($oWebV2M, $RET)
-			$ERR = 2
+			If @error Then $ERR = 2
 		EndIf
 	EndIf
 	If $ERR Then
