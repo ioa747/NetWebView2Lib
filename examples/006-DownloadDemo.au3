@@ -63,14 +63,15 @@ Func _Example()
 	While 1
 		Switch GUIGetMsg()
 			Case $GUI_EVENT_CLOSE
+				ConsoleWrite('$GUI_EVENT_CLOSE fired' & @CRLF)
 				ExitLoop
 		EndSwitch
 	WEnd
 
+	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 	GUIDelete($hGUI)
 	#EndRegion ; GUI Loop
 
-	_NetWebView2_CleanUp($oWebV2M, $oJSBridge)
 EndFunc   ;==>_Example
 
 ; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
