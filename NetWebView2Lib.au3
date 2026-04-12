@@ -19,8 +19,31 @@
 #include <WinAPISysWin.au3>
 #include <WindowsConstants.au3>
 
+#Region UDF Header
+; ==============================================================================
+; UDF ...........: NetWebView2Lib.au3
+; Description ...: A powerful bridge that allows AutoIt to use the modern Microsoft Edge WebView2 (Chromium) engine via a C# COM wrapper.
+; Author(s) .....: https://www.autoitscript.com/forum/profile/116386-ioa747
+; Author(s) .....: https://www.autoitscript.com/forum/profile/10673-mlipok
+; Copyright .....:
+;                 * Copyright (c) 2026 ioa747, mLipok
+;                 * This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
+; URL Links .....:
+;                 * https://github.com/ioa747/NetWebView2Lib
+;                 * https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-component-com-interop
+; Thanks to .....:
+;                 * Jonathan Bennett (@Jon) and the AutoIt Team
+;                 * @Danp2 https://www.autoitscript.com/forum/profile/29736-danp2 - as his https://github.com/Danp2/au3WebDriver UDF largely inspires us in creating this UDF
+; AutoIt Version : v3.3.18.0
+; Requirement ...:
+;                 * DLL/TLB libraries files that are in the bin folder and were passed during the installation
+;                 * .NET Framework 4.8 or higher
+;                 * Microsoft Edge WebView2 Runtime version 128.0.2739.15 or higher
+; ==============================================================================
+#EndRegion UDF Header
+
 #REMARK This UDF is marked as WorkInProgress - you may use them, but do not blame me if I do ScriptBreakingChange and as so far do not ask me for description or help till I remove this remark ; mLipok
-#TODO UDF HEADER - anybody - feel free to make it done - just do not hesitate to full fill this part
+
 #TODO UDF INDEX - anybody - feel free to make it done - just do not hesitate to full fill this part
 #TODO FUNCTION HEADERS SUPLEMENTATION & CHECK - anybody - feel free to make it done - just do not hesitate to full fill this part
 #INFO JScript related to WebView2 that we can learn from ; https://github.com/MicrosoftEdge/WebView2Browser/tree/main/wvbrowser_ui
