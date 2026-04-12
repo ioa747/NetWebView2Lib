@@ -18,18 +18,14 @@ Func _Main()
 	Local $hMainGUI = GUICreate("Multi-WebView2 v2.0.0 Standard", 1000, 600, -1, -1, BitOR($WS_OVERLAPPEDWINDOW, $WS_CLIPCHILDREN))
 	GUISetState(@SW_SHOW, $hMainGUI)
 
-	ConsoleWrite("! --- BROWSER 1 ---" & @CRLF)
+	ConsoleWrite("--- BROWSER 1 ---" & @CRLF)
 	Local $oWeb_1, $oBridge_1, $h_WebWindow_1, $sEventPrfix_1 = "__UserEventHandler_Web1_", $sProfile_1 = @TempDir & "\User_A", $s_AddBrowserArgs_1 = ""
 	_NetWebView2_BrowserSetupWrapper($hMainGUI, $oWeb_1, $sEventPrfix_1, $sProfile_1, $oBridge_1, $h_WebWindow_1, 10, 10, 480, 500, $s_AddBrowserArgs_1)
-	ConsoleWrite("! $h_WebWindow_1 = " & $h_WebWindow_1 & @CRLF)
-	ConsoleWrite("! BrowserWindowHandle = " & $oWeb_1.BrowserWindowHandle & @CRLF)
 	_NetWebView2_NavigateToString($oWeb_1, _GetDemoHTML("Browser 1 Content"))
 
-	ConsoleWrite("! --- BROWSER 2 ---" & @CRLF)
+	ConsoleWrite("--- BROWSER 2 ---" & @CRLF)
 	Local $oWeb_2, $oBridge_2, $h_WebWindow_2, $sEventPrfix_2 = "__UserEventHandler_Web2_", $sProfile_2 = @TempDir & "\User_B", $s_AddBrowserArgs_2 = ""
 	_NetWebView2_BrowserSetupWrapper($hMainGUI, $oWeb_2, $sEventPrfix_2, $sProfile_2, $oBridge_2, $h_WebWindow_2, 510, 10, 480, 500, $s_AddBrowserArgs_2)
-	ConsoleWrite("! $h_WebWindow_2 = " & $h_WebWindow_2 & @CRLF)
-	ConsoleWrite("! BrowserWindowHandle = " & $oWeb_2.BrowserWindowHandle & @CRLF)
 	_NetWebView2_NavigateToString($oWeb_2, _GetDemoHTML("Browser 2 Content"))
 
 	__Example_Log(@ScriptLineNumber, "END - close window to exit" & @CRLF)
@@ -43,7 +39,7 @@ Func _Main()
 
 	; CleanUp
 	_NetWebView2_CleanUp($oWeb_1, $oBridge_1)
-;~ 	_NetWebView2_CleanUp($oWeb_2, $oBridge_2)
+	_NetWebView2_CleanUp($oWeb_2, $oBridge_2)
 EndFunc   ;==>_Main
 
 ; ==============================================================================
@@ -146,4 +142,3 @@ Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended =
 	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)
 	Return SetError($iError, $iExtended, '')
 EndFunc   ;==>__Example_Log
-
