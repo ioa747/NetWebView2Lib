@@ -593,7 +593,7 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 			ExitLoop
 		EndIf
 
-		Local $bWebIsReady = $oWebV2M.IsReady ; RULE 1: If we reached the target status or higher
+		Local $bWebIsReady = $oWebV2M.IsReady ; RULE 1: Check if browser IsReady
 		If @error Then ; browser/COM error ?
 			$ERR = 1
 			$RET = False
@@ -607,41 +607,37 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 			ContinueLoop ; For navigation events, ensure the browser reports IsReady
 		EndIf
 
-		; RULE 4: checking browser ReadyState
+		; RULE 4: checking browser DOM ReadyState
 		Local $iLastMessage = -1
 		Local $sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
-		If @error Then
-			$ERR = 7
+		If @error Then ; RULE 4: checking ready state - DOM should not fire event
+			$ERR = 3
 			$RET = False
 			$MSG = " document.readyState execution Error" & " #SLN=" & @ScriptLineNumber
 			ExitLoop
-		ElseIf StringLeft($sReadyState, 6) == "ERROR:" Then
-			$ERR = 8
+		ElseIf StringLeft($sReadyState, 6) == "ERROR:" Then ; RULE 4: checking ready state JavaScript result on case of error
+			$ERR = 4
 			$RET = False
 			$MSG = " document.readyState execution Error" & " #SLN=" & @ScriptLineNumber
 			ExitLoop
-		ElseIf $sReadyState = "complete" Then
-			; RULE 5: checking events messages
+		ElseIf $sReadyState = "complete" Then ; RULE 4: checking browser DOM ReadyState is "complete"
 			$iLastMessage = __NetWebView2_LastMessage_Navigation($oWebV2M)
 			If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: ReadyState=" & $sReadyState & " LastMessage=" & $iLastMessage & " WaitMessage=" & $iWaitMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
-			If $iLastMessage = $NETWEBVIEW2_MESSAGE__NAV_ERROR Or $iLastMessage = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED Or $iLastMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then
+			If $iLastMessage = $NETWEBVIEW2_MESSAGE__NAV_ERROR Or $iLastMessage = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED Or $iLastMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then ; RULE 5: messages of specific Error occurs
 				If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: " & $iLastMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
-				$ERR = 3
+				$ERR = 5
 				$RET = False
 				ExitLoop
-			ElseIf $iLastMessage >= $iWaitMessage Then ; checking events
-				; RULE 6: checking document title
-				If $sExpectedTitle Then
-					If $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then
-						Local $sCurrentTitle = $oWebV2M.GetDocumentTitle()
-						Local $bTitleCheck = (StringRegExp($sCurrentTitle, $sExpectedTitle, $STR_REGEXPMATCH) = 1)
-						Local $s_DEV_Info = "! IFNC: DEV: TEST LOAD WAIT: Prefix:: " & $s_Prefix & " TitleCheck=" & $bTitleCheck & " LastMessage=" & $iLastMessage & " CurrentTitle=" & $sCurrentTitle
-						If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
-						If $bTitleCheck Then
-							$MSG = " TitleCheck=" & $bTitleCheck & " #SLN=" & @ScriptLineNumber
-							$RET = True
-							ExitLoop
-						EndIf
+			ElseIf $iLastMessage >= $iWaitMessage Then ; RULE 6: checking requested events messages
+				If $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED And $sExpectedTitle Then ; RULE 7: checking Expected document title - only if $NETWEBVIEW2_MESSAGE__TITLE_CHANGED was choosed
+					Local $sCurrentTitle = $oWebV2M.GetDocumentTitle()
+					Local $bTitleCheck = (StringRegExp($sCurrentTitle, $sExpectedTitle, $STR_REGEXPMATCH) = 1)
+					Local $s_DEV_Info = "! IFNC: DEV: TEST LOAD WAIT: Prefix:: " & $s_Prefix & " TitleCheck=" & $bTitleCheck & " LastMessage=" & $iLastMessage & " CurrentTitle=" & $sCurrentTitle
+					If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
+					If $bTitleCheck Then
+						$MSG = " TitleCheck=" & $bTitleCheck & " #SLN=" & @ScriptLineNumber
+						$RET = True
+						ExitLoop
 					EndIf
 				Else
 					If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
