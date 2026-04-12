@@ -151,7 +151,7 @@ Func _NetWebView2_CreateManager($sUserAgent = "", $s_fnEventPrefix = "", $s_AddB
 	If @error Then
 		$ERR = @error
 		$EXT = @extended
-		$MSG = "Manager Creation Error " & " #SLN=" & @ScriptLineNumber
+		$MSG = " Manager Creation Error " & " #SLN=" & @ScriptLineNumber
 	Else
 		; Enable/Disable diagnostic logging
 		; When enabled, the console will show entries like:  +++[NetWebView2Lib][HANDLE:0x...][HH:mm:ss.fff] Message
@@ -663,7 +663,7 @@ Func _NetWebView2_Navigate($oWebV2M, $s_URL, $iWaitMessage = $NETWEBVIEW2_MESSAG
 	ElseIf $iWaitMessage < $NETWEBVIEW2_MESSAGE__INIT_READY Or $iWaitMessage > $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then
 		; Parameter Validation - higher messsages are not for NAVIGATION thus not checking in _NetWebView2_LoadWait()
 		$ERR = 2
-		$MSG = "ERROR: $iWaitMessage not valid" & " #SLN=" & @ScriptLineNumber
+		$MSG = " ERROR: $iWaitMessage not valid" & " #SLN=" & @ScriptLineNumber
 	Else
 		; Execute Navigation
 		; The Local Error Handler catches potential "Disposed Object" crashes here
@@ -815,9 +815,9 @@ Func _NetWebView2_ExportPageData($oWebV2M, $iFormat, $sFilePath = "")
 	$RET = $oWebV2M.ExportPageData($iFormat, $sFilePath)
 	If StringLeft($RET, 6) = "ERROR:" Then
 		$ERR = 1
-		$MSG = "RESULT:" & $RET & " #SLN=" & @ScriptLineNumber
+		$MSG = " RESULT:" & $RET & " #SLN=" & @ScriptLineNumber
 	Else
-		$MSG = "RESULT: SUCCESS" & " #SLN=" & @ScriptLineNumber
+		$MSG = " RESULT: SUCCESS" & " #SLN=" & @ScriptLineNumber
 	EndIf
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
@@ -1516,9 +1516,11 @@ Func __NetWebView2_LastMessage_KEEPER($oWebV2M, $iMessage = Default, $iError = @
 	If $iMessage = Default Then ; function acts as GET
 		$RET = $mLastMessegKeeper[$sKey]
 	Else
-		__NetWebView2_LastMessage__INTERNALL($mLastMessegKeeper, $sKey, $iMessage, @error, @extended)
+;~ 		__NetWebView2_LastMessage__INTERNALL($mLastMessegKeeper, $sKey, $iMessage, @error, @extended)
 
+		#TODO $sKey support int __NetWebView2_LastMessage_onReceived - multi instances
 		__NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage)
+		#TODO $sKey support int __NetWebView2_LastMessage_Navigation - multi instances
 		__NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage)
 	EndIf
 
@@ -1581,33 +1583,38 @@ Func __NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage = Default, $iError
 EndFunc   ;==>__NetWebView2_LastMessage_Navigation
 
 Func __NetWebView2_LastMessage__INTERNALL(ByRef $mStatus, $sKey, $iMessage = Default, $iError = @error, $iExtended = @extended)
-	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage__INTERNALL]:"
+	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage__INTERNALL]: Key:" & $sKey & " Message: " & $iMessage
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
+;~ 	$sKey = StringRegExpReplace($sKey, "(?i)(.*?)(\d[\dxa-f]+)(.*)", "$2") ; example:    [HANDLE:0x0000000000240C00] >> 0x0000000000240C00
+;~ 	$sKey = "hwnd" & StringRegExpReplace($sKey, "(?i)(.*?\dx)([\da-f]+)(.*)", "$2") ; example:    [HANDLE:0x0000000000240C00] >> 0000000000240C00
 
 	If $iError Then ; If an error occurred while retrieving the Handle (e.g. Object already closed)
 		#TODO REFACTOR:  this check should be out of this function
 		$ERR = 1
 		$RET = $NETWEBVIEW2_MESSAGE__NONE
+		$MSG = " OUTER ERROR" & " #SLN=" & @ScriptLineNumber
 	ElseIf $sKey = "0" Or $sKey = "" Then ; If the handle is invalid
 		$ERR = 2
 		$RET = $NETWEBVIEW2_MESSAGE__NONE
-	ElseIf $iMessage = Default Then ; --- GET MODE (Called from LoadWait) ---
-		If Not MapExists($mStatus, $sKey) Then
-			$ERR = 3
-			$RET = $NETWEBVIEW2_MESSAGE__NONE
-		Else
-			$RET = $mStatus[$sKey]
-		EndIf
-	ElseIf $iMessage = -1 Then ; If -1, performs cleanup ; Special case: -1 for memory cleanup when the instance is closed
-		If MapExists($mStatus, $sKey) Then MapRemove($mStatus, $sKey)
+		$MSG = " Invalid KEY value" & " #SLN=" & @ScriptLineNumber
+	ElseIf ($iMessage = -1 Or $iMessage = Default) And Not MapExists($mStatus, $sKey) Then ; for RESET and GET key must exist
+		$ERR = 3
 		$RET = $NETWEBVIEW2_MESSAGE__NONE
+		$MSG = " KEY=" & $sKey & " (BrowserWindowHandle) NOT FOUND" & " #SLN=" & @ScriptLineNumber
+	ElseIf $iMessage = -1 Then ; If -1, performs cleanup ; Special case: -1 for memory cleanup when the instance is closed
+		MapRemove($mStatus, $sKey)
+		$RET = $NETWEBVIEW2_MESSAGE__NONE
+	ElseIf $iMessage = Default Then ; --- GET MODE (Called from LoadWait) ---
+		$RET = $mStatus[$sKey]
 	Else ; Update the status for this specific Handle
 		$mStatus[$sKey] = $iMessage
 		$RET = $iMessage
 	EndIf
 
-	$ERR = $iError ; prevent @error changes
-	$EXT = $iExtended ; prevent @extended changes
+	If Not $ERR Then
+		$ERR = $iError ; prevent @error changes
+		$EXT = $iExtended ; prevent @extended changes
+	EndIf
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
 	Return SetError($ERR, $EXT, $RET)
