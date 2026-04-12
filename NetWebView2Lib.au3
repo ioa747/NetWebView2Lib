@@ -165,7 +165,7 @@ Global Enum _ ; Indicates the reason for the process failure.
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_CreateManager($sUserAgent = "", $s_fnEventPrefix = "", $s_AddBrowserArgs = "", $bVerbose = False)
-	Local Const $s_Prefix = "[_NetWebView2_CreateManager]: fnEventPrefix=" & $s_fnEventPrefix & " AddBrowserArgs=" & $s_AddBrowserArgs
+	Local Const $s_Prefix = "[_NetWebView2_CreateManager]: fnEventPrefix:" & $s_fnEventPrefix & " AddBrowserArgs:" & $s_AddBrowserArgs
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -223,7 +223,7 @@ EndFunc   ;==>_NetWebView2_CreateManager
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_Initialize($oWebV2M, $hUserGUI, $s_ProfileDirectory, $i_Left = 0, $i_Top = 0, $i_Width = 0, $i_Height = 0, $b_SetAutoResize = True, $b_DevToolsEnabled = True, $i_ZoomFactor = 1.0, $s_BackColor = "0x2B2B2B", $b_InitConsole = False)
-	Local Const $s_Prefix = "[_NetWebView2_Initialize]: GUI:" & $hUserGUI & " ProfileDirectory:" & $s_ProfileDirectory & " LEFT:" & $i_Left & " TOP:" & $i_Top & " WIDTH" & $i_Width & " HEIGHT:" & $i_Height & " SETAUTORESIZE:" & $b_SetAutoResize & " SetAutoResize:" & $b_DevToolsEnabled & " ZoomFactor:" & $i_ZoomFactor & " BackColor:" & $s_BackColor
+	Local Const $s_Prefix = "[_NetWebView2_Initialize]: GUI:" & $hUserGUI & " ProfileDirectory:" & $s_ProfileDirectory & " LEFT:" & $i_Left & " TOP:" & $i_Top & " WIDTH:" & $i_Width & " HEIGHT:" & $i_Height & " SETAUTORESIZE:" & $b_SetAutoResize & " SetAutoResize:" & $b_DevToolsEnabled & " ZoomFactor:" & $i_ZoomFactor & " BackColor:" & $s_BackColor
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -471,7 +471,7 @@ EndFunc   ;==>_NetWebView2_CleanUp
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_ExecuteScript($oWebV2M, $sJavaScript, $iMode = $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
-	Local Const $s_Prefix = "[_NetWebView2_ExecuteScript]:" & " TYPE: " & $iMode
+	Local Const $s_Prefix = "[_NetWebView2_ExecuteScript]:" & " TYPE:" & $iMode
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -577,7 +577,7 @@ EndFunc   ;==>_NetWebView2_GetVersion
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = "", $iTimeOut_ms = 5000)
-	Local Const $s_Prefix = "[_NetWebView2_LoadWait]: WaitMessage:" & $iWaitMessage & " ExpectedTitle=" & (($sExpectedTitle) ? ($sExpectedTitle) : (" is EMPTY")) & " TimeOut_ms=" & $iTimeOut_ms
+	Local Const $s_Prefix = "[_NetWebView2_LoadWait]: WaitMessage:" & $iWaitMessage & " ExpectedTitle:" & (($sExpectedTitle) ? ($sExpectedTitle) : ("[is EMPTY]")) & " TimeOut_ms:" & $iTimeOut_ms
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	Local $hTimer = TimerInit()
 
@@ -624,7 +624,7 @@ Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE
 			$iLastMessage = __NetWebView2_LastMessage_Navigation($oWebV2M)
 			If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: ReadyState=" & $sReadyState & " LastMessage=" & $iLastMessage & " WaitMessage=" & $iWaitMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
 			If $iLastMessage = $NETWEBVIEW2_MESSAGE__NAV_ERROR Or $iLastMessage = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED Or $iLastMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then ; RULE 5: messages of specific Error occurs
-				If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: " & $iLastMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
+				If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT:" & $iLastMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
 				$ERR = 5
 				$RET = False
 				ExitLoop
@@ -678,7 +678,7 @@ EndFunc   ;==>_NetWebView2_LoadWait
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_Navigate($oWebV2M, $s_URL, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = "", $iTimeOut_ms = 5000)
-	Local Const $s_Prefix = "[_NetWebView2_Navigate]: URL:" & $s_URL & " WaitMessage: " & $iWaitMessage & " ExpectedTitle=" & (($sExpectedTitle) ? ($sExpectedTitle) : (" is EMPTY")) & " TimeOut_ms=" & $iTimeOut_ms
+	Local Const $s_Prefix = "[_NetWebView2_Navigate]: URL:" & $s_URL & " WaitMessage:" & $iWaitMessage & " ExpectedTitle:" & (($sExpectedTitle) ? ($sExpectedTitle) : ("[is EMPTY]")) & " TimeOut_ms:" & $iTimeOut_ms
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -733,7 +733,7 @@ EndFunc   ;==>_NetWebView2_Navigate
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = "", $iTimeOut_ms = 5000)
-	Local Const $s_Prefix = "[_NetWebView2_NavigateToString]:" & " HTML Size:" & StringLen($s_HTML) & " WaitMessage:" & $iWaitMessage & " ExpectedTitle=" & (($sExpectedTitle) ? ($sExpectedTitle) : (" is EMPTY")) & " TimeOut_ms=" & $iTimeOut_ms
+	Local Const $s_Prefix = "[_NetWebView2_NavigateToString]:" & " HTML Size:" & StringLen($s_HTML) & " WaitMessage:" & $iWaitMessage & " ExpectedTitle:" & (($sExpectedTitle) ? ($sExpectedTitle) : ("[is EMPTY]")) & " TimeOut_ms:" & $iTimeOut_ms
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -747,7 +747,7 @@ Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIE
 		$MSG = " $iWaitMessage Error" & " #SLN=" & @ScriptLineNumber
 	ElseIf $iWaitMessage > $NETWEBVIEW2_MESSAGE__TITLE_CHANGED Then ; higher messsages are not for NAVIGATION thus not checking in _NetWebView2_LoadWait()
 		$ERR = 3
-		$MSG = " $iWaitMessage Error" & " #SLN=" & @ScriptLineNumber
+		$MSG = " $iWaitMessage Error > TITLE_CHANGED" & " #SLN=" & @ScriptLineNumber
 	Else
 		$oWebV2M.LockWebView()
 		$RET = $oWebV2M.NavigateToString($s_HTML)
@@ -795,7 +795,7 @@ EndFunc   ;==>_NetWebView2_NavigateToString
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_BrowserSetupWrapper($hOuterParentWindow, ByRef $oOuterWeb, $sEventPrefix, $sProfile, ByRef $oOuterBridge, ByRef $hInnerWebViewWindow, $iX, $iY, $iW, $iH, $s_AddBrowserArgs)
-	Local Const $s_Prefix = "[_NetWebView2_BrowserSetupWrapper]:" & " EventPrefix:" & $sEventPrefix & " Profile:" & $sProfile & " AddBrowserArgs=" & $s_AddBrowserArgs
+	Local Const $s_Prefix = "[_NetWebView2_BrowserSetupWrapper]:" & " EventPrefix:" & $sEventPrefix & " Profile:" & $sProfile & " AddBrowserArgs:" & $s_AddBrowserArgs
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	$hInnerWebViewWindow = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hOuterParentWindow)
 	GUISetState(@SW_SHOW, $hInnerWebViewWindow)
@@ -835,7 +835,7 @@ EndFunc   ;==>_NetWebView2_BrowserSetupWrapper
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_ExportPageData($oWebV2M, $iFormat, $sFilePath = "")
-	Local Const $s_Prefix = "[_NetWebView2_ExportPageData]:" & " Format:" & $iFormat & " FilePath:" & (($sFilePath) ? ($sFilePath) : (" is EMPTY"))
+	Local Const $s_Prefix = "[_NetWebView2_ExportPageData]:" & " Format:" & $iFormat & " FilePath:" & (($sFilePath) ? ($sFilePath) : ("[is EMPTY]"))
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
 	#forceref $oMyError
@@ -901,7 +901,7 @@ EndFunc   ;==>_NetWebView2_GetSource
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_NavigateToPDF($oWebV2M, $s_URL_or_FilePath, Const $s_Parameters = "", $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = Default, $iTimeOut_ms = 5000, Const $iSleepAfter_ms = 1000, Const $bFreeze = True)
-	Local Const $s_Prefix = "[_NetWebView2_NavigateToPDF]: URL_or_File:" & $s_URL_or_FilePath & " Parameters: " & $s_Parameters & " WaitMessage: " & $iWaitMessage & " ExpectedTitle=" & (($sExpectedTitle) ? ($sExpectedTitle) : (" is EMPTY")) & " TimeOut_ms=" & $iTimeOut_ms & " SleepAfter_ms: " & $iSleepAfter_ms & " Freeze: " & $bFreeze
+	Local Const $s_Prefix = "[_NetWebView2_NavigateToPDF]: URL_or_File:" & $s_URL_or_FilePath & " Parameters:" & $s_Parameters & " WaitMessage:" & $iWaitMessage & " ExpectedTitle:" & (($sExpectedTitle) ? ($sExpectedTitle) : ("[is EMPTY]")) & " TimeOut_ms:" & $iTimeOut_ms & " SleepAfter_ms:" & $iSleepAfter_ms & " Freeze:" & $bFreeze
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Manager" Then ; Error 1: Not an object
@@ -974,7 +974,7 @@ Func _NetWebView2_PrintToPdfStream($oWebV2M, $b_TBinary_FBase64)
 	$RET = $oWebV2M.PrintToPdfStream()
 	If StringInStr($RET, "ERROR:") Then
 		$ERR = 1
-		$MSG = " RESULT: " & $RET & " #SLN=" & @ScriptLineNumber
+		$MSG = " RESULT:" & $RET & " #SLN=" & @ScriptLineNumber
 	Else
 		If $b_TBinary_FBase64 Then
 			; decode Base64 encoded data do Binary
@@ -1045,7 +1045,7 @@ EndFunc   ;==>_NetWebView2_AddInitializationScript
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_RemoveInitializationScript($oWebV2M, $sScriptId)
-	Local Const $s_Prefix = "[_NetWebView2_AddInitializationScript]: ScriptId: " & $sScriptId
+	Local Const $s_Prefix = "[_NetWebView2_AddInitializationScript]: ScriptId:" & $sScriptId
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Manager" Then ; Error 1: Not an object
 		$ERR = 1
@@ -1079,7 +1079,7 @@ EndFunc   ;==>_NetWebView2_RemoveInitializationScript
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_SetVirtualHostNameToFolderMapping($oWebV2M, $sHostName, $sFolderPath, $iAccessKind = 0)
-	Local Const $s_Prefix = "[_NetWebView2_SetVirtualHostNameToFolderMapping]: HostName: " & $sHostName & " FolderPath: " & $sFolderPath & " AccessKind: " & $iAccessKind
+	Local Const $s_Prefix = "[_NetWebView2_SetVirtualHostNameToFolderMapping]: HostName:" & $sHostName & " FolderPath:" & $sFolderPath & " AccessKind:" & $iAccessKind
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Manager" Then ; Error 1: Not an object
 		$ERR = 1
@@ -1111,7 +1111,7 @@ EndFunc   ;==>_NetWebView2_SetVirtualHostNameToFolderMapping
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_SetLockState($oWebV2M, $bLockState)
-	Local Const $s_Prefix = "[_NetWebView2_SetLockState]: LockState: " & $bLockState
+	Local Const $s_Prefix = "[_NetWebView2_SetLockState]: LockState:" & $bLockState
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Manager" Then ; Error 1: Not an object
 		$ERR = 1
@@ -1216,7 +1216,7 @@ EndFunc   ;==>_NetWebView2_DecodeB64ToBinary
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_SetBuiltInErrorPageEnabled($oWebV2M, $bEnabled)
-	Local Const $s_Prefix = "[_NetWebView2_SetBuiltInErrorPageEnabled]: Enabled: " & $bEnabled
+	Local Const $s_Prefix = "[_NetWebView2_SetBuiltInErrorPageEnabled]: Enabled:" & $bEnabled
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Manager" Then ; Error 1: Not an object
 		$ERR = 1
@@ -1248,7 +1248,7 @@ EndFunc   ;==>_NetWebView2_SetBuiltInErrorPageEnabled
 ; Example .......: Yes
 ; ===============================================================================================================================
 Func _NetWebView2_GetFrame($oWebV2M, $iIndex)
-	Local Const $s_Prefix = "[_NetWebView2_GetFrame]: Index: " & $iIndex
+	Local Const $s_Prefix = "[_NetWebView2_GetFrame]: Index:" & $iIndex
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Manager" Then ; Error 1: Not an object
 		$ERR = 1
@@ -1469,7 +1469,7 @@ EndFunc   ;==>__NetWebView2_Sleep
 ;                  Useful for tasks like PDF printing where "complete" state is mandatory.
 ; ===============================================================================================================================
 Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms = 5000)
-	Local Const $s_Prefix = ">>>[__NetWebView2_WaitForReadyState]: TimeOut_ms: " & $iTimeOut_ms
+	Local Const $s_Prefix = ">>>[__NetWebView2_WaitForReadyState]: TimeOut_ms:" & $iTimeOut_ms
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 
 	If (Not IsObj($oWebV2M)) Or ObjName($oWebV2M, $OBJ_PROGID) <> "NetWebView2Lib.WebView2Manager" Then ; Error 1: Not an object
@@ -1489,17 +1489,17 @@ Func __NetWebView2_WaitForReadyState($oWebV2M, $hTimer, $iTimeOut_ms = 5000)
 			ExitLoop
 		ElseIf $sReadyState == "complete" Then ; Check for the "complete" state
 			$RET = True
-			$MSG = " SUCCESS: Document is ready. Timeout_ms: " & Round(TimerDiff($hTimer), 0) & " #SLN=" & @ScriptLineNumber
+			$MSG = " SUCCESS: Document is ready. Timeout_ms:" & Round(TimerDiff($hTimer), 0) & " #SLN=" & @ScriptLineNumber
 			ExitLoop
 		ElseIf StringLeft($sReadyState, 6) == "ERROR:" Then ; Check for C# Bridge internal errors (Timeout/Init)
 			$ERR = 3
 			$RET = False
-			$MSG = " BRIDGE " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0) & " #SLN=" & @ScriptLineNumber
+			$MSG = " BRIDGE " & $sReadyState & " Timeout_ms:" & Round(TimerDiff($hTimer), 0) & " #SLN=" & @ScriptLineNumber
 			ExitLoop
 		ElseIf $iTimeOut_ms > 0 And TimerDiff($hTimer) > $iTimeOut_ms Then     ; Check for AutoIt-side Timeout
 			$ERR = 1
 			$RET = False
-			$MSG = " TIMEOUT: Document state is " & $sReadyState & " Timeout_ms: " & Round(TimerDiff($hTimer), 0) & " #SLN=" & @ScriptLineNumber
+			$MSG = " TIMEOUT: Document state is " & $sReadyState & " Timeout_ms:" & Round(TimerDiff($hTimer), 0) & " #SLN=" & @ScriptLineNumber
 			ExitLoop
 		Else
 			__NetWebView2_Sleep(50)
@@ -1533,7 +1533,7 @@ EndFunc   ;==>__NetWebView2_WaitForReadyState
 ; Example .......: No
 ; ===============================================================================================================================
 Func __NetWebView2_LastMessage_KEEPER($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
-	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage_KEEPER]: Message: " & $iMessage
+	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage_KEEPER]: Message:" & $iMessage
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	__NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage)
 	__NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage)
@@ -1546,7 +1546,7 @@ Func __NetWebView2_LastMessage_KEEPER($oWebV2M, $iMessage = Default, $iError = @
 EndFunc   ;==>__NetWebView2_LastMessage_KEEPER
 
 Func __NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
-	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage_onReceived]: Message: " & $iMessage
+	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage_onReceived]: Message:" & $iMessage
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	; Static Map - The central database of status indexed by Window Handle
 	; Local COM Error Handler to trap 0x80020009 (Disposed Object) during closure
@@ -1571,7 +1571,7 @@ Func __NetWebView2_LastMessage_onReceived($oWebV2M, $iMessage = Default, $iError
 EndFunc   ;==>__NetWebView2_LastMessage_onReceived
 
 Func __NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage = Default, $iError = @error, $iExtended = @extended)
-	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage_Navigation]: Message: " & $iMessage
+	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage_Navigation]: Message:" & $iMessage
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	; Static Map - The central database of status indexed by Window Handle
 	; Local COM Error Handler to trap 0x80020009 (Disposed Object) during closure
@@ -1598,7 +1598,7 @@ Func __NetWebView2_LastMessage_Navigation($oWebV2M, $iMessage = Default, $iError
 EndFunc   ;==>__NetWebView2_LastMessage_Navigation
 
 Func __NetWebView2_LastMessage__INTERNALL(ByRef $mStatus, $sKey, $iMessage = Default)
-	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage__INTERNALL]: Key:" & $sKey & " Message: " & $iMessage
+	Local Const $s_Prefix = ">>>[__NetWebView2_LastMessage__INTERNALL]: Key:" & $sKey & " Message:" & $iMessage
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 ;~ 	$sKey = StringRegExpReplace($sKey, "(?i)\A(\[HANDLE:.*?)(0x[\da-f]+)(.*\])\Z", "$2") ; example:    [HANDLE:0x0000000000240C00] >> 0x0000000000240C00
 ;~ 	$sKey = "hwnd" & StringRegExpReplace($sKey, "(?i)\A(\[HANDLE:.*?0x)([\da-f]+)(.*\])\Z", "$2") ; example:    [HANDLE:0x0000000000240C00] >> 0000000000240C00
@@ -2008,7 +2008,7 @@ Volatile Func __NetWebView2_Events__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 		Case "TITLE_CHANGED"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand & " >> " & $oWebV2M.GetDocumentTitle(), 1)
 			#REMARK => __NetWebView2_Events__OnTitleChanged() should set __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
-;~ 			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
+			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 
 		Case "EXTENSION"
 			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " COMMAND:" & $sCommand, 1)
@@ -2196,7 +2196,7 @@ Volatile Func __NetWebView2_JSEvents__OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 				If UBound($aClickData) >= 2 Then
 					Local $sKey = StringStripWS($aClickData[0], 3)
 					Local $sVal = StringStripWS($aClickData[1], 3)
-					__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " " & $sCommand & ": Property: " & $sKey & " | Value: " & $sVal, 1)
+					__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " " & $sCommand & ": Property:" & $sKey & " | Value:" & $sVal, 1)
 				EndIf
 
 		EndSwitch
@@ -2222,7 +2222,7 @@ EndFunc   ;==>__NetWebView2_JSEvents__OnMessageReceived
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnBrowserGotFocus($oWebV2M, $hGUI, $iReason)
-	Local Const $s_Prefix = ">>>[EVENT: OnBrowserGotFocus]: GUI:" & $hGUI & " REASON: " & $iReason
+	Local Const $s_Prefix = ">>>[EVENT: OnBrowserGotFocus]: GUI:" & $hGUI & " REASON:" & $iReason
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_GOT_FOCUS)
 EndFunc   ;==>__NetWebView2_Events__OnBrowserGotFocus
@@ -2243,7 +2243,7 @@ EndFunc   ;==>__NetWebView2_Events__OnBrowserGotFocus
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnBrowserLostFocus($oWebV2M, $hGUI, $iReason)
-	Local Const $s_Prefix = ">>>[EVENT: OnBrowserLostFocus]: GUI:" & $hGUI & " REASON: " & $iReason
+	Local Const $s_Prefix = ">>>[EVENT: OnBrowserLostFocus]: GUI:" & $hGUI & " REASON:" & $iReason
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__BROWSER_LOST_FOCUS)
 EndFunc   ;==>__NetWebView2_Events__OnBrowserLostFocus
@@ -2264,7 +2264,7 @@ EndFunc   ;==>__NetWebView2_Events__OnBrowserLostFocus
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnZoomChanged($oWebV2M, $hGUI, $iFactor)
-	Local Const $s_Prefix = ">>>[EVENT: OnZoomChanged]: GUI:" & $hGUI & " FACTOR: " & $iFactor
+	Local Const $s_Prefix = ">>>[EVENT: OnZoomChanged]: GUI:" & $hGUI & " FACTOR:" & $iFactor
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__ZOOM_CHANGED)
 EndFunc   ;==>__NetWebView2_Events__OnZoomChanged
@@ -2285,7 +2285,7 @@ EndFunc   ;==>__NetWebView2_Events__OnZoomChanged
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnURLChanged($oWebV2M, $hGUI, $sURL)
-	Local Const $s_Prefix = ">>>[EVENT: OnURLChanged]: GUI:" & $hGUI & " URL: " & $sURL
+	Local Const $s_Prefix = ">>>[EVENT: OnURLChanged]: GUI:" & $hGUI & " URL:" & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__URL_CHANGED)
 EndFunc   ;==>__NetWebView2_Events__OnURLChanged
@@ -2306,7 +2306,7 @@ EndFunc   ;==>__NetWebView2_Events__OnURLChanged
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnTitleChanged($oWebV2M, $hGUI, $sTITLE)
-	Local Const $s_Prefix = ">>>[EVENT: OnTitleChanged]: GUI:" & $hGUI & " TITLE: " & $sTITLE
+	Local Const $s_Prefix = ">>>[EVENT: OnTitleChanged]: GUI:" & $hGUI & " TITLE:" & $sTITLE
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED)
 	If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & __NetWebView2_LastMessage_Navigation($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
@@ -2329,7 +2329,7 @@ EndFunc   ;==>__NetWebView2_Events__OnTitleChanged
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnNavigationStarting($oWebV2M, $hGUI, $oArgs)
 	Local $sURL = $oArgs.Uri
-	Local Const $s_Prefix = ">>>[EVENT: OnNavigationStarting]: GUI:" & $hGUI & " URL: " & $sURL
+	Local Const $s_Prefix = ">>>[EVENT: OnNavigationStarting]: GUI:" & $hGUI & " URL:" & $sURL
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__NAV_STARTING)
 	$oArgs = 0
@@ -2378,7 +2378,7 @@ EndFunc   ;==>__NetWebView2_Events__OnNavigationCompleted
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnContextMenuRequested($oWebV2M, $hGUI, $sLink, $iX, $iY, $sSelection)
 	#forceref $oWebV2M
-	Local Const $s_Prefix = ">>>[EVENT: OnContextMenuRequested]: GUI:" & $hGUI & " LINK: " & $sLink & " X: " & $iX & " Y: " & $iY & " SELECTION: " & $sSelection
+	Local Const $s_Prefix = ">>>[EVENT: OnContextMenuRequested]: GUI:" & $hGUI & " LINK:" & $sLink & " X:" & $iX & " Y:" & $iY & " SELECTION:" & $sSelection
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 EndFunc   ;==>__NetWebView2_Events__OnContextMenuRequested
 
@@ -2399,7 +2399,7 @@ EndFunc   ;==>__NetWebView2_Events__OnContextMenuRequested
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnContextMenu($oWebV2M, $hGUI, $sMenuData)
 	#forceref $oWebV2M
-	Local Const $s_Prefix = ">>>[EVENT: OnContextMenu]: GUI:" & $hGUI & " MENUDATA: " & $sMenuData
+	Local Const $s_Prefix = ">>>[EVENT: OnContextMenu]: GUI:" & $hGUI & " MENUDATA:" & $sMenuData
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 EndFunc   ;==>__NetWebView2_Events__OnContextMenu
 
@@ -2422,7 +2422,7 @@ EndFunc   ;==>__NetWebView2_Events__OnContextMenu
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
-	Local Const $s_Prefix = ">>>[EVENT: OnWebResourceResponseReceived]: GUI:" & $hGUI & " HTTPStatusCode: " & $iStatusCode & " (" & $sReasonPhrase & ")  URL: " & $sRequestUrl
+	Local Const $s_Prefix = ">>>[EVENT: OnWebResourceResponseReceived]: GUI:" & $hGUI & " HTTPStatusCode:" & $iStatusCode & " (" & $sReasonPhrase & ")  URL:" & $sRequestUrl
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED)
 EndFunc   ;==>__NetWebView2_Events__OnWebResourceResponseReceived
@@ -2444,7 +2444,7 @@ EndFunc   ;==>__NetWebView2_Events__OnWebResourceResponseReceived
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $sURL, $sDefaultPath)
-	Local Const $s_Prefix = ">>>[EVENT: OnDownloadStarting]: GUI:" & $hGUI & " URL: " & $sURL & " DEFAULT_PATH: " & $sDefaultPath
+	Local Const $s_Prefix = ">>>[EVENT: OnDownloadStarting]: GUI:" & $hGUI & " URL:" & $sURL & " DEFAULT_PATH:" & $sDefaultPath
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 EndFunc   ;==>__NetWebView2_Events__OnDownloadStarting
@@ -2469,7 +2469,7 @@ EndFunc   ;==>__NetWebView2_Events__OnDownloadStarting
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
-	Local Const $s_Prefix = ">>>[EVENT: OnDownloadStateChanged]: GUI:" & $hGUI & " State: " & $sState & " URL: " & $sURL & " Total_Bytes: " & $iTotal_Bytes & " Received_Bytes: " & $iReceived_Bytes
+	Local Const $s_Prefix = ">>>[EVENT: OnDownloadStateChanged]: GUI:" & $hGUI & " State:" & $sState & " URL:" & $sURL & " Total_Bytes:" & $iTotal_Bytes & " Received_Bytes:" & $iReceived_Bytes
 	Local $iPercent = 0
 	If $iTotal_Bytes > 0 Then $iPercent = Round(($iReceived_Bytes / $iTotal_Bytes), 5) * 100
 
@@ -2519,7 +2519,7 @@ Volatile Func __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oA
 			"; WasKeyDown=" & $oArgs.WasKeyDown & _                 ; True if the key was already down.
 			"; IsKeyReleased=" & $oArgs.IsKeyReleased & _           ; True if the event is a key up.
 			"; KeyEventLParam=" & $oArgs.KeyEventLParam & "]"       ; Gets the LPARAM value that accompanied the window message.
-	Local Const $s_Prefix = ">>>[EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " $oArgs: " & ((IsObj($oArgs)) ? ($sArgsList) : ("ERROR"))
+	Local Const $s_Prefix = ">>>[EVENT: OnAcceleratorKeyPressed]: GUI:" & $hGUI & " $oArgs:" & ((IsObj($oArgs)) ? ($sArgsList) : ("ERROR"))
 
 ;~ 	https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50
 	If $oArgs.VirtualKey = 27 Then ; ESC 27 1b 033 Escape, next character is not echoed ; https://www.autoitscript.com/autoit3/docs/appendix/ascii.htm
@@ -2551,7 +2551,7 @@ Volatile Func __NetWebView2_Events__OnProcessFailed($oWebV2M, $hGUI, $oArgs)
 			"; Reason=" & $oArgs.Reason & _
 			"; ExitCode=" & $oArgs.ExitCode & _
 			"; Description=" & $oArgs.ProcessDescription & "]"
-	Local Const $s_Prefix = ">>>[EVENT: OnProcessFailed]: GUI:" & $hGUI & " $oArgs: " & $sArgsList
+	Local Const $s_Prefix = ">>>[EVENT: OnProcessFailed]: GUI:" & $hGUI & " $oArgs:" & $sArgsList
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__PROCESS_FAILED)
@@ -2578,7 +2578,7 @@ Volatile Func __NetWebView2_Events__OnBasicAuthenticationRequested($oWebV2M, $hG
 	Local Const $sArgsList = _
 			"[Uri=" & $oArgs.Uri & _
 			"; Challenge=" & $oArgs.Challenge & "]"
-	Local Const $s_Prefix = ">>>[EVENT: OnBasicAuthenticationRequested]: GUI:" & $hGUI & " $oArgs: " & $sArgsList
+	Local Const $s_Prefix = ">>>[EVENT: OnBasicAuthenticationRequested]: GUI:" & $hGUI & " $oArgs:" & $sArgsList
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__BASIC_AUTHENTICATION_REQUESTED)
@@ -2604,7 +2604,7 @@ EndFunc   ;==>__NetWebView2_Events__OnBasicAuthenticationRequested
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnFrameCreated($oWebV2M, $hGUI, $oFrame)
-	Local Const $s_Prefix = ">>>[EVENT: OnFrameCreated]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
+	Local Const $s_Prefix = ">>>[EVENT: OnFrameCreated]: WebV2M:" & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameCreated
@@ -2625,7 +2625,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameCreated
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnFrameDestroyed($oWebV2M, $hGUI, $oFrame)
-	Local Const $s_Prefix = ">>>[EVENT: OnFrameDestroyed]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
+	Local Const $s_Prefix = ">>>[EVENT: OnFrameDestroyed]: WebV2M:" & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameDestroyed
@@ -2646,7 +2646,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameDestroyed
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnFrameNameChanged($oWebV2M, $hGUI, $oFrame)
-	Local Const $s_Prefix = ">>>[EVENT: OnFrameNameChanged]: WebV2M: " & VarGetType($oWebV2M) & " GUI: " & $hGUI & " Frame: " & VarGetType($oFrame)
+	Local Const $s_Prefix = ">>>[EVENT: OnFrameNameChanged]: WebV2M:" & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame)
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	$oFrame = 0
 EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
@@ -2669,7 +2669,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameNameChanged
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnFrameNavigationStarting($oWebV2M, $hGUI, $oFrame, $oArgs)
 	Local $sUri = $oArgs.Uri
-	Local Const $s_Prefix = ">>>[EVENT: OnFrameNavigationStarting]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Uri:" & $sUri
+	Local Const $s_Prefix = ">>>[EVENT: OnFrameNavigationStarting]: WebV2M:" & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Uri:" & $sUri
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_NAV_STARTING) ; Optional: Update status if needed
 	$oFrame = 0
@@ -2693,7 +2693,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameNavigationStarting
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnFrameNavigationCompleted($oWebV2M, $hGUI, $oFrame, $bIsSuccess, $iWebErrorStatus)
-	Local Const $s_Prefix = ">>>[EVENT: OnFrameNavigationCompleted]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Success:" & $bIsSuccess & " Status:" & $iWebErrorStatus
+	Local Const $s_Prefix = ">>>[EVENT: OnFrameNavigationCompleted]: WebV2M:" & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Success:" & $bIsSuccess & " Status:" & $iWebErrorStatus
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_NAV_COMPLETED)
 EndFunc   ;==>__NetWebView2_Events__OnFrameNavigationCompleted
@@ -2715,7 +2715,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameNavigationCompleted
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnFrameContentLoading($oWebV2M, $hGUI, $oFrame, $iNavigationId)
-	Local Const $s_Prefix = ">>>[EVENT: OnFrameContentLoading]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
+	Local Const $s_Prefix = ">>>[EVENT: OnFrameContentLoading]: WebV2M:" & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_CONTENT_LOADING)
 	$oFrame = 0
@@ -2738,7 +2738,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameContentLoading
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnFrameDOMContentLoaded($oWebV2M, $hGUI, $oFrame, $iNavigationId)
-	Local Const $s_Prefix = ">>>[EVENT: OnFrameDOMContentLoaded]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
+	Local Const $s_Prefix = ">>>[EVENT: OnFrameDOMContentLoaded]: WebV2M:" & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " NavID:" & $iNavigationId
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_DOM_CONTENT_LOADED)
 	$oFrame = 0
@@ -2761,7 +2761,7 @@ EndFunc   ;==>__NetWebView2_Events__OnFrameDOMContentLoaded
 ; Example .......: No
 ; ===============================================================================================================================
 Volatile Func __NetWebView2_Events__OnFrameWebMessageReceived($oWebV2M, $hGUI, $oFrame, $sMessage)
-	Local Const $s_Prefix = ">>>[EVENT: OnFrameWebMessageReceived]: WebV2M: " & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Message:" & $sMessage
+	Local Const $s_Prefix = ">>>[EVENT: OnFrameWebMessageReceived]: WebV2M:" & VarGetType($oWebV2M) & " GUI:" & $hGUI & " Frame:" & VarGetType($oFrame) & " Message:" & $sMessage
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	; __NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__FRAME_WEB_MESSAGE_RECEIVED)
 	$oFrame = 0
