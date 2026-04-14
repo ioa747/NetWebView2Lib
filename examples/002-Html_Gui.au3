@@ -75,9 +75,12 @@ Func _Create_Form(ByRef $oWebV2M, ByRef $oBridge)
 	$oBridge = _NetWebView2_GetBridge($oWebV2M, "__USER_Events_Bridge_")
 	#forceref $oBridge
 
+	GUISetState(@SW_SHOW, $hGUI)
+
 	Local $sHTML = "<html><head><meta charset='UTF-8'><style>:" & __FormCSS() & "</style></head><body>" & __FormHTML() & "</body></html>"
 	_NetWebView2_NavigateToString($oWebV2M, $sHTML, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, "", 5000)
-	GUISetState(@SW_SHOW, $hGUI)
+	ConsoleWrite("After: _NetWebView2_NavigateToString()" & @CRLF)
+
 EndFunc   ;==>_Create_Form
 
 ; Injects a temporary notification box into the web page

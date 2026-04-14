@@ -10,7 +10,7 @@
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; ⚠️ to make this work, download pdfJS library from https://mozilla.github.io/pdf.js/
 ; for example:
-; https://github.com/mozilla/pdf.js/releases/download/v5.4.624/pdfjs-5.4.624-dist.zip
+; https://github.com/mozilla/pdf.js/releases/download/v5.6.205/pdfjs-5.6.205-dist.zip
 ; and unzip to:   @ScriptDir & "\JS_Lib\pdfjs\"
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -57,9 +57,10 @@ Func _Example()
 
 	; navigate to the page
 	Local $sFileName = "invoice-plugin-sample.pdf"
-	Local $sRegExp_Title = "(?i) - " & $sFileName
+	Local $sRegExp_Title = "(?i).*?" & $sFileName
 
 	__SetupStaticPDF($oWeb, @ScriptDir & "\" & $sFileName, $sRegExp_Title, True, False, True)
+	ConsoleWrite("After __SetupStaticPDF() RegExp_Title=" & $sRegExp_Title & @CRLF)
 
 	#Region ; now we can call the script directly from the JavaScript library "NetWebView2Lib_pdfjs_Tools.js" - some pdfjs magic stuff ;)
 	Local $s_JavaScript_snipp = ''
@@ -130,15 +131,21 @@ Func _Example()
 	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
+	$sRegExp_Title = "(?i).*?" & "dummy.pdf"
 	$s_JavaScript_snipp = 'PDFViewerApplication.open({ url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" });'
 	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	_NetWebView2_LoadWait($oWeb, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sRegExp_Title, 5000)
+	ConsoleWrite("After _NetWebView2_LoadWait() RegExp_Title=" & $sRegExp_Title & @CRLF)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
 ;~ 	$s_JavaScript_snipp = FileRead(@ScriptDir & '\JS_Lib\PDFViewerApplicationEvents.js')
 ;~ 	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
 
+	$sRegExp_Title = "(?i).*? - " & "PDF32000_2008.pdf"
 	$s_JavaScript_snipp = 'PDFViewerApplication.open({ url: "https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf" });'
 	_NetWebView2_ExecuteScript($oWeb, $s_JavaScript_snipp, $NETWEBVIEW2_EXECUTEJS_MODE0_FIREANDFORGET)
+	_NetWebView2_LoadWait($oWeb, $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sRegExp_Title, 5000)
+	ConsoleWrite("After _NetWebView2_LoadWait() RegExp_Title=" & $sRegExp_Title & @CRLF)
 	MsgBox($MB_TOPMOST, "TEST #" & @ScriptLineNumber, "After:" & @CRLF & $s_JavaScript_snipp)
 
 	#EndRegion ; now we can call the script directly from the JavaScript library "NetWebView2Lib_pdfjs_Tools.js" - some pdfjs magic stuff ;)
@@ -151,8 +158,8 @@ Func _Example()
 		EndSwitch
 	WEnd
 
-	GUIDelete($hGUI)
 	_NetWebView2_CleanUp($oWeb, $oBridge)
+	GUIDelete($hGUI)
 EndFunc   ;==>_Example
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
