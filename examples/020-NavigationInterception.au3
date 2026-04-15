@@ -3,7 +3,7 @@
 #include <WindowsConstants.au3>
 #include "..\NetWebView2Lib.au3"
 
-;~ $_g_bNetWebView2_DebugInfo = False
+$_g_bNetWebView2_DebugInfo = False
 
 ConsoleWrite("! MicrosoftEdgeWebview2 : version check: " & _NetWebView2_IsAlreadyInstalled() & ' ERR=' & @error & ' EXT=' & @extended & @CRLF)
 
@@ -28,6 +28,9 @@ Func _MainGUI()
 
 	_NetWebView2_Initialize($oWebV2M, $hGUI, @ScriptDir & "\NetWebView2Lib-UserDataFolder", 0, 0, 0, 0, True, True, 1, "0x2B2B2B", False)
 
+	Local $sAssetsFolder = @ScriptDir & "\MappedFolder" ;
+	_NetWebView2_SetVirtualHostNameToFolderMapping($oWebV2M, "local.page", $sAssetsFolder, 0)
+
 	Local $sHtml = '<html><head><style>' & _
 			'body { background-color: #1e1e1e; color: white; font-family: Arial; }' & _
 			'a { color: #4db8ff; text-decoration: none; }' & _
@@ -38,7 +41,7 @@ Func _MainGUI()
 			'<ul>' & _
 			'<li><a href="https://www.google.com">Google (Will open in Default Browser)</a></li>' & _
 			'<li><a href="https://www.bing.com">Bing (Will open in Default Browser)</a></li>' & _
-			'<li><a href="local_page.html">Local Link (Will stay in WebView)</a></li>' & _
+			'<li><a href="https://local.page/index.html">Local Link (Will stay in WebView)</a></li>' & _
 			'</ul>' & _
 			'</body></html>'
 
@@ -52,8 +55,8 @@ Func _MainGUI()
 		EndSwitch
 	WEnd
 
-	_NetWebView2_CleanUp($oWebV2M, $hGUI)
 	GUIDelete($hGUI)
+	_NetWebView2_CleanUp($oWebV2M, $hGUI)
 	Exit
 EndFunc   ;==>_MainGUI
 
@@ -64,8 +67,11 @@ Volatile Func Web_OnNavigationStarting($oSender, $hParent, $oArgs)
 	Local $sURL = $oArgs.Uri
 	ConsoleWrite("-> Navigation Starting to: " & (StringLen($sURL) > 100 ? StringLeft($sURL, 100) & "..." : $sURL) & @CRLF)
 
-	; If URL starts with "http", cancel internal navigation and ShellExecute
-	If StringLeft($sURL, 4) = "http" Then
+
+	If StringLeft($sURL, 18) = "https://local.page" Then
+		ConsoleWrite("++ local.page: " & $sURL & @CRLF)
+		; If URL starts with "http", cancel internal navigation and ShellExecute
+	ElseIf StringLeft($sURL, 4) = "http" Then
 		ConsoleWrite("!!! Intercepting External Link: " & $sURL & @CRLF)
 		$oArgs.Cancel = True ; Cancel navigation in WebView2
 		ShellExecute($sURL)  ; Open in default browser
@@ -75,5 +81,12 @@ EndFunc   ;==>Web_OnNavigationStarting
 Volatile Func Web_OnNavigationCompleted($oSender, $hParent, $bSuccess, $iError)
 	#forceref $oSender, $hParent, $bSuccess, $iError
 	ConsoleWrite(">> Navigation Completed. Success: " & $bSuccess & @CRLF)
+	Local Static $bFirstTime = 1
+	If $bFirstTime Then
+		$bFirstTime = 0
+		Return
+	EndIf
+	Sleep(3000)
+	$oSender.GoBack()
 EndFunc   ;==>Web_OnNavigationCompleted
 #EndRegion ; === EVENT HANDLERS ===

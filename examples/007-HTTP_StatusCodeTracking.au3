@@ -51,8 +51,8 @@ Func _Example_HTTP_Tracking()
 EndFunc   ;==>_Example_HTTP_Tracking
 
 #Region ; === EVENT HANDLERS ===
-; Handles native WebView2 events
-Func WebEvents_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
+Volatile Func WebEvents_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 
 	; { part of the $hGUI handle explanation
 	; with the new Advanced Handle Formatting logic [HANDLE:0x...]
@@ -66,6 +66,7 @@ Func WebEvents_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	ConsoleWrite("WinExists($hWnd)=" & WinExists($hWnd) & @CRLF)
 	ConsoleWrite("- _WinAPI_GetClientWidth($hWnd)=" & _WinAPI_GetClientWidth($hWnd) & @CRLF) ; working
 	; End part of the $hGUI handle explanation }
+
 
 	ConsoleWrite(">>> [WebEvents]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $iSplitPos = StringInStr($sMsg, "|")
@@ -85,7 +86,8 @@ Func WebEvents_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 EndFunc   ;==>WebEvents_OnMessageReceived
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
-Func JavaScript_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
+; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
+Volatile Func JavaScript_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 	#forceref $oWebV2M, $hGUI
 	ConsoleWrite(">>> [JavaScript]: " & (StringLen($sMsg) > 150 ? StringLeft($sMsg, 150) & "..." : $sMsg) & @CRLF)
 	Local $sFirstChar = StringLeft($sMsg, 1)
@@ -127,24 +129,27 @@ Func JavaScript_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
 EndFunc   ;==>JavaScript_OnMessageReceived
 
 ; OnWebResourceResponseReceived
-Func WebEvents_OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
+; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
+Volatile Func WebEvents_OnWebResourceResponseReceived($oWebV2M, $hGUI, $oArgs)
+	ConsoleWrite("-$hGUI=" & $hGUI & @CRLF)
+	ConsoleWrite("-$iStatusCode=" & $oArgs.StatusCode & @CRLF)
 	#forceref $hGUI
 
-	Local $sLog = StringFormat("! [HTTP %d] | %s | URL: %s", $iStatusCode, $sReasonPhrase, $sRequestUrl)
+	Local $sLog = StringFormat("! [HTTP %d] | %s | URL: %s", $oArgs.StatusCode, $oArgs.ReasonPhrase, $oArgs.RequestUri)
 	ConsoleWrite($sLog & @CRLF)
 
-	Local $oGuard = ObjEvent("AutoIt.Error", __NetWebView2_fake_COMErrFunc)
+	Local $oGuard = ObjEvent("AutoIt.Error", "__NetWebView2_SilentErrorHandler")
 	#forceref $oGuard
 
 	; Management example:
-	If $iStatusCode >= 400 Then
-		ConsoleWrite("Navigation Issue detected on: " & @CRLF & $sRequestUrl)
+	If $oArgs.StatusCode >= 400 Then
+		ConsoleWrite("Navigation Issue detected on: " & @CRLF & $oArgs.RequestUri)
 
 		; If it is the main URL and not an iframe/sub-resource
-		If $iStatusCode = 404 Then
+		If $oArgs.StatusCode = 404 And $oArgs.IsDocument Then
 			; We use a small Ad-hoc HTML for the error
 			Local $sErrorHTML = "<html><body style='background:#222;color:#ff4c4c;text-align:center;padding-top:50px;'>" & _
-					"<h1>😟 Navigation Error " & $iStatusCode & " 🫢</h1>" & _
+					"<h1>😟 Navigation Error " & $oArgs.StatusCode & " 🫢</h1>" & _
 					"<p>The requested URL was not found.</p>" & _
 					"<button onclick='history.back()'>Go Back</button></body></html>"
 
@@ -153,7 +158,6 @@ Func WebEvents_OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sRe
 		EndIf
 	EndIf
 EndFunc   ;==>WebEvents_OnWebResourceResponseReceived
-
 #EndRegion ; === EVENT HANDLERS ===
 
 Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)

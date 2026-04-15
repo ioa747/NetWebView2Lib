@@ -53,8 +53,7 @@ Func _Example()
 	$oWebV2M.SetDownloadPath(@ScriptDir & "\Downloads_Test")
 
 	; navigate to the page
-;~ 	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/donate/dl/win-x86_64/25.8.4/en-US/LibreOffice_25.8.4_Win_x86-64.msi", $NETWEBVIEW2_MESSAGE__NAV_STARTING)
-	_NetWebView2_Navigate($oWebV2M, "https://www.libreoffice.org/donate/dl/win-x86_64/26.2.1/pl/LibreOffice_26.2.1_Win_x86-64.msi", $NETWEBVIEW2_MESSAGE__NAV_STARTING)
+	_NetWebView2_Navigate($oWebV2M, "https://downloadarchive.documentfoundation.org/libreoffice/old/26.2.3.1/win/x86_64/LibreOffice_26.2.3.1_Win_x86-64.msi", $NETWEBVIEW2_MESSAGE__NAV_STARTING)
 	#TODO AutoDetermine MSI file location
 
 	__Example_Log(@ScriptLineNumber, "END - close window to exit" & @CRLF)
@@ -74,28 +73,29 @@ Func _Example()
 
 EndFunc   ;==>_Example
 
+#Region ; === EVENT HANDLERS ===
 ; Advise using 'Volatile' for Event Handlers to ensure the WebView2 COM thread can interrupt the main script safely.
-Volatile Func __UserEventHandler__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
+Volatile Func __UserEventHandler__OnDownloadStateChanged($oWebV2M, $hGUI, $oArgs)
 	#forceref $oWebV2M
 
 	$hGUI = HWnd("0x" & Hex($hGUI, 16))
-	Local $iPercent = 0
-	If $iTotal_Bytes > 0 Then $iPercent = Round(($iReceived_Bytes / $iTotal_Bytes), 5) * 100
+	Local $iPercent = $oArgs.PercentComplete
+	If $iPercent < 0 Then $iPercent = 0
 
 	; Convert to MB for easy-to-read log
-	Local $iReceived_MegaBytes = Round($iReceived_Bytes / 1024 / 1024)
-	Local $iTotal_MegaBytes = Round($iTotal_Bytes / 1024 / 1024)
+	Local $iReceived_MegaBytes = Round($oArgs.BytesReceived / 1048576, 2) ; 1024*1024
+	Local $iTotal_MegaBytes = Round($oArgs.TotalBytesToReceive / 1048576, 2)
 
-	Local Const $s_Message = " " & $iPercent & "% (" & $iReceived_MegaBytes & " / " & $iTotal_MegaBytes & " Mega Bytes)"
+	Local Const $s_Message = " " & $iPercent & "% (" & $iReceived_MegaBytes & " / " & $iTotal_MegaBytes & " MB)"
 
 	Local Static $bProgres_State = 0
 
-	Switch $sState
+	Switch $oArgs.State
 		Case "InProgress"
 			If $bProgres_State = 0 Then
-				ProgressOn("Dowload in progress", StringRegExpReplace($sURL, '(.+/)(.+)', '$2'), $s_Message, -1, -1, BitOR($DLG_NOTONTOP, $DLG_MOVEABLE))
+				ProgressOn("Dowload in progress", StringRegExpReplace($oArgs.Uri, '(.+/)(.+)', '$2'), $s_Message, -1, -1, BitOR($DLG_NOTONTOP, $DLG_MOVEABLE))
 			EndIf
-			$_sURLDownload_InProgress = $sURL
+			$_sURLDownload_InProgress = $oArgs.Uri
 			ProgressSet(Round($iPercent), $s_Message)
 			$bProgres_State = 1
 		Case "Interrupted"
@@ -150,8 +150,8 @@ Volatile Func __UserEventHandler__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArg
 
 	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 0)
 
-	$oArgs = 0 ; Explicitly release the COM reference inside the volatile scope
 EndFunc   ;==>__UserEventHandler__OnAcceleratorKeyPressed
+#EndRegion ; === EVENT HANDLERS ===
 
 Func __Example_Log($s_ScriptLineNumber, $sString, $iError = @error, $iExtended = @extended)
 	ConsoleWrite(@ScriptName & ' SLN=' & $s_ScriptLineNumber & ' [' & $iError & '/' & $iExtended & '] ::: ' & $sString & @CRLF)

@@ -112,6 +112,9 @@
     <Compile Include="Events\WebView2PermissionRequestedEventArgsWrapper.cs" />
     <Compile Include="Events\WebView2AcceleratorKeyPressedEventArgs.cs" />
     <Compile Include="Events\WebView2NavigationStartingEventArgsWrapper.cs" />
+    <Compile Include="Events\WebView2WebResourceResponseReceivedEventArgsWrapper.cs" />
+    <Compile Include="Events\WebView2DownloadStartingEventArgsWrapper.cs" />
+    <Compile Include="Events\WebView2DownloadStateChangedEventArgsWrapper.cs" />
     <Compile Include="Core\WebView2Bridge.cs" />
     <Compile Include="Interfaces\IWebViewEvents.cs" />
     <Compile Include="Interfaces\IWebViewActions.cs" />

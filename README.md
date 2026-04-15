@@ -6,7 +6,6 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-component-com-interop
 
 ---
-
 ### 🚀 Key Features
 
 * **Chromium Engine**: Leverage the speed and security of modern Microsoft Edge.
@@ -29,7 +28,6 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 * *The registration script will check for this and provide a download link if missing.*
 
 ---
-
 ### 📦 Deployment & Installation
 
 1. **Extract** the `NetWebView2Lib` folder to a permanent location.
@@ -56,55 +54,73 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 
 
 ---
-
 ### ⚖️ License
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
 
 
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
-
-
-## 🚀 What's New in v2.2.1-alpha - UI Responsiveness & Refactoring
+# 🚀 What's New in v2.2.1-alpha1 - UI Responsiveness & Refactoring
 
 This release marks a major architectural milestone for the library by introducing **Event Object Refactoring**. Key events have been transitioned from passing raw data (strings) to passing full **COM-visible objects**, granting developers absolute control over the application's navigation flow.
 
-### ⚡ Key Features & Enhancements
+## ⚡ Key Features & Enhancements
 
-#### 1. Advanced Navigation Control (`IWebView2NavigationStartingEventArgs`)
-
-Navigation is no longer a passive process. With the new `Args` object, you can programmatically intervene in the navigation lifecycle before it even begins.
+### 1. Advanced Navigation Control (`IWebView2NavigationStartingEventArgs`) 
+Navigation is no longer a passive process. 
+With the new `Args` object, you can programmatically intervene in the navigation lifecycle before it even begins.
 
 - **`Cancel` [Property]**: The ability to kill a navigation request at its source. Perfect for content filtering, security, and custom protocol handling.
-    
+  
 - **`IsUserInitiated`**: Determine whether the navigation was triggered by a physical user click or programmatically via JavaScript.
-    
+  
 - **`IsRedirected`**: Automatically detect if the current request is a server-side or client-side redirect.
-    
+  
 - **`NavigationId`**: A unique identifier for precise request tracking across complex web sessions.
-    
 
-#### 2. Event Object Refactoring & API Maturity
-
+### 2. Event Object Refactoring & API Maturity
 We are moving away from "Raw Parameter" callbacks toward an **Object-Oriented Event Model**.
 
 - **Breaking Change**: `OnNavigationStarting` and `OnFrameNavigationStarting` now return an **Args Object**. This change is essential to support bi-directional communication (e.g., AutoIt telling C# to `Cancel = True`).
     
 - **Future-Proofing**: Adding new metadata in future WebView2 updates will no longer break existing user code, as new properties will simply be appended to the existing object.
 
-#### 3. UI Responsiveness & Interception-Based Locking (Critical Patch)
-
+### 3. UI Responsiveness & Interception-Based Locking (Critical Patch)
 Following the initial alpha release, we identified and resolved a critical issue where Developer Tools (F12) and Right-Click menus could become unresponsive after navigation.
 
 - **Interception-Based Locking**: We moved away from toggling engine-level properties (which caused state lag) to a robust **C# Interception Model**. Features are kept "On" at the engine level but are blocked via the `_isLocked` flag in C#, ensuring the "Inspect" menu item never disappears.
+  
 - **C# Fast Path**: Common actions like F12 are now handled instantly within the C# layer, bypassing the AutoIt COM overhead for maximum performance.
+  
 - **Guaranteed Unlock**: Improved the AutoIt navigation functions (`_NetWebView2_Navigate`) to ensure the browser is always unlocked, even if a navigation times out or fails.
 
+### 4. Refactored: OnDownloadStarting Event
+- **Transitioned from a parameter-based signature to a robust, object-oriented argument model.**
+    - **New Argument Wrapper**: `IWebView2DownloadStartingEventArgs` provides access to `Uri`, `ResultFilePath`, `Handled`, `Cancel`, `MimeType`, `ContentDisposition`, and `TotalBytesToReceive`.
+      
+    - **Hybrid Deferral Model**: Implemented a performance-optimized synchronization mechanism using `CoreWebView2Deferral`. The C# core now waits up to 5000ms for AutoIt to set `Handled` or `Cancel` on the argument object, proceeding immediately once a decision is made.
+      
+    - **MimeType Support (Issue #123)**: Exposed `MimeType` directly in the download arguments, allowing AutoIt scripts to identify "unviewable content" (e.g., PDFs, ZIPs) at the start of the download lifecycle.
+      
+- **Improved: Download Logic**: Automatic redirection to `_customDownloadPath` is now applied *before* the event fires, allowing **AutoIt** to see and potentially override the final destination.
 
-### 🏗️ Architectural Inheritance & Refactoring
+### 5. Refactored: OnDownloadStateChanged Event
+- **Transitioned to an object-oriented argument model for consistent event handling.**
+    - **New Argument Wrapper**: `IWebView2DownloadStateChangedEventArgs`
+      provides access to `State`, `Uri`, `TotalBytesToReceive`, `BytesReceived`, and a new `PercentComplete` helper.
+      
+    - **Buffered Property Pattern**: Applied to ensure thread-safe progress updates during rapid download cycles.
+      
+### 6. Fixed: HTTP Status Code Detection
+- Resolved a bug where `OnWebResourceResponseReceived` failed to fire due to a missing legacy header hack. Replaced with native `ResourceContext` detection.
+
+
+> [!IMPORTANT]
+> **Breaking Change**: If you have custom scripts using `OnWebResourceResponseReceived` or `OnDownloadStateChanged`, please update their signatures to use the new `$oArgs` object as demonstrated in the updated examples.
+
+## 🏗️ Architectural Inheritance & Refactoring
 
 Building on the foundation of v2.1.0, this version further strengthens the **Event Wrapper** hierarchy:
 
@@ -116,10 +132,11 @@ Building on the foundation of v2.1.0, this version further strengthens the **Eve
 > **Why this matters:** The shift to objects transforms **NetWebView2Lib** from a "simple browser wrapper" into a **Professional-Grade SDK** for AutoIt. It brings low-level control—previously reserved for languages like C# or C++—directly into the hands of the AutoIt developer.
 
 
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
+
+## 📖 NetWebView2Lib Version 2.2.1-alpha (Quick Reference)
 
 
 ## 📖 NetWebView2Lib Version 2.2.1-alpha (Quick Reference)
@@ -284,20 +301,16 @@ Toggles between Native (true) and Custom (false) context menu modes.
 `object.SetContextMenuEnabled(Enabled As Boolean)`
 
 ##### 🧊 LockWebView
-Locks down the WebView by disabling context menus, dev tools, zoom control, default error pages, script dialogs, accelerator keys, and popups.
+Locks down the WebView using a robust C# interception model. While features remain enabled at the engine level for UI stability, they are blocked internally. Disables context-menus, dev tools, zoom, error pages, script dialogs, accelerator keys, and popups.
 `object.LockWebView()`
 
 ##### 🧊 UnLockWebView
-Re-enables the features previously restricted by `LockWebView()` (ContextMenus, DevTools, Zoom, ErrorPages, Dialogs, Keys, Popups).
+Re-enables the features previously intercepted by `LockWebView()` (ContextMenus, DevTools, Zoom, ErrorPages, Dialogs, Keys, Popups). Restores user preferences from high-speed backing fields.
 `object.UnLockWebView()`
 
-##### 🧊 DisableBrowserFeatures [LEGACY]
+##### 🧊 DisableBrowserFeatures
 Disables major browser features for a controlled environment (Unified with `LockWebView`).
 `object.DisableBrowserFeatures()`
-
-##### 🧊 EnableBrowserFeatures [LEGACY]
-Disables major browser features for a controlled environment (Unified with `UnLockWebView`).
-`object.EnableBrowserFeatures()`
 
 ##### 🧊 GoBack
 Navigates back to the previous page in history.
@@ -576,8 +589,8 @@ Sets a global default folder or file path for all browser downloads. If a direct
 Cancels active downloads. If `uri` is empty or omitted, cancels all active downloads.
 `object.CancelDownloads([Uri As String])`
 
-##### 🧊 ExportPageData  [LEGACY] 
-Consolidated into **CaptureSnapshot**.
+##### 🧊 ExportPageData
+[LEGACY] Consolidated into **CaptureSnapshot**.
 `object.ExportPageData(Format As Integer, FilePath As String)`
 
 ##### 🧊 PrintToPdfStream
@@ -592,7 +605,12 @@ Fired when a message or notification is sent from the library to AutoIt.
 
 ##### ⚡ OnWebResourceResponseReceived
 Fired when a web resource response is received (useful for tracking HTTP Status Codes).
-`object_OnWebResourceResponseReceived(Sender As Object, ParentHandle As HWND, StatusCode As Integer, ReasonPhrase As String, RequestUrl As String)`
+`object_OnWebResourceResponseReceived(Sender As Object, ParentHandle As HWND, Args As Object)`
+    *Args properties:
+        StatusCode (int): The HTTP status code (e.g., 200, 404).
+        ReasonPhrase (string): The HTTP reason phrase (e.g., "OK", "Not Found").
+        RequestUri (string): The URI of the request.
+        IsDocument (bool): True if the resource is a Document.*
 
 ##### ⚡ OnNavigationStarting
 Fired when the browser starts navigating to a new URL.
@@ -637,12 +655,26 @@ Fired when a context menu is requested (Simplified for AutoIt).
 `object_OnContextMenuRequested(Sender As Object, ParentHandle As HWND, LinkUrl As String, X As Integer, Y As Integer, SelectionText As String)`
 
 ##### ⚡ OnDownloadStarting
-Fired when a download is starting. Provides core metadata to allow decision making. Path overrides and UI suppression should be handled via the `DownloadResultPath` and `IsDownloadHandled` properties.
-`object_OnDownloadStarting(Sender As Object, ParentHandle As HWND, Uri As String, DefaultPath As String)`
+Fired when a download is starting. Provides a robust argument object for decision making and metadata access (MimeType, etc.).
+`object_OnDownloadStarting(Sender As Object, ParentHandle As HWND, Args As Object)`
+    *Args properties:
+        Uri (string): The target URL of the download.
+        ResultFilePath (string): Get/Set the target file path.
+        Handled (bool): Set to True to indicate AutoIt has handled the UI/Decision (stops the 600ms wait loop).
+        Cancel (bool): Set to True to cancel the download immediately.
+        MimeType (string): The MIME type of the content (e.g., "application/pdf").
+        ContentDisposition (string): The Content-Disposition header from the server.
+        TotalBytesToReceive (long): Estimated total size of the download (if known).*
 
 ##### ⚡ OnDownloadStateChanged
 Fired when a download state changes (e.g., Progress, Completed, Failed).
-`object_OnDownloadStateChanged(Sender As Object, ParentHandle As HWND, State As String, Uri As String, TotalBytes As Long, ReceivedBytes As Long)`
+`object_OnDownloadStateChanged(Sender As Object, ParentHandle As HWND, Args As Object)`
+    *Args properties:
+        State (string): The current state ("InProgress", "Completed", "Interrupted").
+        Uri (string): The download URI.
+        TotalBytesToReceive (long): Estimated total size.
+        BytesReceived (long): Number of bytes received so far.
+        PercentComplete (int): Calculation (0-100) or -1 if unknown.*
 
 ##### ⚡ OnAcceleratorKeyPressed
 Fired when an accelerator key is pressed. Allows blocking browser shortcuts.
@@ -920,4 +952,5 @@ Removes duplicate objects from a JSON array based on a key's value.
 `bool SelectUnique(ArrayPath As String, Key As String)`
 
 ---
+
 
