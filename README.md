@@ -6,6 +6,7 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-component-com-interop
 
 ---
+
 ### 🚀 Key Features
 
 * **Chromium Engine**: Leverage the speed and security of modern Microsoft Edge.
@@ -54,6 +55,7 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 
 
 ---
+
 ### ⚖️ License
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
@@ -62,6 +64,7 @@ This project is provided "as-is". You are free to use, modify, and distribute it
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
+
 # 🚀 What's New in v2.2.1-alpha1 - UI Responsiveness & Refactoring
 
 This release marks a major architectural milestone for the library by introducing **Event Object Refactoring**. Key events have been transitioned from passing raw data (strings) to passing full **COM-visible objects**, granting developers absolute control over the application's navigation flow.
