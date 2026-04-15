@@ -6,7 +6,6 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-component-com-interop
 
 ---
-
 ### 🚀 Key Features
 
 * **Chromium Engine**: Leverage the speed and security of modern Microsoft Edge.
@@ -55,7 +54,6 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 
 
 ---
-
 ### ⚖️ License
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
@@ -64,14 +62,13 @@ This project is provided "as-is". You are free to use, modify, and distribute it
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
-
-# 🚀 What's New in v2.2.1-alpha1 - UI Responsiveness & Refactoring
+## 🚀 What's New in v2.2.1-alpha1 - UI Responsiveness & Refactoring
 
 This release marks a major architectural milestone for the library by introducing **Event Object Refactoring**. Key events have been transitioned from passing raw data (strings) to passing full **COM-visible objects**, granting developers absolute control over the application's navigation flow.
 
-## ⚡ Key Features & Enhancements
+### ⚡ Key Features & Enhancements
 
-### 1. Advanced Navigation Control (`IWebView2NavigationStartingEventArgs`) 
+#### 1. Advanced Navigation Control (`IWebView2NavigationStartingEventArgs`) 
 Navigation is no longer a passive process. 
 With the new `Args` object, you can programmatically intervene in the navigation lifecycle before it even begins.
 
@@ -83,14 +80,14 @@ With the new `Args` object, you can programmatically intervene in the navigation
   
 - **`NavigationId`**: A unique identifier for precise request tracking across complex web sessions.
 
-### 2. Event Object Refactoring & API Maturity
+#### 2. Event Object Refactoring & API Maturity
 We are moving away from "Raw Parameter" callbacks toward an **Object-Oriented Event Model**.
 
 - **Breaking Change**: `OnNavigationStarting` and `OnFrameNavigationStarting` now return an **Args Object**. This change is essential to support bi-directional communication (e.g., AutoIt telling C# to `Cancel = True`).
     
 - **Future-Proofing**: Adding new metadata in future WebView2 updates will no longer break existing user code, as new properties will simply be appended to the existing object.
 
-### 3. UI Responsiveness & Interception-Based Locking (Critical Patch)
+#### 3. UI Responsiveness & Interception-Based Locking (Critical Patch)
 Following the initial alpha release, we identified and resolved a critical issue where Developer Tools (F12) and Right-Click menus could become unresponsive after navigation.
 
 - **Interception-Based Locking**: We moved away from toggling engine-level properties (which caused state lag) to a robust **C# Interception Model**. Features are kept "On" at the engine level but are blocked via the `_isLocked` flag in C#, ensuring the "Inspect" menu item never disappears.
@@ -99,7 +96,7 @@ Following the initial alpha release, we identified and resolved a critical issue
   
 - **Guaranteed Unlock**: Improved the AutoIt navigation functions (`_NetWebView2_Navigate`) to ensure the browser is always unlocked, even if a navigation times out or fails.
 
-### 4. Refactored: OnDownloadStarting Event
+#### 4. Refactored: OnDownloadStarting Event
 - **Transitioned from a parameter-based signature to a robust, object-oriented argument model.**
     - **New Argument Wrapper**: `IWebView2DownloadStartingEventArgs` provides access to `Uri`, `ResultFilePath`, `Handled`, `Cancel`, `MimeType`, `ContentDisposition`, and `TotalBytesToReceive`.
       
@@ -109,21 +106,21 @@ Following the initial alpha release, we identified and resolved a critical issue
       
 - **Improved: Download Logic**: Automatic redirection to `_customDownloadPath` is now applied *before* the event fires, allowing **AutoIt** to see and potentially override the final destination.
 
-### 5. Refactored: OnDownloadStateChanged Event
+#### 5. Refactored: OnDownloadStateChanged Event
 - **Transitioned to an object-oriented argument model for consistent event handling.**
     - **New Argument Wrapper**: `IWebView2DownloadStateChangedEventArgs`
       provides access to `State`, `Uri`, `TotalBytesToReceive`, `BytesReceived`, and a new `PercentComplete` helper.
       
     - **Buffered Property Pattern**: Applied to ensure thread-safe progress updates during rapid download cycles.
       
-### 6. Fixed: HTTP Status Code Detection
+#### 6. Fixed: HTTP Status Code Detection
 - Resolved a bug where `OnWebResourceResponseReceived` failed to fire due to a missing legacy header hack. Replaced with native `ResourceContext` detection.
 
 
-> [!IMPORTANT]
+> [!CAUTION]
 > **Breaking Change**: If you have custom scripts using `OnWebResourceResponseReceived` or `OnDownloadStateChanged`, please update their signatures to use the new `$oArgs` object as demonstrated in the updated examples.
 
-## 🏗️ Architectural Inheritance & Refactoring
+### 🏗️ Architectural Inheritance & Refactoring
 
 Building on the foundation of v2.1.0, this version further strengthens the **Event Wrapper** hierarchy:
 
@@ -139,10 +136,9 @@ Building on the foundation of v2.1.0, this version further strengthens the **Eve
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 📖 NetWebView2Lib Version 2.2.1-alpha (Quick Reference)
-
 
 ## 📖 NetWebView2Lib Version 2.2.1-alpha (Quick Reference)
+
 
 ### 🟦 WebView2Manager (ProgId: NetWebView2Lib.WebView2Manager)
 
