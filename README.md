@@ -121,8 +121,10 @@ Following the initial alpha release, we identified and resolved a critical issue
 - Resolved a bug where `OnWebResourceResponseReceived` failed to fire due to a missing legacy header hack. Replaced with native `ResourceContext` detection.
 
 
+
 > [!CAUTION]
 > **Breaking Change**: If you have custom scripts using `OnWebResourceResponseReceived` or `OnDownloadStateChanged`, please update their signatures to use the new `$oArgs` object as demonstrated in the updated examples.
+
 
 ### 🏗️ Architectural Inheritance & Refactoring
 
