@@ -665,7 +665,7 @@ Fired when a download is starting. Provides a robust argument object for decisio
     *Args properties:
         Uri (string): The target URL of the download.
         ResultFilePath (string): Get/Set the target file path.
-        Handled (bool): Set to True to indicate AutoIt has handled the UI/Decision (stops the 600ms wait loop).
+        Handled (bool): Set to True to indicate AutoIt has handled the UI/Decision (stops the 5000ms wait loop).
         Cancel (bool): Set to True to cancel the download immediately.
         MimeType (string): The MIME type of the content (e.g., "application/pdf").
         ContentDisposition (string): The Content-Disposition header from the server.
