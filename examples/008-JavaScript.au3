@@ -18,7 +18,7 @@ Func _Example_Console_Redirect()
 
 	; 1. Initialize WebView2
 	; Initialize WebView2 Manager and register events
-	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--disable-gpu, --mute-audio")
+	Local $oWebV2M = _NetWebView2_CreateManager("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0", "", "--disable-gpu --mute-audio")
 	If @error Then Return SetError(@error, @extended, $oWebV2M)
 
 	; initialize browser - put it on the GUI

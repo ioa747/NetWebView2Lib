@@ -129,6 +129,18 @@ Func _CmdLine_Parsing()
 					$g_sFile = StringRegExpReplace($g_sFile, '^["'']|["'']$', '')
 			EndSelect
 		Next
+	Else
+		; === Testing ===
+		$g_sTitle = "Markdown MsgBox"
+		$g_sText = "" & _
+				"# 🎯 Make your Choice" & @CRLF & _
+				"This is a **Modern UI** message box." & @CRLF & _
+				"* 1️⃣ **Engine:** WebView2" & @CRLF & _
+				"* 2️⃣ **Parser:** Marked.js" & @CRLF & _
+				"* 3️⃣ **Logic:** AutoIt Bridge"
+		$g_sButtons = "1|2|3|~CANCEL"
+		$g_aBtn = StringSplit($g_sButtons, "|", 1)
+
 	EndIf
 EndFunc   ;==>_CmdLine_Parsing
 ;---------------------------------------------------------------------------------------

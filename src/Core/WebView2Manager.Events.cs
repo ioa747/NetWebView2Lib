@@ -20,12 +20,12 @@ namespace NetWebView2Lib
         public delegate void OnURLChangedDelegate(object sender, string parentHandle, string newUrl);
         public delegate void OnBrowserGotFocusDelegate(object sender, string parentHandle, int reason);
         public delegate void OnBrowserLostFocusDelegate(object sender, string parentHandle, int reason);
-        public delegate void OnWebResourceResponseReceivedDelegate(object sender, string parentHandle, int statusCode, string reasonPhrase, string requestUrl);
+        public delegate void OnWebResourceResponseReceivedDelegate(object sender, string parentHandle, object args);
         public delegate void OnContextMenuDelegate(object sender, string parentHandle, string menuData);
         public delegate void OnZoomChangedDelegate(object sender, string parentHandle, double factor);
         public delegate void OnContextMenuRequestedDelegate(object sender, string parentHandle, string linkUrl, int x, int y, string selectionText);
-        public delegate void OnDownloadStartingDelegate(object sender, string parentHandle, string uri, string defaultPath);
-        public delegate void OnDownloadStateChangedDelegate(object sender, string parentHandle, string state, string uri, long totalBytes, long receivedBytes);
+        public delegate void OnDownloadStartingDelegate(object sender, string parentHandle, object args);
+        public delegate void OnDownloadStateChangedDelegate(object sender, string parentHandle, object args);
         public delegate void OnAcceleratorKeyPressedDelegate(object sender, string parentHandle, object args);
         public delegate void OnProcessFailedDelegate(object sender, string parentHandle, object args);
         public delegate void OnBasicAuthenticationRequestedDelegate(object sender, string parentHandle, object args);
@@ -278,64 +278,87 @@ namespace NetWebView2Lib
             _webView.CoreWebView2.WebResourceResponseReceived += (s, e) =>
             {
                 if (!_httpStatusCodeEventsEnabled || e.Response == null) return;
-                int statusCode = e.Response.StatusCode;
-                string reasonPhrase = GetReasonPhrase(statusCode, e.Response.ReasonPhrase);
-                string requestUrl = e.Request.Uri;
-                if (_httpStatusCodeDocumentOnly && !e.Request.Headers.Contains("X-NetWebView2-IsDoc")) return;
-                OnWebResourceResponseReceived?.Invoke(this, FormatHandle(_parentHandle), statusCode, reasonPhrase, requestUrl);
+                
+                // OO Refactor: Capture all relevant data in the wrapper (Buffered Property Pattern)
+                var args = new WebView2WebResourceResponseReceivedEventArgsWrapper(e, _parentHandle);
+                
+                // Fix: Use native context detection instead of custom headers
+                if (_httpStatusCodeDocumentOnly && !args.IsDocument) return;
+
+                OnWebResourceResponseReceived?.Invoke(this, FormatHandle(_parentHandle), args);
             };
 
             _webView.CoreWebView2.DownloadStarting += async (s, e) =>
             {
                 var deferral = e.GetDeferral();
                 string currentUri = e.DownloadOperation.Uri;
+                
+                // Pre-apply custom download path if set
                 if (!string.IsNullOrEmpty(_customDownloadPath))
                 {
                     string fileName = System.IO.Path.GetFileName(e.ResultFilePath);
                     e.ResultFilePath = System.IO.Path.Combine(_customDownloadPath, fileName);
                 }
-				_activeDownloads[currentUri] = e.DownloadOperation;
-                _isDownloadHandledOverride = false;
-                OnDownloadStarting?.Invoke(this, FormatHandle(_parentHandle), e.DownloadOperation.Uri, e.ResultFilePath);
 
+                _activeDownloads[currentUri] = e.DownloadOperation;
+                
+                // Create the wrapper for AutoIt
+                var args = new WebView2DownloadStartingEventArgsWrapper(e, _parentHandle);
+                
+                // Hybrid Deferral Model:
+                // 1. Initial invocation (AutoIt receives the object)
+                OnDownloadStarting?.Invoke(this, FormatHandle(_parentHandle), args);
+
+                // 2. Wait for AutoIt to either set Handled=true or for the 600ms timeout
                 var sw = Stopwatch.StartNew();
-                while (sw.ElapsedMilliseconds < 600 && !_isDownloadHandledOverride) await Task.Delay(10);
+                while (sw.ElapsedMilliseconds < 5000 && !args.Handled && !args.Cancel) 
+                {
+                    await Task.Delay(10);
+                }
 
+                // 3. Finalize based on AutoIt's decision or timeout
                 InvokeOnUiThread(() => {
-                    if (_isDownloadHandledOverride)
+                    // Sync values back to native object (Strictly on UI Thread)
+                    e.Cancel = args.Cancel;
+                    e.ResultFilePath = args.ResultFilePath;
+                    
+                    if (args.Cancel)
                     {
-                        e.Cancel = true;
                         OnMessageReceived?.Invoke(this, FormatHandle(_parentHandle), $"DOWNLOAD_CANCELLED|{e.DownloadOperation.Uri}");
                         deferral.Complete();
                         return;
                     }
-                    e.Handled = !_isDownloadUIEnabled;
+
+                    // If Handled wasn't set by AutoIt, use the manager's global default
+                    if (!args.Handled) e.Handled = !_isDownloadUIEnabled; 
+                    else e.Handled = true; // AutoIt explicitly handled it
+
                     OnMessageReceived?.Invoke(this, FormatHandle(_parentHandle), $"DOWNLOAD_STARTING|{e.DownloadOperation.Uri}|{e.ResultFilePath}");
 
-                    e.DownloadOperation.StateChanged += (sender, args) =>
+                    // Attach operation events
+                    // Attach operation events
+                    e.DownloadOperation.StateChanged += (sender, opArgs) =>
                     {
-                        long totalBytes = (long)(e.DownloadOperation.TotalBytesToReceive ?? 0);
-                        long receivedBytes = (long)e.DownloadOperation.BytesReceived;
-                        OnDownloadStateChanged?.Invoke(this, FormatHandle(_parentHandle), e.DownloadOperation.State.ToString(), e.DownloadOperation.Uri, totalBytes, receivedBytes);
+                        var stateArgs = new WebView2DownloadStateChangedEventArgsWrapper(e.DownloadOperation, _parentHandle);
+                        OnDownloadStateChanged?.Invoke(this, FormatHandle(_parentHandle), stateArgs);
+                        
                         if (e.DownloadOperation.State == Microsoft.Web.WebView2.Core.CoreWebView2DownloadState.Interrupted)
                             OnMessageReceived?.Invoke(this, FormatHandle(_parentHandle), $"DOWNLOAD_CANCELLED|{currentUri}|{e.DownloadOperation.InterruptReason}");
+                        
                         if (e.DownloadOperation.State != Microsoft.Web.WebView2.Core.CoreWebView2DownloadState.InProgress)
                             _activeDownloads.Remove(currentUri);
                     };
 
                     int lastPercent = -1;
-                    e.DownloadOperation.BytesReceivedChanged += (sender, args) =>
+                    e.DownloadOperation.BytesReceivedChanged += (sender, opArgs) =>
                     {
-                        long total = (long)(e.DownloadOperation.TotalBytesToReceive ?? 0);
-                        long received = (long)e.DownloadOperation.BytesReceived;
-                        if (total > 0)
+                        var stateArgs = new WebView2DownloadStateChangedEventArgsWrapper(e.DownloadOperation, _parentHandle);
+                        
+                        // Percent-based throttling for progress updates
+                        if (stateArgs.PercentComplete > lastPercent)
                         {
-                            int currentPercent = (int)((received * 100) / total);
-                            if (currentPercent > lastPercent)
-                            {
-                                lastPercent = currentPercent;
-                                OnDownloadStateChanged?.Invoke(this, FormatHandle(_parentHandle), "InProgress", e.DownloadOperation.Uri, total, received);
-                            }
+                            lastPercent = stateArgs.PercentComplete;
+                            OnDownloadStateChanged?.Invoke(this, FormatHandle(_parentHandle), stateArgs);
                         }
                     };
                     deferral.Complete();

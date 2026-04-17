@@ -21,15 +21,15 @@ namespace NetWebView2Lib
         [DispId(2)] void OnNavigationStarting(object sender, string parentHandle, object args);
         [DispId(3)] void OnNavigationCompleted(object sender, string parentHandle, bool isSuccess, int webErrorStatus);
         [DispId(4)] void OnTitleChanged(object sender, string parentHandle, string newTitle);
-        [DispId(5)] void OnWebResourceResponseReceived(object sender, string parentHandle, int statusCode, string reasonPhrase, string requestUrl);
+        [DispId(8)] void OnWebResourceResponseReceived(object sender, string parentHandle, object args);
         [DispId(6)] void OnContextMenu(object sender, string parentHandle, string menuData);
         [DispId(10)] void OnZoomChanged(object sender, string parentHandle, double factor);
         [DispId(11)] void OnBrowserGotFocus(object sender, string parentHandle, int reason);
         [DispId(12)] void OnBrowserLostFocus(object sender, string parentHandle, int reason);
         [DispId(13)] void OnURLChanged(object sender, string parentHandle, string newUrl);
         [DispId(190)] void OnContextMenuRequested(object sender, string parentHandle, string linkUrl, int x, int y, string selectionText);
-        [DispId(208)] void OnDownloadStarting(object sender, string parentHandle, string uri, string defaultPath);
-        [DispId(209)] void OnDownloadStateChanged(object sender, string parentHandle, string state, string uri, long totalBytes, long receivedBytes);
+        [DispId(208)] void OnDownloadStarting(object sender, string parentHandle, object args);
+        [DispId(209)] void OnDownloadStateChanged(object sender, string parentHandle, object args);
         [DispId(221)] void OnAcceleratorKeyPressed(object sender, string parentHandle, object args);
         [DispId(225)] void OnProcessFailed(object sender, string parentHandle, object args);
         [DispId(228)] void OnBasicAuthenticationRequested(object sender, string parentHandle, object args);
