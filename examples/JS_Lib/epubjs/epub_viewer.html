@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>EPUB Viewer</title>
+    <script src="jszip.min.js"></script>
+    <script src="epub.min.js"></script>
+    <style>
+        /* Initial state: Dark theme to prevent white flash */
+        body { 
+            margin: 0; 
+            background: #33373A; 
+            color: #e0e0e0;
+            transition: background 0.3s, color 0.3s; 
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        #viewer { 
+            width: 100vw; 
+            height: 100vh; 
+            background: #33373A; 
+            transition: background 0.3s;
+        }
+
+        body.show-scroll { 
+            overflow: auto; 
+        }
+    </style>
+</head>
+<body class="hide-scroll">
+    <div id="viewer"></div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const bookUrl = params.get('book');
+        const flowMode = params.get('flow') || 'paginated';
+        const showScroll = params.get('scroll') === '1';
+
+        if (showScroll) document.body.className = 'show-scroll';
+
+        if (bookUrl) {
+            window.book = ePub(bookUrl);
+            window.rendition = window.book.renderTo("viewer", {
+                width: "100%", 
+                height: "100%", 
+                flow: flowMode, 
+                manager: "default", 
+                allowScriptedContent: true 
+            });
+
+            // --- REGISTER DARK THEME ---
+            window.rendition.themes.register("dark", {
+                body: {
+                    "background-color": "#33373A !important", 
+                    "color": "#e0e0e0 !important"
+                },
+                "a": { "color": "#80cbc4 !important" }
+            });
+
+            // --- REGISTER LIGHT THEME ---
+            window.rendition.themes.register("light", {
+                body: {
+                    "background-color": "#ffffff !important", 
+                    "color": "#1a1a1a !important"
+                },
+                "a": { "color": "#0000ee !important" }
+            });
+
+            // Load the book
+            Promise.all([window.book.ready, window.rendition.display()])
+            .then(() => {
+                // Apply dark theme by default on startup
+                window.rendition.themes.select("dark");
+                document.title = "EPUB Loaded"; 
+                console.log("Dark Mode applied.");
+            })
+            .catch(err => {
+                if (window.chrome && window.chrome.webview) {
+                    window.chrome.webview.postMessage("ERROR|Load failed: " + err.message);
+                }
+                console.error(err);
+            });
+
+            // --- FUNCTIONS FOR AUTOIT ---
+
+            window.EPUB_Next = function() {
+                if (window.rendition) window.rendition.next();
+            };
+
+            window.EPUB_Prev = function() {
+                if (window.rendition) window.rendition.prev();
+            };
+
+            window.EPUB_GetMetadata = async function() {
+                try {
+                    if (!window.book || !window.book.package) return;
+                    const meta = window.book.package.metadata;
+                    const nav = await window.book.navigation;
+                    const response = {
+                        type: "EPUB_DATA_PACKAGE",
+                        title: meta.title,
+                        creator: meta.creator,
+                        toc: nav.toc.map(item => ({ label: item.label.trim(), href: item.href }))
+                    };
+                    window.chrome.webview.postMessage(JSON.stringify(response));
+                } catch (e) {
+                    window.chrome.webview.postMessage("ERROR|" + e.message);
+                }
+            };
+
+            /**
+             * Changes the theme for both the EPUB content (iframe) 
+             * and the surrounding WebView2 container.
+             * @param {string} mode - 'dark' or 'light'
+             */
+            window.EPUB_SetTheme = function(mode) {
+                if (!window.rendition) return;
+
+                const viewerElem = document.getElementById("viewer");
+
+                if (mode === "dark") {
+                    // 1. Change the EPUB iframe styles
+                    window.rendition.themes.select("dark");
+                    
+                    // 2. Change the outer HTML/CSS background
+                    document.body.style.backgroundColor = "#333733A";
+                    document.body.style.color = "#e0e0e0";
+                    viewerElem.style.backgroundColor = "#33373A";
+                } else {
+                    // 1. Change the EPUB iframe styles
+                    window.rendition.themes.select("light");
+                    
+                    // 2. Change the outer HTML/CSS background
+                    document.body.style.backgroundColor = "#ffffff";
+                    document.body.style.color = "#1a1a1a";
+                    viewerElem.style.backgroundColor = "#ffffff";
+                }
+            };
+        }
+    </script>
+</body>
+</html>
