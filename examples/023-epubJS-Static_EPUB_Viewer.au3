@@ -4,7 +4,7 @@
 #AutoIt3Wrapper_AU3Check_Parameters=-d -w 1 -w 2 -w 3 -w 4 -w 5 -w 6 -w 7
 #Tidy_Parameters=/tcb=-1
 
-; 023-epubJS-Static_EPUB_Viewer.au3			Script Version: 0.0.3.0
+; 023-epubJS-Static_EPUB_Viewer.au3			Script Version: 0.0.4.0
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; ⚠️ Requirements:
 ; 1. epub.min.js & jszip.min.js in @ScriptDir & "\JS_Lib\epubjs\"
@@ -105,12 +105,14 @@ Func _Example()
 				$iZoom += 5
 				If $iZoom > 150 Then $iZoom = 150
 				$oWebV2M.ZoomFactor = $iZoom / 100
+				$oWebV2M.WebViewSetFocus()
 
 			Case $Bar.ZoomOut
 				$iZoom = $oWebV2M.ZoomFactor * 100
 				$iZoom -= 5
 				If $iZoom < 80 Then $iZoom = 80
 				$oWebV2M.ZoomFactor = $iZoom / 100
+				$oWebV2M.WebViewSetFocus()
 
 			Case $Bar.TogleDark
 				$bIsDark = Not $bIsDark
@@ -127,13 +129,13 @@ Func _Example()
 				$oWebV2M.BackColor = $iHexColor
 				GUISetBkColor($iHexColor)
 
-				ConsoleWrite("> Theme switched to: " & $sTheme & @CRLF)
-
 				; zoom as refresh
 				$iZoom = $oWebV2M.ZoomFactor * 100
 				$iZoom = ($bIsDark ? $iZoom - 5 : $iZoom + 5)
 				If $iZoom < 80 Then $iZoom = 100
 				$oWebV2M.ZoomFactor = $iZoom / 100
+				$oWebV2M.WebViewSetFocus()
+				ConsoleWrite("> Theme switched to: " & $sTheme & @CRLF)
 
 
 			Case $Bar.GlobalNavButton
@@ -141,20 +143,20 @@ Func _Example()
 
 			Case $Bar.ctx_About
 				MsgBox(0, "Book Info", "Title: " & $Bar.meta_Title & @CRLF & "Author: " & $Bar.meta_Author, 0, $hGUI)
+				$oWebV2M.WebViewSetFocus()
 
-			Case $Bar.ctx_Items[0] To $Bar.ctx_Items[$Bar.ChaptersCnt - 1]
-				Local $iSelectedIdx = -1
-				For $i = 0 To $Bar.ChaptersCnt - 1
-					If $Bar.ctx_Items[$i] = $iMsg Then
-						$iSelectedIdx = $i
-						ExitLoop
+			Case Else
+				; Check if we have chapters and if the message is within the menu range
+				If $Bar.ChaptersCnt > 0 Then
+					; Calculate the index based on the first menu item's ID
+					Local $iIdx = $iMsg - $Bar.ctx_Items[0]
+
+					; Validate that the click actually belongs to our chapter menu items
+					If $iIdx >= 0 And $iIdx < $Bar.ChaptersCnt Then
+						Local $sHref = $Bar.Href[$iIdx]
+						_NetWebView2_ExecuteScript($oWebV2M, "window.rendition.display('" & $sHref & "');", 0)
+						ConsoleWrite("+ Navigating to Chapter [" & $iIdx & "]: " & $sHref & @CRLF)
 					EndIf
-				Next
-
-				If $iSelectedIdx <> -1 Then
-					Local $sTargetHref = $Bar.Href[$iSelectedIdx]
-					ConsoleWrite("> Navigating to: " & $sTargetHref & @CRLF)
-					_NetWebView2_ExecuteScript($oWebV2M, "window.rendition.display('" & $sTargetHref & "');", 0)
 				EndIf
 
 		EndSwitch
@@ -163,7 +165,6 @@ Func _Example()
 	GUIDelete($hGUI)
 	_NetWebView2_CleanUp($oWebV2M, $oBridge)
 EndFunc   ;==>_Example
-
 
 ; Handles custom messages from JavaScript (window.chrome.webview.postMessage)
 Volatile Func _UserEventHandler_Bridge_OnMessageReceived($oWebV2M, $hGUI, $sMsg)
@@ -284,39 +285,50 @@ Func _EPUB_SetupStatic(ByRef $oWebV2M, $s_EPUB_Path, $sExpectedTitle, $iFlow = 1
 EndFunc   ;==>_EPUB_SetupStatic
 
 Func _EPUB_GetMetaData($sJson)
-	If $sJson = "" Then Return
+    ; Clean up existing Menu and Data immediately
+    If MapExists($Bar, "ctx_Menu_Handle") Then
+        GUICtrlDelete($Bar.ctx_Menu_Handle)
+        $Bar.ctx_Menu_Handle = 0
+    EndIf
 
-	Local $oJson = _NetJson_CreateParser($sJson)
+    ; Reset tracking variables to prevent Range Errors in the main loop
+    $Bar.ChaptersCnt = 0
+    Local $aEmpty[1] = [0]
+    $Bar.ctx_Items = $aEmpty
+    $Bar.Href = $aEmpty
+    $Bar.Label = $aEmpty
 
-	If MapExists($Bar, "ctx_Menu_Handle") Then
-		GUICtrlDelete($Bar.ctx_Menu_Handle)
-	EndIf
+    ; Validate New Data
+    If $sJson = "" Then Return
+    Local $oJson = _NetJson_CreateParser($sJson)
+    If Not IsObj($oJson) Then Return
 
-	$Bar.meta_Title = $oJson.GetTokenValue("title")
-	$Bar.meta_Author = $oJson.GetTokenValue("creator")
+    ; Extract Metadata
+    $Bar.meta_Title = $oJson.GetTokenValue("title")
+    $Bar.meta_Author = $oJson.GetTokenValue("creator")
 
-	Local $iCount = $oJson.GetArrayLength("toc")
-	$Bar.ChaptersCnt = $iCount
+    Local $iCount = $oJson.GetArrayLength("toc")
+    If $iCount <= 0 Then Return ; No chapters, exit safely with empty arrays
 
-	Local $aHref[$iCount]
-	Local $aLabel[$iCount]
-	Local $actx[$iCount]
+    ; Prepare New Arrays
+    Local $aHref[$iCount], $aLabel[$iCount], $aItems[$iCount]
 
-	$Bar.ctx_Menu_Handle = GUICtrlCreateContextMenu($Bar.GlobalNavButton) ; Το αποθηκεύουμε για να το σβήσουμε μετά
-	$Bar.ctx_About = GUICtrlCreateMenuItem("About: " & $Bar.meta_Title, $Bar.ctx_Menu_Handle)
-	GUICtrlCreateMenuItem("", $Bar.ctx_Menu_Handle) ; Separator
+    ; Rebuild Menu
+    $Bar.ctx_Menu_Handle = GUICtrlCreateContextMenu($Bar.GlobalNavButton)
+	$Bar.ctx_About = GUICtrlCreateMenuItem("Book: " & $Bar.meta_Title, $Bar.ctx_Menu_Handle)
+    GUICtrlCreateMenuItem("", $Bar.ctx_Menu_Handle)
 
-	For $i = 0 To $iCount - 1
-		Local $sLabel = $oJson.GetTokenValue("toc[" & $i & "].label")
-		Local $sHref = $oJson.GetTokenValue("toc[" & $i & "].href")
-		$aHref[$i] = $sHref
-		$aLabel[$i] = $sLabel
-		$actx[$i] = GUICtrlCreateMenuItem($sLabel, $Bar.ctx_Menu_Handle)
-	Next
+    For $i = 0 To $iCount - 1
+        $aLabel[$i] = $oJson.GetTokenValue("toc[" & $i & "].label")
+        $aHref[$i]  = $oJson.GetTokenValue("toc[" & $i & "].href")
+        $aItems[$i] = GUICtrlCreateMenuItem($aLabel[$i], $Bar.ctx_Menu_Handle)
+    Next
 
-	$Bar.Href = $aHref
-	$Bar.Label = $aLabel
-	$Bar.ctx_Items = $actx
+    ; Final Sync
+    $Bar.ChaptersCnt = $iCount
+    $Bar.ctx_Items = $aItems
+    $Bar.Href = $aHref
+    $Bar.Label = $aLabel
 
-	ConsoleWrite("! Menu updated with " & $iCount & " chapters." & @CRLF)
+    ConsoleWrite("+ Menu Rebuilt: " & $iCount & " chapters found." & @CRLF)
 EndFunc   ;==>_EPUB_GetMetaData
