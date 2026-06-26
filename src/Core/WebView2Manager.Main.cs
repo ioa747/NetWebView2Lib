@@ -139,6 +139,16 @@ namespace NetWebView2Lib
             get => _failureReportFolderPath;
             set => _failureReportFolderPath = value ?? "";
         }
+
+        /// <summary>
+        /// Gets or sets the throttling interval in milliseconds for messages sent from JavaScript to AutoIt.
+        /// Set to 0 to disable throttling entirely.
+        /// </summary>
+        public int ThrottlingIntervalMs
+        {
+            get => _bridge.ThrottlingIntervalMs;
+            set => _bridge.ThrottlingIntervalMs = value;
+        }
         #endregion
 
         #region 6. CORE INITIALIZATION

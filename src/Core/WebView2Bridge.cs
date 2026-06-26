@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -53,6 +53,9 @@ namespace NetWebView2Lib
 
         /// <summary>Gets the version of the DLL.</summary>
         [DispId(2)] string Version { get; }
+
+        /// <summary>Gets or sets the throttling interval in milliseconds.</summary>
+        [DispId(3)] int ThrottlingIntervalMs { get; set; }
     }
 
     /// <summary>
@@ -73,8 +76,15 @@ namespace NetWebView2Lib
 
         private SynchronizationContext _syncContext;
         private readonly System.Diagnostics.Stopwatch _throttleStopwatch = System.Diagnostics.Stopwatch.StartNew();
-        private long _lastMessageTicks = 0;
-        private const long ThrottlingIntervalTicks = TimeSpan.TicksPerSecond / 50; // max 50 calls/sec
+        private long _lastMessageMs = 0;
+        private int _throttlingIntervalMs = 20; // default 20ms
+
+        /// <summary>Gets or sets the throttling interval in milliseconds.</summary>
+        public int ThrottlingIntervalMs
+        {
+            get => _throttlingIntervalMs;
+            set => _throttlingIntervalMs = value;
+        }
 
         // v2.0.0: Parent context for Sender-Aware events
         private object _sender;
@@ -124,10 +134,12 @@ namespace NetWebView2Lib
         {
             if (OnMessageReceived != null)
             {
-                // Throttling: Max 50 messages per second (Law #2: Performance)
-                long currentTicks = _throttleStopwatch.ElapsedTicks;
-                if (currentTicks - _lastMessageTicks < ThrottlingIntervalTicks) return;
-                _lastMessageTicks = currentTicks;
+                long currentMs = _throttleStopwatch.ElapsedMilliseconds;
+                if (_throttlingIntervalMs > 0)
+                {
+                    if (currentMs - _lastMessageMs < _throttlingIntervalMs) return;
+                }
+                _lastMessageMs = currentMs;
 
                 // v2.0.0: Pass sender and parentHandle for multi-instance support
                 _syncContext?.Post(_ => OnMessageReceived?.Invoke(_sender, _parentHandle, message), null);
