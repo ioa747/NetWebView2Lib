@@ -62,6 +62,7 @@ This project is provided "as-is". You are free to use, modify, and distribute it
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
+
 ## 🚀 What's New in v2.2.2-alpha - Configurable Message Throttling
 
 Provide a configurable throttling mechanism for messages sent from JavaScript to AutoIt via the WebView2 bridge to prevent message loss when throttling is too restrictive for certain use cases, while keeping safety defaults.
