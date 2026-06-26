@@ -58,6 +58,7 @@ Volatile Func _BridgeEventsHandler_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
 	#forceref $hGUI
 
 	; 1. Check Phase Change
+	If StringLeft($sMessage, 6) == "PHASE:" Then
 		$sCurrentPhase = StringTrimLeft($sMessage, 6)
 		$iReceivedCount = 0
 		ConsoleWrite("+++ Starting Phase: " & $sCurrentPhase & @CRLF)
