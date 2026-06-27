@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2.2.2-alpha (2026.06.27.18) 🚩
+; NetWebView2Lib.au3 - Script Version: 2.2.2-alpha (2026.06.27.19) 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -1862,7 +1862,7 @@ EndFunc   ;==>__NetWebView2_freezer
 #EndRegion ; === NetWebView2Lib UDF === #INTERNAL_USE_ONLY#
 
 #Region ; === NetWebView2Lib UDF === EVENT HANDLERS ***** Collection *****
-
+; *******************************************************************************************************************************
 #Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Error Handlers ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_SilentErrorHandler
@@ -2414,25 +2414,28 @@ EndFunc   ;==>__NetWebView2_Events__OnContextMenu
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnWebResourceResponseReceived
-; Description ...:
-; Syntax ........: __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase,
-;                  $sRequestUrl)
+; Description ...: Internal handler for the WebResourceResponseReceived event.
+; Syntax ........: __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $oArgs)
 ; Parameters ....: $oWebV2M             - WebView2 object that fired the event
-;                  $hGUI                - a handle to Window that fired the event
-;                  $iStatusCode         - HTTP StatusCode
-;                  $sReasonPhrase       - StatusCode rephrased to human resonable string
-;                  $sRequestUrl         - the URL that fired the event
+;                  $hGUI                - A handle to Window that fired the event
+;                  $oArgs               - An Event Arguments Object containing:
+;                                         | .StatusCode (int) [RO]: The HTTP status code (e.g., 200, 404).
+;                                         | .ReasonPhrase (string) [RO]: The HTTP reason phrase (e.g., "OK").
+;                                         | .RequestUri (string) [RO]: The URL of the request.
+;                                         | .IsDocument (bool) [RO]: True if the resource is the main document.
 ; Return values .: None
-; Author ........: mLipok
-; Modified ......:
+; Author ........: ioa747, mLipok
+; Modified ......: 2026-04-14 (Refactored to Object-Oriented Event Model)
 ; Remarks .......:
 ; Related .......:
 ; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.webresourceresponsereceived
-; Example .......: No
+; Example .......: 007-HTTP_StatusCodeTracking.au3
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $iStatusCode, $sReasonPhrase, $sRequestUrl)
-	Local Const $s_Prefix = ">>>[EVENT: OnWebResourceResponseReceived]: GUI:" & $hGUI & " HTTPStatusCode:" & $iStatusCode & " (" & $sReasonPhrase & ")  URL:" & $sRequestUrl
-	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
+Volatile Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $oArgs)                                                  ; <<--( NEW )--<<
+	Local Const $s_Prefix = ">>>[EVENT: OnWebResourceResponseReceived]: GUI:" & $hGUI & _
+	" HTTPStatusCode:" & $oArgs.StatusCode & " (" & $oArgs.ReasonPhrase & ")  URL:" & $oArgs.RequestUri & " URL:" & $oArgs.IsDocument
+
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__RESPONSE_RECEIVED)
 EndFunc   ;==>__NetWebView2_Events__OnWebResourceResponseReceived
 
@@ -2458,11 +2461,8 @@ EndFunc   ;==>__NetWebView2_Events__OnWebResourceResponseReceived
 ; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2downloadstartingeventargs
 ; Example .......: 021 - Handle Unviewable Content (MIME).au3
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $oArgs)                                                          ; <<--( NEW )--<<
-	Local $sURL = $oArgs.Uri
-	Local $sDefaultPath = $oArgs.ResultFilePath
-	Local $sMimeType = $oArgs.MimeType
-	Local Const $s_Prefix = "[EVENT: OnDownloadStarting]: GUI:" & $hGUI & " URL: " & $sURL & " PATH: " & $sDefaultPath & " MIME: " & $sMimeType
+Volatile Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $oArgs)                                                                                      ; <<--( NEW )--<<
+	Local Const $s_Prefix = "[>>>EVENT: OnDownloadStarting]: GUI:" & $hGUI & " URL: " & $oArgs.Uri & " PATH: " & $oArgs.ResultFilePath & " MIME: " & $oArgs.MimeType
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
 EndFunc   ;==>__NetWebView2_Events__OnDownloadStarting
@@ -2474,48 +2474,56 @@ EndFunc   ;==>__NetWebView2_Events__OnDownloadStarting
 ;                  $iReceived_Bytes)
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $hGUI                - a handle value.
-;                  $sState              - a string value.
-;                  $sURL                - a string value.
-;                  $iTotal_Bytes        - an integer value.
-;                  $iReceived_Bytes     - an integer value.
+;                  $oArgs               - An Event Arguments Object containing:
+;                                         | .Uri (String) [RO]: The source URL of the download.
+;                                         | .State (String) [RO]: The current state ("InProgress", "Completed", "Interrupted").
+;                                         | .TotalBytesToReceive (int) [RO]: Estimated total size.
+;                                         | .BytesReceived (int) [RO]: Number of bytes received so far.
+;                                         | .PercentComplete (int) [RO]:  Calculation (0-100) or -1 if unknown.
 ; Return values .: None
 ; Author ........: ioa747, mLipok
 ; Modified ......:
 ; Remarks .......:
 ; Related .......:
 ; Link ..........:
-; Example .......: No
+; Example .......: 006-DownloadDemo.au3
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $sState, $sURL, $iTotal_Bytes, $iReceived_Bytes)
-	Local Const $s_Prefix = ">>>[EVENT: OnDownloadStateChanged]: GUI:" & $hGUI & " State:" & $sState & " URL:" & $sURL & " Total_Bytes:" & $iTotal_Bytes & " Received_Bytes:" & $iReceived_Bytes
-	Local $iPercent = 0
-	If $iTotal_Bytes > 0 Then $iPercent = Round(($iReceived_Bytes / $iTotal_Bytes), 5) * 100
+Volatile Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $oArgs)                                                      ; <<--( NEW )--<<
+	Local $iReceived_MB = Round($oArgs.BytesReceived / 1048576, 2) ; 1024*1024
+	Local $iTotal_MB = Round($oArgs.TotalBytesToReceive / 1048576, 2)
 
-	; Convert to MB for easy-to-read log
-	Local $iReceived_MegaBytes = Round($iReceived_Bytes / 1024 / 1024)
-	Local $iTotal_MegaBytes = Round($iTotal_Bytes / 1024 / 1024)
+	Local Const $s_Prefix = "[>>>EVENT: OnDownloadStateChanged]: GUI:" & $hGUI & " State: " & $oArgs.State & " | " & _
+	    $oArgs.PercentComplete & "% (" & $iReceived_MB & "/" & $iTotal_MB & " MB) URL: " & $oArgs.Uri
 
-	Local Const $s_Message = " " & $iPercent & "% (" & $iReceived_MegaBytes & " / " & $iTotal_MegaBytes & " Mega Bytes)"
-	Switch $sState
+	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix, 1)
+
+	Switch $oArgs.State
 		Case "InProgress"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $s_Message, 1)
 			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_IN_PROGRESS)
 		Case "Interrupted"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $s_Message, 1)
 			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_INTERRUPTED)
 		Case "Completed"
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $s_Message, 1)
 			__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_COMPLETED)
 	EndSwitch
-EndFunc   ;==>__NetWebView2_Events__OnDownloadStateChanged
+EndFunc
 
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_Events__OnAcceleratorKeyPressed
-; Description ...:
+; Description ...: It allows the application to intercept and handle system keys and keyboard shortcuts (Accelerators) before the WebView2 engine processes them.
 ; Syntax ........: __NetWebView2_Events__OnAcceleratorKeyPressed($oWebV2M, $hGUI, $oArgs)
 ; Parameters ....: $oWebV2M             - an object.
 ;                  $hGUI                - a handle value.
-;                  $oArgs               - an object.
+;                  $oArgs               - An Event Arguments Object containing:
+;                                         | .VirtualKey (uint) [RO]: The VK code of the key.
+;                                         | .KeyEventKind (int) [RO]: Type of key event (0:KeyDown, 1:KeyUp, etc.).
+;                                         | .RepeatCount (uint) [RO]: The number of times the key has repeated.
+;                                         | .ScanCode (uint) [RO]: Hardware scan code.
+;                                         | .IsExtendedKey (bool) [RO]: True if it's an extended key (e.g., right Alt).
+;                                         | .IsMenuKeyDown (bool) [RO]: True if Alt is pressed.
+;                                         | .WasKeyDown (bool) [RO]: True if the key was already down.
+;                                         | .IsKeyReleased (bool) [RO]: True if the event is a key up.
+;                                         | .KeyEventLParam (int) [RO]: The native LPARAM window message value.
+;                                         | .Handled (bool) [RW]: Set to True to prevent the browser from executing the default action.
 ; Return values .: None
 ; Author ........: ioa747, mLipok
 ; Modified ......:
@@ -2802,5 +2810,5 @@ EndFunc   ;==>__NetWebView2_Events__FrameKeeper
 ;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#screencapturestarting
 ;~ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
-
+; *******************************************************************************************************************************
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS ***** Collection *****
