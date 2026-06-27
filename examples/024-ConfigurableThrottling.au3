@@ -54,13 +54,21 @@ EndFunc   ;==>Main
 
 ; MY EVENT HANDLER: Bridge (JavaScript Messages)
 Volatile Func _BridgeEventsHandler_OnMessageReceived($oWebV2M, $hGUI, $sMessage)
-	ConsoleWrite("$sMessage=" & $sMessage & @CRLF)
 	#forceref $hGUI
+
+	ConsoleWrite("$sMessage=" & $sMessage & @CRLF)
 
 	; 1. Check Phase Change
 	If StringLeft($sMessage, 6) == "PHASE:" Then
 		$sCurrentPhase = StringTrimLeft($sMessage, 6)
 		$iReceivedCount = 0
+
+		; If restart the test, reset the Throttling back to 0ms
+		If $sCurrentPhase = "No Throttling" Then
+			$oWebV2M.ThrottlingIntervalMs = 0
+			ConsoleWrite(">>> Test Reset: ThrottlingIntervalMs forced back to 0ms" & @CRLF)
+		EndIf
+
 		ConsoleWrite("+++ Starting Phase: " & $sCurrentPhase & @CRLF)
 		Return
 	EndIf
@@ -115,31 +123,35 @@ Func GetTestHTML()
 	$sTxt &= "" & @CRLF
 	$sTxt &= "        // English: Enhanced loop that triggers termination ONLY when done" & @CRLF
 	$sTxt &= "        function sendBulkMessages(isThrottled = false) {" & @CRLF
-	$sTxt &= "            let i = 1;" & @CRLF
-	$sTxt &= "            function sendNext() {" & @CRLF
-	$sTxt &= "                if (i <= 100) {" & @CRLF
-	$sTxt &= "                    safePost(""MSG_"" + i);" & @CRLF
-	$sTxt &= "                    i++;" & @CRLF
-	$sTxt &= "                    setTimeout(sendNext, 0);" & @CRLF
-	$sTxt &= "                } else {" & @CRLF
-	$sTxt &= "                    // English: Loop finished! If we are in Phase 2, send TEST_END safely" & @CRLF
-	$sTxt &= "                    if (isThrottled) {" & @CRLF
-	$sTxt &= "                        setTimeout(() => {" & @CRLF
-	$sTxt &= "                            safePost(""TEST_END"");" & @CRLF
-	$sTxt &= "                            document.getElementById(""status-log"").innerText = ""Test Finished!"";" & @CRLF
-	$sTxt &= "                        }, 100); // English: 100ms ensures we are way outside the 20ms throttling window" & @CRLF
-	$sTxt &= "                    }" & @CRLF
-	$sTxt &= "                }" & @CRLF
-	$sTxt &= "            }" & @CRLF
-	$sTxt &= "            sendNext();" & @CRLF
-	$sTxt &= "        }" & @CRLF
+    $sTxt &= "            let i = 1;" & @CRLF
+    $sTxt &= "            function sendNext() {" & @CRLF
+    $sTxt &= "                if (i <= 100) {" & @CRLF
+    $sTxt &= "                    safePost(""MSG_"" + i);" & @CRLF
+    $sTxt &= "                    i++;" & @CRLF
+    $sTxt &= "                    setTimeout(sendNext, 0);" & @CRLF
+    $sTxt &= "                } else {" & @CRLF
+    $sTxt &= "                    if (isThrottled) {" & @CRLF
+    $sTxt &= "                        setTimeout(() => {" & @CRLF
+    $sTxt &= "                            safePost(""TEST_END"");" & @CRLF
+    $sTxt &= "                            document.getElementById(""status-log"").innerText = ""Test Finished!"";" & @CRLF
+    $sTxt &= "                            // English: Re-enable the button so the user can start a fresh test" & @CRLF
+    $sTxt &= "                            document.querySelector("".btn"").disabled = false;" & @CRLF
+    $sTxt &= "                        }, 100);" & @CRLF
+    $sTxt &= "                    }" & @CRLF
+    $sTxt &= "                }" & @CRLF
+    $sTxt &= "            }" & @CRLF
+    $sTxt &= "            sendNext();" & @CRLF
+    $sTxt &= "        }" & @CRLF
 	$sTxt &= "" & @CRLF
-	$sTxt &= "        function startTest() {" & @CRLF
-	$sTxt &= "            document.getElementById(""status-log"").style.color = ""#00ff00"";" & @CRLF
-	$sTxt &= "            document.getElementById(""status-log"").innerText = ""Running Phase 1: No Throttling..."";" & @CRLF
-	$sTxt &= "            safePost(""PHASE:No Throttling"");" & @CRLF
-	$sTxt &= "            setTimeout(() => { sendBulkMessages(false); }, 50);" & @CRLF
-	$sTxt &= "        }" & @CRLF
+    $sTxt &= "        function startTest() {" & @CRLF
+    $sTxt &= "            // English: Disable button during the test execution to avoid overlapping loops" & @CRLF
+    $sTxt &= "            document.querySelector("".btn"").disabled = true; " & @CRLF
+    $sTxt &= "            " & @CRLF
+    $sTxt &= "            document.getElementById(""status-log"").style.color = ""#00ff00"";" & @CRLF
+    $sTxt &= "            document.getElementById(""status-log"").innerText = ""Running Phase 1: No Throttling..."";" & @CRLF
+    $sTxt &= "            safePost(""PHASE:No Throttling"");" & @CRLF
+    $sTxt &= "            setTimeout(() => { sendBulkMessages(false); }, 50);" & @CRLF
+    $sTxt &= "        }"
 	$sTxt &= "" & @CRLF
 	$sTxt &= "        function runThrottledTest() {" & @CRLF
 	$sTxt &= "            setTimeout(() => {" & @CRLF
@@ -153,4 +165,3 @@ Func GetTestHTML()
 	$sTxt &= "</html>"
 	Return $sTxt
 EndFunc   ;==>GetTestHTML
-
