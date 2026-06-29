@@ -6,7 +6,6 @@ A powerful bridge that allows **AutoIt** to use the modern **Microsoft Edge WebV
 https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-component-com-interop
 
 ---
-
 ### 🚀 Key Features
 
 * **Chromium Engine**: Leverage the speed and security of modern Microsoft Edge.
@@ -29,7 +28,6 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 * *The registration script will check for this and provide a download link if missing.*
 
 ---
-
 ### 📦 Deployment & Installation
 
 1. **Extract** the `NetWebView2Lib` folder to a permanent location.
@@ -56,7 +54,6 @@ https://www.autoitscript.com/forum/topic/213375-webview2autoit-autoit-webview2-c
 
 
 ---
-
 ### ⚖️ License
 
 This project is provided "as-is". You are free to use, modify, and distribute it for both personal and commercial projects.
@@ -66,84 +63,25 @@ This project is provided "as-is". You are free to use, modify, and distribute it
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
-## 🚀 What's New in v2.2.1-alpha1 - UI Responsiveness & Refactoring
 
-This release marks a major architectural milestone for the library by introducing **Event Object Refactoring**. Key events have been transitioned from passing raw data (strings) to passing full **COM-visible objects**, granting developers absolute control over the application's navigation flow.
+## 🚀 What's New in v2.2.2-alpha - Configurable Message Throttling
+
+Provide a configurable throttling mechanism for messages sent from JavaScript to AutoIt via the WebView2 bridge to prevent message loss when throttling is too restrictive for certain use cases, while keeping safety defaults.
 
 ### ⚡ Key Features & Enhancements
 
-#### 1. Advanced Navigation Control (`IWebView2NavigationStartingEventArgs`) 
-Navigation is no longer a passive process. 
-With the new `Args` object, you can programmatically intervene in the navigation lifecycle before it even begins.
+#### 1. Implement the ThrottlingIntervalMs property on the manager class, forwarding to the bridge object.
 
-- **`Cancel` [Property]**: The ability to kill a navigation request at its source. Perfect for content filtering, security, and custom protocol handling.
-  
-- **`IsUserInitiated`**: Determine whether the navigation was triggered by a physical user click or programmatically via JavaScript.
-  
-- **`IsRedirected`**: Automatically detect if the current request is a server-side or client-side redirect.
-  
-- **`NavigationId`**: A unique identifier for precise request tracking across complex web sessions.
-
-#### 2. Event Object Refactoring & API Maturity
-We are moving away from "Raw Parameter" callbacks toward an **Object-Oriented Event Model**.
-
-- **Breaking Change**: `OnNavigationStarting` and `OnFrameNavigationStarting` now return an **Args Object**. This change is essential to support bi-directional communication (e.g., AutoIt telling C# to `Cancel = True`).
-    
-- **Future-Proofing**: Adding new metadata in future WebView2 updates will no longer break existing user code, as new properties will simply be appended to the existing object.
-
-#### 3. UI Responsiveness & Interception-Based Locking (Critical Patch)
-Following the initial alpha release, we identified and resolved a critical issue where Developer Tools (F12) and Right-Click menus could become unresponsive after navigation.
-
-- **Interception-Based Locking**: We moved away from toggling engine-level properties (which caused state lag) to a robust **C# Interception Model**. Features are kept "On" at the engine level but are blocked via the `_isLocked` flag in C#, ensuring the "Inspect" menu item never disappears.
-  
-- **C# Fast Path**: Common actions like F12 are now handled instantly within the C# layer, bypassing the AutoIt COM overhead for maximum performance.
-  
-- **Guaranteed Unlock**: Improved the AutoIt navigation functions (`_NetWebView2_Navigate`) to ensure the browser is always unlocked, even if a navigation times out or fails.
-
-#### 4. Refactored: OnDownloadStarting Event
-- **Transitioned from a parameter-based signature to a robust, object-oriented argument model.**
-    - **New Argument Wrapper**: `IWebView2DownloadStartingEventArgs` provides access to `Uri`, `ResultFilePath`, `Handled`, `Cancel`, `MimeType`, `ContentDisposition`, and `TotalBytesToReceive`.
-      
-    - **Hybrid Deferral Model**: Implemented a performance-optimized synchronization mechanism using `CoreWebView2Deferral`. The C# core now waits up to 5000ms for AutoIt to set `Handled` or `Cancel` on the argument object, proceeding immediately once a decision is made.
-      
-    - **MimeType Support (Issue #123)**: Exposed `MimeType` directly in the download arguments, allowing AutoIt scripts to identify "unviewable content" (e.g., PDFs, ZIPs) at the start of the download lifecycle.
-      
-- **Improved: Download Logic**: Automatic redirection to `_customDownloadPath` is now applied *before* the event fires, allowing **AutoIt** to see and potentially override the final destination.
-
-#### 5. Refactored: OnDownloadStateChanged Event
-- **Transitioned to an object-oriented argument model for consistent event handling.**
-    - **New Argument Wrapper**: `IWebView2DownloadStateChangedEventArgs`
-      provides access to `State`, `Uri`, `TotalBytesToReceive`, `BytesReceived`, and a new `PercentComplete` helper.
-      
-    - **Buffered Property Pattern**: Applied to ensure thread-safe progress updates during rapid download cycles.
-      
-#### 6. Fixed: HTTP Status Code Detection
-- Resolved a bug where `OnWebResourceResponseReceived` failed to fire due to a missing legacy header hack. Replaced with native `ResourceContext` detection.
-
-
-
-> [!CAUTION]
-> **Breaking Change**: If you have custom scripts using `OnWebResourceResponseReceived` or `OnDownloadStateChanged`, please update their signatures to use the new `$oArgs` object as demonstrated in the updated examples.
-
-
-### 🏗️ Architectural Inheritance & Refactoring
-
-Building on the foundation of v2.1.0, this version further strengthens the **Event Wrapper** hierarchy:
-
-- **Base Inheritance**: All new event objects inherit from `BaseWebViewEventArgs`, ensuring that core properties like `WindowHandle` and the `ManagerInstance` are consistently available.
-    
-- **Uniformity**: Whether you are handling a sub-frame or the main browser instance, the parameter logic remains predictable and standardized.
-    
-
-> **Why this matters:** The shift to objects transforms **NetWebView2Lib** from a "simple browser wrapper" into a **Professional-Grade SDK** for AutoIt. It brings low-level control—previously reserved for languages like C# or C++—directly into the hands of the AutoIt developer.
-
+- **`ThrottlingIntervalMs` [Property]**: Gets or sets the throttling interval in milliseconds for messages sent from JavaScript to AutoIt. 
+  Set to 0 to disable throttling entirely. 
+  Default is 20 ms.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
 </p>
 
 
-## 📖 NetWebView2Lib Version 2.2.1-alpha (Quick Reference)
+## 📖 NetWebView2Lib Version 2.2.2-alpha (Quick Reference)
 
 
 ### 🟦 WebView2Manager (ProgId: NetWebView2Lib.WebView2Manager)
@@ -201,6 +139,10 @@ Enables or disables custom context menu handling.
 ##### 🔧 AdditionalBrowserArguments
 Sets additional command-line arguments to be passed to the Chromium engine during initialization. Must be set BEFORE calling Initialize().
 `object.AdditionalBrowserArguments = Value`
+
+##### 🔧 ThrottlingIntervalMs
+Gets or sets the throttling interval in milliseconds for messages sent from JavaScript to AutoIt. Set to 0 to disable throttling entirely. Default is 20ms.
+`object.ThrottlingIntervalMs` = 20
 
 ##### 🔧 HiddenPdfToolbarItems
 Controls the visibility of buttons in the PDF viewer toolbar using a bitwise combination of CoreWebView2PdfToolbarItems (e.g., 1=Save, 2=Print, 4=Search).

@@ -256,5 +256,8 @@ namespace NetWebView2Lib
 
         /// <summary>Gets or sets the folder path where WebView2 failure reports (crash dumps) are stored.</summary>
         [DispId(226)] string FailureReportFolderPath { get; set; }
+
+        /// <summary>Gets or sets the throttling interval in milliseconds for messages sent from JavaScript to AutoIt. Default is 20ms.</summary>
+        [DispId(231)] int ThrottlingIntervalMs { get; set; }
     }
 }

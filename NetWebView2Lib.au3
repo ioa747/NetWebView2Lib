@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2.2.1-alpha1 (2026.04.14.10) 🚩
+; NetWebView2Lib.au3 - Script Version: 2.2.2-alpha (2026.06.27.19) 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -150,23 +150,25 @@ Global Enum _ ; Indicates the reason for the process failure.
 ; Name ..........: _NetWebView2_CreateManager
 ; Description ...: Create WebView2 object
 ; Syntax ........: _NetWebView2_CreateManager([$sUserAgent = ""[, $s_fnEventPrefix = ""[, $s_AddBrowserArgs = ""[,
-;                  $bVerbose = False]]]])
-; Parameters ....: $sUserAgent          - [optional] a string value. Default is "".
-;                  $s_fnEventPrefix     - [optional] a string value. Default is "".
-;                  $s_AddBrowserArgs    - [optional] a string value. Default is "". Allows passing command-line switches (e.g., --disable-gpu --mute-audio --proxy-server="...") to the Chromium engine.
-;                  $bVerbose            - [optional] True/False - Enable/Disable diagnostic logging. Default is False = Disabled.
+;                  $bVerbose = False[, $iThrottlingIntervalMs = 20]]]]])
+; Parameters ....: $sUserAgent            - [optional] a string value. Default is "".
+;                  $s_fnEventPrefix       - [optional] a string value. Default is "".
+;                  $s_AddBrowserArgs      - [optional] a string value. Default is "".
+;                      Allows passing command-line switches (e.g., "--disable-gpu --mute-audio") to the Chromium engine.
+;                  $bVerbose              - [optional] True/False - Enable/Disable diagnostic logging. Default is False = Disabled.
+;                  $iThrottlingIntervalMs - [optional] an integer value. Default is 20.
+;                      Sets the JS-to-AutoIt message throttling interval in ms. Set to 0 to disable throttling.
 ; Return values .: None
 ; Author ........: mLipok, ioa747
 ; Modified ......:
-; Remarks .......: $s_AddBrowserArgs must be set before calling _NetWebView2_Initialize().
-;                  Multiple arguments must be separated by a SPACE, not a comma (e.g., "--mute-audio --disable-gpu").
+; Remarks .......: $s_AddBrowserArgs must be set before calling Initialize().
 ; Related .......:
 ; Link ..........: https://www.chromium.org/developers/how-tos/run-chromium-with-flags
 ; Link ..........: https://chromium.googlesource.com/chromium/src/+/main/docs/configuration.md#switches
 ; Link ..........: https://peter.sh/experiments/chromium-command-line-switches/
 ; Example .......: No
 ; ===============================================================================================================================
-Func _NetWebView2_CreateManager($sUserAgent = "", $s_fnEventPrefix = "", $s_AddBrowserArgs = "", $bVerbose = False)
+Func _NetWebView2_CreateManager($sUserAgent = "", $s_fnEventPrefix = "", $s_AddBrowserArgs = "", $bVerbose = False, $iThrottlingIntervalMs = 20)
 	Local Const $s_Prefix = "[_NetWebView2_CreateManager]: fnEventPrefix:" & $s_fnEventPrefix & " AddBrowserArgs:" & $s_AddBrowserArgs
 	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 	Local $oMyError = ObjEvent("AutoIt.Error", __NetWebView2_COMErrFunc) ; Local COM Error Handler
@@ -184,6 +186,7 @@ Func _NetWebView2_CreateManager($sUserAgent = "", $s_fnEventPrefix = "", $s_AddB
 		; Verbose property was added to allow real-time diagnostic logging to the SciTE console (or any stdout listener).
 		; The diagnostic logs use a distinctive prefix and include the instance handle for easier filtering in multi-window applications.
 		$oWebV2M.Verbose = $bVerbose
+		$oWebV2M.ThrottlingIntervalMs = $iThrottlingIntervalMs
 ;~ 		If $_g_bNetWebView2_DebugDev Then __NetWebView2_ObjName_FlagsValue($oWebV2M) ; FOR DEV TESTING ONLY
 
 		If $sUserAgent Then $oWebV2M.SetUserAgent($sUserAgent)
@@ -760,7 +763,7 @@ Func _NetWebView2_NavigateToString($oWebV2M, $s_HTML, $iWaitMessage = $NETWEBVIE
 			_NetWebView2_LoadWait($oWebV2M, $iWaitMessage, $sExpectedTitle, $iTimeOut_ms)
 			$ERR = @error
 			$EXT = @extended
-			$MSG = " LoadWait internal Error" & " #SLN=" & @ScriptLineNumber
+			$MSG = ($ERR ? " LoadWait internal Error" : " Success") & " #SLN=" & @ScriptLineNumber
 		EndIf
 		$oWebV2M.UnLockWebView()
 	EndIf
@@ -1859,7 +1862,7 @@ EndFunc   ;==>__NetWebView2_freezer
 #EndRegion ; === NetWebView2Lib UDF === #INTERNAL_USE_ONLY#
 
 #Region ; === NetWebView2Lib UDF === EVENT HANDLERS ***** Collection *****
-
+; *******************************************************************************************************************************
 #Region ; === NetWebView2Lib UDF === EVENT HANDLERS === Error Handlers ===
 ; #INTERNAL_USE_ONLY# ===========================================================================================================
 ; Name ..........: __NetWebView2_SilentErrorHandler
@@ -2807,5 +2810,5 @@ EndFunc   ;==>__NetWebView2_Events__FrameKeeper
 ;~ https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame?view=webview2-winrt-1.0.3595.46#screencapturestarting
 ;~ EndFunc   ;==>__NetWebView2_Events__OnScreenCaptureStarting
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS * #TODO ===
-
+; *******************************************************************************************************************************
 #EndRegion ; === NetWebView2Lib UDF === EVENT HANDLERS ***** Collection *****
