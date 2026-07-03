@@ -142,7 +142,7 @@ Sets additional command-line arguments to be passed to the Chromium engine durin
 
 ##### 🔧 ThrottlingIntervalMs
 Gets or sets the throttling interval in milliseconds for messages sent from JavaScript to AutoIt. Set to 0 to disable throttling entirely. Default is 20ms.
-`object.ThrottlingIntervalMs` = 20
+`object.ThrottlingIntervalMs = Value`
 
 ##### 🔧 HiddenPdfToolbarItems
 Controls the visibility of buttons in the PDF viewer toolbar using a bitwise combination of CoreWebView2PdfToolbarItems (e.g., 1=Save, 2=Print, 4=Search).
