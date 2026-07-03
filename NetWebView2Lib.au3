@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2.2.2-alpha (2026.06.27.19) 🚩
+; NetWebView2Lib.au3 - Script Version: 2.2.2-alpha (2026.07.03.16) 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
@@ -112,7 +112,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by mainly by __NetWebView2_Event
 		$NETWEBVIEW2_MESSAGE__COOKIE_ADD_ERROR, _
 		$NETWEBVIEW2_MESSAGE__BLOCKED_AD, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING, _
-		$NETWEBVIEW2_MESSAGE__DOWNLOAD_CANCELLED, _ ; <<--( NEW )--<<
+		$NETWEBVIEW2_MESSAGE__DOWNLOAD_CANCELLED, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_IN_PROGRESS, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_INTERRUPTED, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_COMPLETED, _
@@ -162,6 +162,7 @@ Global Enum _ ; Indicates the reason for the process failure.
 ; Author ........: mLipok, ioa747
 ; Modified ......:
 ; Remarks .......: $s_AddBrowserArgs must be set before calling Initialize().
+;                      Multiple arguments must be separated by a SPACE, not a comma (e.g., "--mute-audio --disable-gpu").
 ; Related .......:
 ; Link ..........: https://www.chromium.org/developers/how-tos/run-chromium-with-flags
 ; Link ..........: https://chromium.googlesource.com/chromium/src/+/main/docs/configuration.md#switches
@@ -582,81 +583,87 @@ EndFunc   ;==>_NetWebView2_GetVersion
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_LoadWait($oWebV2M, $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED, $sExpectedTitle = "", $iTimeOut_ms = 5000)
-	Local Const $s_Prefix = "[_NetWebView2_LoadWait]: WaitMessage:" & $iWaitMessage & " ExpectedTitle:" & (($sExpectedTitle) ? ($sExpectedTitle) : ("[is EMPTY]")) & " TimeOut_ms:" & $iTimeOut_ms
-	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
-	Local $hTimer = TimerInit()
+    Local Const $s_Prefix = "[_NetWebView2_LoadWait]: WaitMessage:" & $iWaitMessage & " ExpectedTitle:" & (($sExpectedTitle) ? ($sExpectedTitle) : ("[is EMPTY]")) & " TimeOut_ms:" & $iTimeOut_ms
+    Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
+    Local $hTimer = TimerInit()
 
-	; RESET: Clear the status of this instance before starting the wait loop
-	__NetWebView2_LastMessage_Navigation($oWebV2M, $NETWEBVIEW2_MESSAGE__NONE)
+    ; RESET: Clear the status of this instance before starting the wait loop
+    __NetWebView2_LastMessage_Navigation($oWebV2M, $NETWEBVIEW2_MESSAGE__NONE)
 
-	While 1
-		__NetWebView2_Sleep(10) ; Allow AutoIt to "breathe" and process the GUI messages, also allow user to abort
-		If @error Then
-			$ERR = @error
-			$EXT = @extended
-			$RET = False
-			ExitLoop
-		EndIf
+    While 1
+        __NetWebView2_Sleep(10) ; Allow AutoIt to "breathe" and process the GUI messages, also allow user to abort
+        If @error Then
+            $ERR = @error
+            $EXT = @extended
+            $RET = False
+            ExitLoop
+        EndIf
 
-		Local $bWebIsReady = $oWebV2M.IsReady ; RULE 1: Check if browser IsReady
-		If @error Then ; browser/COM error ?
-			$ERR = 1
-			$RET = False
-			ExitLoop
-		ElseIf $iTimeOut_ms And TimerDiff($hTimer) >= $iTimeOut_ms Then ; RULE 2: TimeOut Check
-			__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " - TIME OUT - the waiting time has expired", 1, $ERR, $EXT)
-			$ERR = 2
-			$RET = False
-			ExitLoop
-		ElseIf Not $bWebIsReady Then ; RULE 3: if browser is not ready continue waiting
-			ContinueLoop ; For navigation events, ensure the browser reports IsReady
-		EndIf
+        Local $bWebIsReady = $oWebV2M.IsReady ; RULE 1: Check if browser IsReady
+        If @error Then ; browser/COM error ?
+            $ERR = 1
+            $RET = False
+            ExitLoop
+        ElseIf $iTimeOut_ms And TimerDiff($hTimer) >= $iTimeOut_ms Then ; RULE 2: TimeOut Check
+            __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & " - TIME OUT - the waiting time has expired", 1, $ERR, $EXT)
+            $ERR = 2
+            $RET = False
+            ExitLoop
+        ElseIf Not $bWebIsReady Then ; RULE 3: if browser is not ready continue waiting
+            ContinueLoop ; For navigation events, ensure the browser reports IsReady
+        EndIf
 
-		; RULE 4: checking browser DOM ReadyState
-		Local $iLastMessage = -1
-		Local $sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
-		If @error Then ; RULE 4: checking ready state - DOM should not fire event
-			$ERR = 3
-			$RET = False
-			$MSG = " document.readyState execution Error" & " #SLN=" & @ScriptLineNumber
-			ExitLoop
-		ElseIf StringLeft($sReadyState, 6) == "ERROR:" Then ; RULE 4: checking ready state JavaScript result on case of error
-			$ERR = 4
-			$RET = False
-			$MSG = " document.readyState execution Error" & " #SLN=" & @ScriptLineNumber
-			ExitLoop
-		ElseIf $sReadyState = "complete" Then ; RULE 4: checking browser DOM ReadyState is "complete"
-			$iLastMessage = __NetWebView2_LastMessage_Navigation($oWebV2M)
-			If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: ReadyState=" & $sReadyState & " LastMessage=" & $iLastMessage & " WaitMessage=" & $iWaitMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
-			If $iLastMessage = $NETWEBVIEW2_MESSAGE__NAV_ERROR Or $iLastMessage = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED Or $iLastMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then ; RULE 5: messages of specific Error occurs
-				If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT:" & $iLastMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
-				$ERR = 5
-				$RET = False
-				ExitLoop
-			ElseIf $iLastMessage >= $iWaitMessage Then ; RULE 6: checking requested events messages
-				If $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED And $sExpectedTitle Then ; RULE 7: checking Expected document title - only if $NETWEBVIEW2_MESSAGE__TITLE_CHANGED was choosed
-					Local $sCurrentTitle = $oWebV2M.GetDocumentTitle()
-					Local $bTitleCheck = (StringRegExp($sCurrentTitle, $sExpectedTitle, $STR_REGEXPMATCH) = 1)
-					Local $s_DEV_Info = "! IFNC: DEV: TEST LOAD WAIT: Prefix:: " & $s_Prefix & " TitleCheck=" & $bTitleCheck & " LastMessage=" & $iLastMessage & " CurrentTitle=" & $sCurrentTitle
-					If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
-					If $bTitleCheck Then
-						$MSG = " TitleCheck=" & $bTitleCheck & " #SLN=" & @ScriptLineNumber
-						$RET = True
-						ExitLoop
-					EndIf
-				Else
-					If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
-					$MSG = " LastMessage=" & $iLastMessage & " #SLN=" & @ScriptLineNumber
-					$RET = True
-					ExitLoop
-				EndIf
-			EndIf
-		EndIf
-		If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & $iLastMessage & " >> " & __NetWebView2_LastMessage_Navigation($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
-	WEnd
+        ; RULE 4: checking browser DOM ReadyState
+        Local $iLastMessage = -1
+        Local $sReadyState = _NetWebView2_ExecuteScript($oWebV2M, "document.readyState", $NETWEBVIEW2_EXECUTEJS_MODE2_RESULT)
+        If @error Then ; RULE 4: checking ready state - DOM should not fire event
+            $ERR = 3
+            $RET = False
+            $MSG = " document.readyState execution Error" & " #SLN=" & @ScriptLineNumber
+            ExitLoop
+        ElseIf StringLeft($sReadyState, 6) == "ERROR:" Then ; RULE 4: checking ready state JavaScript result on case of error
+            $ERR = 4
+            $RET = False
+            $MSG = " document.readyState execution Error" & " #SLN=" & @ScriptLineNumber
+            ExitLoop
+        ElseIf $sReadyState = "complete" Then ; RULE 4: checking browser DOM ReadyState is "complete"
+            $iLastMessage = __NetWebView2_LastMessage_Navigation($oWebV2M)
+            If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: ReadyState=" & $sReadyState & " LastMessage=" & $iLastMessage & " WaitMessage=" & $iWaitMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
+            If $iLastMessage = $NETWEBVIEW2_MESSAGE__NAV_ERROR Or $iLastMessage = $NETWEBVIEW2_MESSAGE__PROCESS_FAILED Or $iLastMessage = $NETWEBVIEW2_MESSAGE__CRITICAL_ERROR Then ; RULE 5: messages of specific Error occurs
+                If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT:" & $iLastMessage & " #SLN=" & @ScriptLineNumber & @CRLF)
+                $ERR = 5
+                $RET = False
+                ExitLoop
+            ElseIf $iLastMessage >= $iWaitMessage Then ; RULE 6: checking requested events messages
+                ; 🚧 Fixed #129 @Blowcake 's Scope Bug - Declared here so it's safely accessible by both If and Else blocks
+                Local $s_DEV_Info = "! IFNC: DEV: TEST LOAD WAIT: Prefix:: " & $s_Prefix & " LastMessage=" & $iLastMessage
 
-	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
-	Return SetError($ERR, $EXT, $RET)
+                If $iWaitMessage = $NETWEBVIEW2_MESSAGE__TITLE_CHANGED And $sExpectedTitle Then ; RULE 7: checking Expected document title - only if $NETWEBVIEW2_MESSAGE__TITLE_CHANGED was choosed
+                    Local $sCurrentTitle = $oWebV2M.GetDocumentTitle()
+                    Local $bTitleCheck = (StringRegExp($sCurrentTitle, $sExpectedTitle, $STR_REGEXPMATCH) = 1)
+                    $s_DEV_Info &= " TitleCheck=" & $bTitleCheck & " CurrentTitle=" & $sCurrentTitle
+                    If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
+                    If $bTitleCheck Then
+                        $MSG = " TitleCheck=" & $bTitleCheck & " #SLN=" & @ScriptLineNumber
+                        $RET = True
+                        ExitLoop
+                    EndIf
+                Else
+                    If $_g_bNetWebView2_DebugDev Then ConsoleWrite($s_DEV_Info & " #SLN=" & @ScriptLineNumber & @CRLF)
+                    $MSG = " LastMessage=" & $iLastMessage & " #SLN=" & @ScriptLineNumber
+                    $RET = True
+                    ExitLoop
+                EndIf
+            EndIf
+        Else
+            ; 🚧 If state is "loading" or "interactive", sleep 50ms before hitting COM/JS again to reduce CPU load
+            __NetWebView2_Sleep(50)
+        EndIf
+        If $_g_bNetWebView2_DebugDev Then ConsoleWrite("! IFNC: DEV: TEST LOAD WAIT: __NetWebView2_LastMessage_Navigation($oWebV2M)=" & $iLastMessage & " >> " & __NetWebView2_LastMessage_Navigation($oWebV2M) & " #SLN=" & @ScriptLineNumber & @CRLF)
+    WEnd
+
+    __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
+    Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_LoadWait
 
 ; #FUNCTION# ====================================================================================================================
@@ -800,27 +807,44 @@ EndFunc   ;==>_NetWebView2_NavigateToString
 ; Example .......: No
 ; ===============================================================================================================================
 Func _NetWebView2_BrowserSetupWrapper($hOuterParentWindow, ByRef $oOuterWeb, $sEventPrefix, $sProfile, ByRef $oOuterBridge, ByRef $hInnerWebViewWindow, $iX, $iY, $iW, $iH, $s_AddBrowserArgs)
-	Local Const $s_Prefix = "[_NetWebView2_BrowserSetupWrapper]:" & " EventPrefix:" & $sEventPrefix & " Profile:" & $sProfile & " AddBrowserArgs:" & $s_AddBrowserArgs
-	Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
-	$hInnerWebViewWindow = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hOuterParentWindow)
-	GUISetState(@SW_SHOW, $hInnerWebViewWindow)
+    Local Const $s_Prefix = "[_NetWebView2_BrowserSetupWrapper]:" & " EventPrefix:" & $sEventPrefix & " Profile:" & $sProfile & " AddBrowserArgs:" & $s_AddBrowserArgs
+    Local $ERR = 0, $EXT = 0, $RET = False, $MSG = "" ; predefined endpoint results
 
-	$oOuterWeb = _NetWebView2_CreateManager("", $sEventPrefix & "_Manager__", $s_AddBrowserArgs)
-	If Not @error Then
-		_NetWebView2_Initialize($oOuterWeb, $hInnerWebViewWindow, $sProfile, 0, 0, $iW, $iH)
-		If Not @error Then
-			$oOuterBridge = _NetWebView2_GetBridge($oOuterWeb, $sEventPrefix & "_Bridge__")
-			If Not @error Then
-				$RET = True
-			EndIf
-		EndIf
-	EndIf
-	$ERR = @error
-	$EXT = @extended
-	$MSG = " InnerWebViewWindow=" & $hInnerWebViewWindow & " BrowserWindowHandle=" & $oOuterWeb.BrowserWindowHandle
+    $hInnerWebViewWindow = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hOuterParentWindow)
+    GUISetState(@SW_SHOW, $hInnerWebViewWindow)
 
-	__NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
-	Return SetError($ERR, $EXT, $RET)
+    ; 1. Create Manager
+    $oOuterWeb = _NetWebView2_CreateManager("", $sEventPrefix & "_Manager__", $s_AddBrowserArgs)
+    If @error Then
+        $ERR = @error
+        $EXT = @extended
+        $MSG = " CreateManager failed."
+    Else
+        ; 2. Initialize
+        _NetWebView2_Initialize($oOuterWeb, $hInnerWebViewWindow, $sProfile, 0, 0, $iW, $iH)
+        If @error Then
+            $ERR = @error
+            $EXT = @extended
+            $MSG = " Initialize failed."
+        Else
+            ; 3. Get Bridge
+            $oOuterBridge = _NetWebView2_GetBridge($oOuterWeb, $sEventPrefix & "_Bridge__")
+            If @error Then
+                $ERR = @error
+                $EXT = @extended
+                $MSG = " GetBridge failed."
+            Else
+                $RET = True
+            EndIf
+        EndIf
+    EndIf
+
+    ; 🚧 Fixed #130 @Blowcake 's bug using ternary operator to check if $oOuterWeb is a valid object before accessing properties
+    Local $sHWndInfo = IsObj($oOuterWeb) ? $oOuterWeb.BrowserWindowHandle : "[Not Created]"
+    $MSG &= " InnerWebViewWindow=" & $hInnerWebViewWindow & " BrowserWindowHandle=" & $sHWndInfo
+
+    __NetWebView2_Log(@ScriptLineNumber, $s_Prefix & $MSG, 1, $ERR, $EXT)
+    Return SetError($ERR, $EXT, $RET)
 EndFunc   ;==>_NetWebView2_BrowserSetupWrapper
 
 ; #FUNCTION# ====================================================================================================================
@@ -2431,7 +2455,7 @@ EndFunc   ;==>__NetWebView2_Events__OnContextMenu
 ; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.webresourceresponsereceived
 ; Example .......: 007-HTTP_StatusCodeTracking.au3
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $oArgs)                                                  ; <<--( NEW )--<<
+Volatile Func __NetWebView2_Events__OnWebResourceResponseReceived($oWebV2M, $hGUI, $oArgs)
 	Local Const $s_Prefix = ">>>[EVENT: OnWebResourceResponseReceived]: GUI:" & $hGUI & _
 	" HTTPStatusCode:" & $oArgs.StatusCode & " (" & $oArgs.ReasonPhrase & ")  URL:" & $oArgs.RequestUri & " URL:" & $oArgs.IsDocument
 
@@ -2461,7 +2485,7 @@ EndFunc   ;==>__NetWebView2_Events__OnWebResourceResponseReceived
 ; Link ..........: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2downloadstartingeventargs
 ; Example .......: 021 - Handle Unviewable Content (MIME).au3
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $oArgs)                                                                                      ; <<--( NEW )--<<
+Volatile Func __NetWebView2_Events__OnDownloadStarting($oWebV2M, $hGUI, $oArgs)
 	Local Const $s_Prefix = "[>>>EVENT: OnDownloadStarting]: GUI:" & $hGUI & " URL: " & $oArgs.Uri & " PATH: " & $oArgs.ResultFilePath & " MIME: " & $oArgs.MimeType
 	__NetWebView2_Log(@ScriptLineNumber, (StringLen($s_Prefix) > 150 ? StringLeft($s_Prefix, 150) & "..." : $s_Prefix), 1)
 	__NetWebView2_LastMessage_KEEPER($oWebV2M, $NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING)
@@ -2488,7 +2512,7 @@ EndFunc   ;==>__NetWebView2_Events__OnDownloadStarting
 ; Link ..........:
 ; Example .......: 006-DownloadDemo.au3
 ; ===============================================================================================================================
-Volatile Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $oArgs)                                                      ; <<--( NEW )--<<
+Volatile Func __NetWebView2_Events__OnDownloadStateChanged($oWebV2M, $hGUI, $oArgs)
 	Local $iReceived_MB = Round($oArgs.BytesReceived / 1048576, 2) ; 1024*1024
 	Local $iTotal_MB = Round($oArgs.TotalBytesToReceive / 1048576, 2)
 
