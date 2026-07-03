@@ -112,7 +112,7 @@ Global Enum _ ; $NETWEBVIEW2_MESSAGE__* are set by mainly by __NetWebView2_Event
 		$NETWEBVIEW2_MESSAGE__COOKIE_ADD_ERROR, _
 		$NETWEBVIEW2_MESSAGE__BLOCKED_AD, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_STARTING, _
-		$NETWEBVIEW2_MESSAGE__DOWNLOAD_CANCELLED, _ ; <<--( NEW )--<<
+		$NETWEBVIEW2_MESSAGE__DOWNLOAD_CANCELLED, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_IN_PROGRESS, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_INTERRUPTED, _
 		$NETWEBVIEW2_MESSAGE__DOWNLOAD_COMPLETED, _
@@ -782,8 +782,6 @@ EndFunc   ;==>_NetWebView2_NavigateToString
 #EndRegion ; === NetWebView2Lib UDF === _NetWebView2_* core functions
 
 #Region ; === NetWebView2Lib UDF === _NetWebView2_* helper functions
-
-
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _NetWebView2_BrowserSetupWrapper
 ; Description ...: Sets up and initializes a browser window using the specified profile and settings.
