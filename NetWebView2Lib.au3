@@ -6,7 +6,7 @@
 
 #Tidy_Parameters=/tcb=-1
 
-; NetWebView2Lib.au3 - Script Version: 2.2.2-alpha (2026.07.02.18) 🚩
+; NetWebView2Lib.au3 - Script Version: 2.2.2-alpha (2026.07.03.16) 🚩
 
 #include <Array.au3>
 #include <GUIConstantsEx.au3>
