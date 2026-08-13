@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Excel Viewer</title>
+    <!-- Local SheetJS Library -->
+    <script src="js/xlsx.full.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #2b2b2b; 
+            color: white; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+        }
+
+        #toolbar { 
+            background-color: #1e1e1e; 
+            padding: 8px 15px; 
+            border-bottom: 1px solid #3c3c3c; 
+            display: flex; 
+            gap: 10px; 
+            align-items: center; 
+        }
+
+        #sheet-tabs { 
+            display: flex; 
+            gap: 5px; 
+            overflow-x: auto; 
+        }
+
+        .tab-btn { 
+            background-color: #3c3c3c; 
+            color: #ccc; 
+            border: none; 
+            padding: 6px 12px; 
+            cursor: pointer; 
+            border-radius: 3px; 
+            font-size: 13px; 
+        }
+
+        .tab-btn.active { 
+            background-color: #107c41; /* Excel green */
+            color: white; 
+            font-weight: bold; 
+        }
+
+        #table-container { 
+            flex: 1; 
+            overflow: auto; 
+            padding: 15px; 
+        }
+
+        /* Table styling for Excel-like view */
+        table { 
+            border-collapse: collapse; 
+            background-color: #ffffff; 
+            color: #000000; 
+            min-width: 100%; 
+            font-size: 13px; 
+        }
+
+        th, td { 
+            border: 1px solid #d4d4d4; 
+            padding: 6px 10px; 
+            text-align: left; 
+            white-space: nowrap; 
+        }
+
+        th { 
+            background-color: #f3f3f3; 
+            color: #333; 
+            font-weight: 600; 
+            position: sticky; 
+            top: 0; 
+        }
+
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #e8f4ec; }
+
+        .placeholder { color: #888; text-align: center; font-size: 1.2rem; margin-top: 100px; }
+    </style>
+</head>
+<body>
+
+    <div id="toolbar">
+        <span>Worksheets:</span>
+        <div id="sheet-tabs"></div>
+    </div>
+
+    <div id="table-container">
+        <div id="output">
+            <div class="placeholder">Please click "Load Excel Document" above to select a file.</div>
+        </div>
+    </div>
+
+    <script>
+        let workbook = null;
+
+        // Called dynamically from AutoIt
+        async function renderLocalXlsx(fileName) {
+            const output = document.getElementById("output");
+            output.innerHTML = "Loading document...";
+
+            try {
+                // Fetch the file with query parameter to bypass browser cache
+                const response = await fetch(fileName + "?t=" + new Date().getTime());
+                const arrayBuffer = await response.arrayBuffer();
+                
+                // Parse Excel Workbook using SheetJS
+                workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+                // Render Sheet Tabs
+                renderTabs();
+
+                // Render First Sheet by default
+                if (workbook.SheetNames.length > 0) {
+                    renderSheet(workbook.SheetNames[0]);
+                }
+            } catch (err) {
+                output.innerHTML = "<b style='color:red;'>Error rendering document:</b> " + err.message;
+            }
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('sheet-tabs');
+            container.innerHTML = '';
+
+            workbook.SheetNames.forEach((sheetName, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'tab-btn' + (index === 0 ? ' active' : '');
+                btn.innerText = sheetName;
+                btn.onclick = () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderSheet(sheetName);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderSheet(sheetName) {
+            const worksheet = workbook.Sheets[sheetName];
+            const htmlTable = XLSX.utils.sheet_to_html(worksheet, { id: 'excel-table', editable: false });
+            document.getElementById('output').innerHTML = htmlTable;
+        }
+    </script>
+</body>
+</html>
