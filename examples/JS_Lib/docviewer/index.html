@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DOCX Viewer</title>
+    <script src="js/jszip.min.js"></script>
+    <script src="js/docx-preview.min.js"></script>
+    <style>
+        body { margin: 0; background-color: #2b2b2b; font-family: Segoe UI, sans-serif; color: white; }
+        #container { margin: 15px auto; max-width: 900px; background: #ffffff; color: #000; padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); min-height: 80vh; }
+        .placeholder { color: #888; text-align: center; font-size: 1.2rem; margin-top: 100px; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div class="placeholder">Please click "Load Word Document" above to select a file.</div>
+    </div>
+
+    <script>
+        async function renderLocalDocx(fileName) {
+            const container = document.getElementById("container");
+            container.innerHTML = "Loading document...";
+
+            try {
+                // Fetch the file using query parameter to bypass browser cache
+                const response = await fetch(fileName + "?t=" + new Date().getTime());
+                const blob = await response.blob();
+                
+                container.innerHTML = "";
+                await docx.renderAsync(blob, container);
+            } catch (err) {
+                container.innerHTML = "<b style='color:red;'>Error rendering document:</b> " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
